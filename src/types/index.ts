@@ -1,0 +1,99 @@
+import { Timestamp } from 'firebase/firestore';
+
+export type UserRole = 'admin' | 'user' | 'pending' | 'rejected';
+
+export interface AppUser {
+    uid: string;
+    email: string;
+    displayName: string;
+    photoURL: string;
+    role: UserRole;
+    approvedAt: Timestamp | null;
+    createdAt: Timestamp;
+}
+
+export interface LedgerAccount {
+    id: string;
+    code: string;
+    name: string;
+    budget?: number;
+    createdAt: Timestamp;
+}
+
+export interface Vendor {
+    id: string;
+    code?: string;
+    name: string;
+    createdAt: Timestamp;
+}
+
+export interface Purchase {
+    id: string;
+    title: string;          // 採購品名
+    vendor: string;         // 廠商
+    ledgerAccountId: string;
+    ledgerAccountName: string; // 總帳科目名稱（冗餘存放方便查詢）
+    amount: number;         // 金額
+    quantity: number;       // 數量
+    unit: string;           // 單位
+    purchaseDate: Timestamp;
+    purchaseType: string;      // 採購類型: 工程, 財務, 勞務
+    requisitionType: string;   // 請購類型: 經MM, 非經MM
+    itemNo: number;            // 項次: 10, 20, 30...
+    groupId: string;           // 群組 ID，用於關聯同一筆採購的多個品項
+    invoice: string;           // 發票
+    docNumber: string;         // 發票文件號碼
+    note: string;
+    createdBy: string;      // uid
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}
+
+export interface PurchaseItem {
+    id?: string;               // 用於編輯時追蹤
+    title: string;
+    ledgerAccountId: string;
+    ledgerAccountName: string;
+    amount: string;
+}
+
+export interface PurchaseFormData {
+    vendor: string;
+    purchaseDate: string;
+    purchaseType: string;
+    requisitionType: string;
+    items: PurchaseItem[];
+    invoice: string;
+    docNumber: string;
+    note: string;
+}
+
+export interface AnnualSummaryByAccount {
+    ledgerAccountId: string;
+    ledgerAccountCode: string;
+    ledgerAccountName: string;
+    total: number;
+    count: number;
+    items: Purchase[];
+}
+
+export interface AnnualSummaryByVendor {
+    vendor: string;
+    total: number;
+    count: number;
+    items: Purchase[];
+}
+
+export interface AnnualSummaryByRequisition {
+    type: string;
+    total: number;
+    count: number;
+    items: Purchase[];
+}
+
+export interface AnnualSummaryByPurchaseType {
+    type: string;
+    total: number;
+    count: number;
+    items: Purchase[];
+}

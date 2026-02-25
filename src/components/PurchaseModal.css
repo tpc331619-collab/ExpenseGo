@@ -1,0 +1,321 @@
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: fadeIn .2s;
+}
+
+.modal-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 760px;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: slideUp .3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.modal-close {
+    color: var(--text3);
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all .2s;
+    background: transparent;
+}
+
+.modal-close:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--red);
+}
+
+.modal-form {
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-error {
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--red);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px 16px;
+}
+
+.col-6 {
+    grid-column: span 6;
+}
+
+.col-4 {
+    grid-column: span 4;
+}
+
+.col-8 {
+    grid-column: span 8;
+}
+
+.col-12 {
+    grid-column: span 12;
+}
+
+@media (max-width: 640px) {
+
+    .col-6,
+    .col-4,
+    .col-8 {
+        grid-column: span 12;
+    }
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-group label span.required {
+    color: var(--red);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 14.5px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--purple);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    background: white;
+}
+
+.form-group input::placeholder {
+    color: var(--text3);
+    opacity: 0.8;
+}
+
+/* ── Footer Combined ────────────────────────────────────────────────────────── */
+.modal-footer-combined {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    gap: 20px;
+}
+
+.footer-total-box {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.footer-total-box label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    white-space: nowrap;
+}
+
+.total-display-premium {
+    color: var(--text);
+    padding: 4px 0;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+}
+
+.total-display-premium::before {
+    content: "NT$";
+    font-size: 1rem;
+    margin-right: 8px;
+    color: var(--text3);
+    font-weight: 600;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* ── Items Section ───────────────────────────────────────────────────────────── */
+.items-section {
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+}
+
+.items-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.items-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.section-note {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 400;
+}
+
+.btn-add-item {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--purple);
+    background: rgba(99, 102, 241, 0.05);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px dashed var(--purple);
+    transition: all .2s;
+}
+
+.btn-add-item:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.item-row:hover {
+    border-color: var(--purple);
+    background: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+    transform: translateY(-1px);
+}
+
+.item-no {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    width: 24px;
+}
+
+.item-fields {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 2fr 2fr 1.5fr;
+    gap: 10px;
+}
+
+.item-fields .f-group input,
+.item-fields .f-group select {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.btn-remove-item {
+    color: var(--text3);
+    padding: 4px;
+    border-radius: 4px;
+    transition: all .2s;
+}
+
+.btn-remove-item:hover {
+    color: var(--red);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.total-display {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.footer-total {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border);
+}
+
+.footer-total .total-display {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    font-size: 1.5rem;
+    padding: 12px 20px;
+}

@@ -1,0 +1,118 @@
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(99, 102, 241, .3) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, .2) 0%, transparent 50%),
+        var(--bg);
+}
+
+.login-card {
+    position: relative;
+    z-index: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    animation: slideUp .4s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-logo {
+    margin-bottom: 16px;
+}
+
+.login-title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #6366f1, #a78bfa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.login-subtitle {
+    color: var(--text2);
+    font-size: 15px;
+    margin-bottom: 36px;
+}
+
+.login-error {
+    background: rgba(239, 68, 68, .08);
+    border: 1px solid rgba(239, 68, 68, .3);
+    color: #dc2626;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.login-note {
+    color: var(--text3);
+    font-size: 13px;
+    margin-top: 24px;
+    line-height: 1.6;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 20px;
+    background: #fff;
+    color: #1f2937;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 15px;
+    transition: box-shadow .2s, transform .1s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+
+.google-btn:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+    transform: translateY(-1px);
+}
+
+.google-btn:active {
+    transform: translateY(0);
+}
+
+.google-btn:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+}
+
+.btn-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ddd;
+    border-top-color: var(--purple);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}

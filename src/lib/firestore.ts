@@ -1,0 +1,251 @@
+import {
+    collection,
+    doc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    getDocs,
+    getDoc,
+    query,
+    where,
+    orderBy,
+    Timestamp,
+    setDoc,
+    writeBatch,
+} from 'firebase/firestore';
+import { db } from './firebase';
+import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor } from '../types';
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+export const createOrGetUser = async (uid: string, email: string, displayName: string, photoURL: string) => {
+    const ref = doc(db, 'users', uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data() as AppUser;
+
+    const ADMIN_EMAIL = 'B28803078@gmail.com';
+    const role = email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'pending';
+
+    const user: Omit<AppUser, 'id'> = {
+        uid,
+        email,
+        displayName,
+        photoURL,
+        role,
+        approvedAt: role === 'admin' ? Timestamp.now() : null,
+        createdAt: Timestamp.now(),
+    };
+    await setDoc(ref, user);
+    return user as AppUser;
+};
+
+export const getUser = async (uid: string): Promise<AppUser | null> => {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? (snap.data() as AppUser) : null;
+};
+
+export const getPendingUsers = async (): Promise<AppUser[]> => {
+    const q = query(collection(db, 'users'), where('role', '==', 'pending'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => d.data() as AppUser);
+};
+
+export const getAllUsers = async (): Promise<AppUser[]> => {
+    const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => d.data() as AppUser);
+};
+
+export const updateUserRole = async (uid: string, role: AppUser['role']) => {
+    const ref = doc(db, 'users', uid);
+    await updateDoc(ref, {
+        role,
+        approvedAt: role === 'admin' || role === 'user' ? Timestamp.now() : null,
+    });
+};
+
+// ─── Ledger Accounts ─────────────────────────────────────────────────────────
+
+export const getLedgerAccounts = async (): Promise<LedgerAccount[]> => {
+    const q = query(collection(db, 'ledgerAccounts'), orderBy('code', 'asc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LedgerAccount);
+};
+
+export const addLedgerAccount = async (code: string, name: string, budget: number) => {
+    await addDoc(collection(db, 'ledgerAccounts'), {
+        code,
+        name,
+        budget,
+        createdAt: Timestamp.now()
+    });
+};
+
+export const deleteLedgerAccount = async (id: string) => {
+    await deleteDoc(doc(db, 'ledgerAccounts', id));
+};
+
+export const updateLedgerAccount = async (id: string, code: string, name: string, budget: number) => {
+    await updateDoc(doc(db, 'ledgerAccounts', id), { code, name, budget });
+};
+
+// ─── Vendors ──────────────────────────────────────────────────────────────────
+
+export const getVendors = async (): Promise<Vendor[]> => {
+    const q = query(collection(db, 'vendors'), orderBy('name', 'asc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Vendor);
+};
+
+export const addVendor = async (code: string, name: string) => {
+    await addDoc(collection(db, 'vendors'), { code, name, createdAt: Timestamp.now() });
+};
+
+export const deleteVendor = async (id: string) => {
+    await deleteDoc(doc(db, 'vendors', id));
+};
+
+export const updateVendor = async (id: string, code: string, name: string) => {
+    await updateDoc(doc(db, 'vendors', id), { code, name });
+};
+
+// ─── Purchases ───────────────────────────────────────────────────────────────
+
+const getPurchaseRef = (year: number) => collection(db, 'years', String(year), 'purchases');
+
+export const getPurchases = async (year: number, uid?: string): Promise<Purchase[]> => {
+    const purchaseRef = getPurchaseRef(year);
+    let q;
+
+    if (uid) {
+        // 僅使用相等過濾，不加入 orderBy 以避免需要複合索引
+        q = query(purchaseRef, where('createdBy', '==', uid));
+    } else {
+        q = query(purchaseRef, orderBy('purchaseDate', 'desc'));
+    }
+
+    const snap = await getDocs(q);
+    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Purchase);
+
+    // 如果是依 UID 過濾，則在記憶體中進行排序
+    if (uid) {
+        data.sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+    }
+
+    return data;
+};
+
+export const addPurchase = async (data: PurchaseFormData, uid: string): Promise<string> => {
+    const year = new Date(data.purchaseDate).getFullYear();
+    const purchaseRef = getPurchaseRef(year);
+    const groupId = doc(purchaseRef).id;
+    const batch = writeBatch(db);
+
+    data.items.forEach((item, index) => {
+        const ref = doc(purchaseRef);
+        batch.set(ref, {
+            title: item.title,
+            vendor: data.vendor,
+            ledgerAccountId: item.ledgerAccountId,
+            ledgerAccountName: item.ledgerAccountName,
+            amount: parseFloat(item.amount) || 0,
+            purchaseDate: Timestamp.fromDate(new Date(data.purchaseDate)),
+            purchaseType: data.purchaseType,
+            requisitionType: data.requisitionType,
+            itemNo: (index + 1) * 10,
+            groupId: groupId,
+            invoice: data.invoice,
+            docNumber: data.docNumber,
+            note: data.note,
+            createdBy: uid,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+        });
+    });
+
+    await batch.commit();
+    return groupId;
+};
+
+export const updatePurchase = async (groupId: string, data: PurchaseFormData) => {
+    const year = new Date(data.purchaseDate).getFullYear();
+    const purchaseRef = getPurchaseRef(year);
+
+    // 1. 取得現有群組的所有品項
+    const q = query(purchaseRef, where('groupId', '==', groupId));
+    const snap = await getDocs(q);
+    const existingDocs = snap.docs;
+
+    const batch = writeBatch(db);
+
+    // 2. 刪除現有所有品項
+    existingDocs.forEach(d => batch.delete(d.ref));
+
+    // 3. 再寫入新的 (保留原 groupId)
+    data.items.forEach((item, index) => {
+        const ref = doc(purchaseRef);
+        batch.set(ref, {
+            title: item.title,
+            vendor: data.vendor,
+            ledgerAccountId: item.ledgerAccountId,
+            ledgerAccountName: item.ledgerAccountName,
+            amount: parseFloat(item.amount) || 0,
+            purchaseDate: Timestamp.fromDate(new Date(data.purchaseDate)),
+            purchaseType: data.purchaseType,
+            requisitionType: data.requisitionType,
+            itemNo: (index + 1) * 10,
+            groupId: groupId,
+            invoice: data.invoice,
+            docNumber: data.docNumber,
+            note: data.note,
+            updatedAt: Timestamp.now(),
+            createdBy: existingDocs[0]?.data().createdBy || '',
+            createdAt: existingDocs[0]?.data().createdAt || Timestamp.now(),
+        });
+    });
+
+    await batch.commit();
+};
+
+export const deletePurchaseGroup = async (groupId: string, year: number) => {
+    const purchaseRef = getPurchaseRef(year);
+    const q = query(purchaseRef, where('groupId', '==', groupId));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+};
+
+// ─── Migration Utility ────────────────────────────────────────────────────────
+
+export const migrateToYearlyStructure = async () => {
+    console.log('Starting migration to yearly structure...');
+    const legacyRef = collection(db, 'purchases');
+    const snap = await getDocs(legacyRef);
+
+    if (snap.empty) {
+        console.log('No legacy data to migrate.');
+        return;
+    }
+
+    const batch = writeBatch(db);
+    let count = 0;
+
+    snap.docs.forEach((d) => {
+        const data = d.data();
+        const pDate = data.purchaseDate?.toDate();
+        if (!pDate) return;
+
+        const year = pDate.getFullYear();
+        const newRef = doc(getPurchaseRef(year), d.id);
+
+        // Copy to new path
+        batch.set(newRef, data);
+        // Mark for deletion from old path
+        batch.delete(d.ref);
+        count++;
+    });
+
+    await batch.commit();
+    console.log(`Migration complete. Moved ${count} documents.`);
+};
