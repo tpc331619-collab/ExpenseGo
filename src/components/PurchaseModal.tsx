@@ -132,11 +132,29 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                     {error && <div className="form-error">{error}</div>}
 
                     <div className="form-grid">
-                        <div className="form-group col-6">
+                        {/* Row 1: 採購日期 / 採購類型 / 請購類型 */}
+                        <div className="form-group col-4">
                             <label>採購日期 <span className="required">*</span></label>
                             <input type="date" value={form.purchaseDate} onChange={(e) => set('purchaseDate', e.target.value)} />
                         </div>
-                        <div className="form-group col-6">
+                        <div className="form-group col-4">
+                            <label>採購類型</label>
+                            <select value={form.purchaseType} onChange={(e) => set('purchaseType', e.target.value)}>
+                                <option value="工程">工程</option>
+                                <option value="財務">財務</option>
+                                <option value="勞務">勞務</option>
+                            </select>
+                        </div>
+                        <div className="form-group col-4">
+                            <label>請購類型</label>
+                            <select value={form.requisitionType} onChange={(e) => set('requisitionType', e.target.value)}>
+                                <option value="經MM">經MM</option>
+                                <option value="非經MM">非經MM</option>
+                            </select>
+                        </div>
+
+                        {/* Row 2: 廠商 / 發票號碼 / FI費用報核單號 */}
+                        <div className="form-group col-4">
                             <label>廠商 <span className="required">*</span></label>
                             <select value={form.vendor} onChange={(e) => set('vendor', e.target.value)}>
                                 <option value="">選擇廠商</option>
@@ -147,24 +165,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                 ))}
                             </select>
                         </div>
-
-                        <div className="form-group col-6">
-                            <label>採購類型</label>
-                            <select value={form.purchaseType} onChange={(e) => set('purchaseType', e.target.value)}>
-                                <option value="工程">工程</option>
-                                <option value="財務">財務</option>
-                                <option value="勞務">勞務</option>
-                            </select>
-                        </div>
-                        <div className="form-group col-6">
-                            <label>請購類型</label>
-                            <select value={form.requisitionType} onChange={(e) => set('requisitionType', e.target.value)}>
-                                <option value="經MM">經MM</option>
-                                <option value="非經MM">非經MM</option>
-                            </select>
-                        </div>
-
-                        <div className="form-group col-6">
+                        <div className="form-group col-4">
                             <label>發票號碼 <span className="required">*</span></label>
                             <input
                                 value={form.invoice}
@@ -173,7 +174,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                 required
                             />
                         </div>
-                        <div className="form-group col-6">
+                        <div className="form-group col-4">
                             <label>{form.requisitionType === '非經MM' ? 'FI費用報核單號' : '發票文件號碼'} <span className="required">*</span></label>
                             <input
                                 value={form.docNumber}

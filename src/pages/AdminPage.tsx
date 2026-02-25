@@ -250,11 +250,12 @@ const AdminPage: React.FC = () => {
                         ) : (
                             <table className="admin-table">
                                 <thead>
-                                    <tr><th>科目代碼</th><th>科目名稱</th><th>預算金額</th><th>操作</th></tr>
+                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>科目代碼</th><th>科目名稱</th><th>預算金額</th><th>操作</th></tr>
                                 </thead>
                                 <tbody>
-                                    {ledgerAccounts.map((acc) => (
+                                    {ledgerAccounts.map((acc, idx) => (
                                         <tr key={acc.id}>
+                                            <td style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</td>
                                             <td><code>{acc.code}</code></td>
                                             <td>{acc.name}</td>
                                             <td>{acc.budget ? `NT$ ${acc.budget.toLocaleString()}` : '-'}</td>
@@ -305,11 +306,12 @@ const AdminPage: React.FC = () => {
                         ) : (
                             <table className="admin-table">
                                 <thead>
-                                    <tr><th>統編</th><th>廠商名稱</th><th>操作</th></tr>
+                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>統編</th><th>廠商名稱</th><th>操作</th></tr>
                                 </thead>
                                 <tbody>
-                                    {vendors.map((v) => (
+                                    {vendors.map((v, idx) => (
                                         <tr key={v.id}>
+                                            <td style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</td>
                                             <td><code>{v.code || '-'}</code></td>
                                             <td>{v.name}</td>
                                             <td>
