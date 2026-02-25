@@ -132,7 +132,15 @@ const ReportPage: React.FC = () => {
             {tab === 'account' && (
                 <div className="report-sections">
                     {byAccount.length === 0 ? (
-                        <div className="empty-state"><div className="empty-icon">📭</div><p>此年度無採購紀錄</p></div>
+                        <div className="empty-state">
+                            <svg className="empty-svg" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 12C16 9.79086 17.7909 8 20 8H36L48 20V52C48 54.2091 46.2091 56 44 56H20C17.7909 56 16 54.2091 16 52V12Z" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <path d="M36 8V20H48" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <circle cx="32" cy="36" r="8" stroke="var(--primary)" strokeWidth="2" opacity="0.5" />
+                                <path d="M38 42L42 46" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+                            </svg>
+                            <p>此年度無採購紀錄</p>
+                        </div>
                     ) : byAccount.map((acc) => (
                         <div className="report-section" key={acc.ledgerAccountId}>
                             <div className="report-section-header" onClick={() => setExpandedId(expandedId === acc.ledgerAccountId ? null : acc.ledgerAccountId)}>
@@ -184,7 +192,15 @@ const ReportPage: React.FC = () => {
             {tab === 'vendor' && (
                 <div className="report-sections">
                     {byVendor.length === 0 ? (
-                        <div className="empty-state"><div className="empty-icon">📭</div><p>此年度無採購紀錄</p></div>
+                        <div className="empty-state">
+                            <svg className="empty-svg" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 12C16 9.79086 17.7909 8 20 8H36L48 20V52C48 54.2091 46.2091 56 44 56H20C17.7909 56 16 54.2091 16 52V12Z" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <path d="M36 8V20H48" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <circle cx="32" cy="36" r="8" stroke="var(--primary)" strokeWidth="2" opacity="0.5" />
+                                <path d="M38 42L42 46" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+                            </svg>
+                            <p>此年度無採購紀錄</p>
+                        </div>
                     ) : byVendor.map((v) => (
                         <div className="report-section" key={v.vendor}>
                             <div className="report-section-header" onClick={() => setExpandedId(expandedId === v.vendor ? null : v.vendor)}>
@@ -236,7 +252,15 @@ const ReportPage: React.FC = () => {
             {tab === 'requisition' && (
                 <div className="report-sections">
                     {byRequisition.length === 0 ? (
-                        <div className="empty-state"><div className="empty-icon">📭</div><p>此年度無採購紀錄</p></div>
+                        <div className="empty-state">
+                            <svg className="empty-svg" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 12C16 9.79086 17.7909 8 20 8H36L48 20V52C48 54.2091 46.2091 56 44 56H20C17.7909 56 16 54.2091 16 52V12Z" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <path d="M36 8V20H48" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <circle cx="32" cy="36" r="8" stroke="var(--primary)" strokeWidth="2" opacity="0.5" />
+                                <path d="M38 42L42 46" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+                            </svg>
+                            <p>此年度無採購紀錄</p>
+                        </div>
                     ) : byRequisition.map((r) => (
                         <div className="report-section" key={r.type}>
                             <div className="report-section-header" onClick={() => setExpandedId(expandedId === r.type ? null : r.type)}>
@@ -284,7 +308,15 @@ const ReportPage: React.FC = () => {
             {tab === 'purchaseType' && (
                 <div className="report-sections">
                     {byPurchaseType.length === 0 ? (
-                        <div className="empty-state"><div className="empty-icon">📭</div><p>此年度無採購紀錄</p></div>
+                        <div className="empty-state">
+                            <svg className="empty-svg" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 12C16 9.79086 17.7909 8 20 8H36L48 20V52C48 54.2091 46.2091 56 44 56H20C17.7909 56 16 54.2091 16 52V12Z" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <path d="M36 8V20H48" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+                                <circle cx="32" cy="36" r="8" stroke="var(--primary)" strokeWidth="2" opacity="0.5" />
+                                <path d="M38 42L42 46" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+                            </svg>
+                            <p>此年度無採購紀錄</p>
+                        </div>
                     ) : byPurchaseType.map((rt) => (
                         <div className="report-section" key={rt.type}>
                             <div className="report-section-header" onClick={() => setExpandedId(expandedId === rt.type ? null : rt.type)}>
