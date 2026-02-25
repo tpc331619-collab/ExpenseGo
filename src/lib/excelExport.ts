@@ -116,7 +116,7 @@ export const exporttoExcel = async (
         { header: '', key: 'type', width: 14 },
         { header: '', key: 'note', width: 30 },
     ];
-    addHeaderRow(ws3, ['採購日期', '項次', '品名', '廠商', '總帳科目', '金額 (未稅)', '金額 (含稅)', '發票', '發票文件號碼', '請購類型', '採購類型', '備註']);
+    addHeaderRow(ws3, ['採購日期', '項次', '品名', '廠商', '總帳科目', '金額 (未稅)', '金額 (含稅)', '發票', '文件號碼', '請購類型', '採購類型', '備註']);
     purchases.forEach((p) => {
         const d = p.purchaseDate.toDate();
         ws3.addRow([

@@ -22,8 +22,8 @@ const emptyForm = (): PurchaseFormData => ({
     vendor: '',
     items: [emptyItem()],
     purchaseDate: new Date().toISOString().slice(0, 10),
-    purchaseType: '工程',
-    requisitionType: '非經MM',
+    purchaseType: '勞務',
+    requisitionType: '經MM',
     invoice: '',
     docNumber: '',
     note: '',
@@ -175,11 +175,11 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                             />
                         </div>
                         <div className="form-group col-4">
-                            <label>{form.requisitionType === '非經MM' ? 'FI費用報核單號' : '發票文件號碼'} <span className="required">*</span></label>
+                            <label>{form.requisitionType === '非經MM' ? 'FI費用報核單號' : '文件號碼'} <span className="required">*</span></label>
                             <input
                                 value={form.docNumber}
                                 onChange={(e) => set('docNumber', e.target.value)}
-                                placeholder={`請輸入${form.requisitionType === '非經MM' ? 'FI單號' : '發票文件號碼'}`}
+                                placeholder={`請輸入${form.requisitionType === '非經MM' ? 'FI單號' : '文件號碼'}`}
                                 required
                             />
                         </div>

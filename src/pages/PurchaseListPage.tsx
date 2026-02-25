@@ -120,7 +120,7 @@ const PurchaseListPage: React.FC = () => {
                                 <th>品名</th>
                                 <th>總帳科目</th>
                                 <th>金額 (未稅)</th>
-                                <th>發票/發票文件號碼</th>
+                                <th>發票/文件號碼</th>
                                 <th>請購類型</th>
                                 <th>採購類型</th>
                                 <th>操作</th>

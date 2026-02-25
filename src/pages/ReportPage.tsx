@@ -161,7 +161,7 @@ const ReportPage: React.FC = () => {
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
-                                            <tr><th>日期</th><th>項次</th><th>品名</th><th>廠商</th><th>金額 (未稅)</th><th>發票/發票文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
+                                            <tr><th>日期</th><th>項次</th><th>品名</th><th>廠商</th><th>金額 (未稅)</th><th>發票/文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
                                         </thead>
                                         <tbody>
                                             {acc.items.map((item) => (
