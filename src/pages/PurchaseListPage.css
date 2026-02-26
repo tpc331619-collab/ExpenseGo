@@ -16,6 +16,13 @@
     color: #475467;
 }
 
+.purchase-table th:first-child,
+.purchase-table th:last-child,
+.td-index,
+.td-actions {
+    text-align: center !important;
+}
+
 .purchase-table td {
     padding: 16px !important;
     border-top: 1px solid #f2f4f7 !important;
@@ -126,7 +133,7 @@
 .action-group {
     display: flex;
     gap: 8px;
-    justify-content: flex-end;
+    justify-content: center;
 }
 
 .action-btn-new {
