@@ -29,21 +29,27 @@
 }
 
 .kpi-card {
-    background: #fff;
-    border-radius: 16px;
+    background: #ffffff;
+    border-radius: 20px;
     padding: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     border: 1px solid #f2f4f7;
     position: relative;
     overflow: hidden;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }
 
 .kpi-icon-box {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -51,14 +57,14 @@
     flex-shrink: 0;
 }
 
-.accent-purple .kpi-icon-box {
-    background: #f9f5ff;
-    color: #7f56d9;
+.accent-emerald .kpi-icon-box {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
 }
 
-.accent-blue .kpi-icon-box {
-    background: #f0f9ff;
-    color: #2e90fa;
+.accent-indigo .kpi-icon-box {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: #ffffff;
 }
 
 .kpi-content {
@@ -66,16 +72,18 @@
 }
 
 .kpi-label {
-    font-size: 14px;
-    color: #667085;
-    margin-bottom: 4px;
-    font-weight: 500;
+    font-size: 15px;
+    color: #475569;
+    margin-bottom: 2px;
+    font-weight: 600;
 }
 
 .kpi-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: #101828;
+    font-size: 32px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -1px;
+    line-height: 1.1;
 }
 
 /* Charts */
@@ -122,67 +130,77 @@
     min-height: 2px;
 }
 
-/* Monthly Colors */
-.bar-col:nth-child(1) .bar {
-    background: linear-gradient(180deg, #F97066 0%, #D92D20 100%);
+.bar.stacked {
+    display: flex;
+    flex-direction: column-reverse;
+    /* Bottom to top */
+    overflow: hidden;
+    background: #f2f4f7;
+    border: 1px solid #eaecf0;
 }
 
-/* Jan - Red */
-.bar-col:nth-child(2) .bar {
-    background: linear-gradient(180deg, #FB923C 0%, #EA580C 100%);
+.bar-segment {
+    width: 100%;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Feb - Orange */
-.bar-col:nth-child(3) .bar {
-    background: linear-gradient(180deg, #FACC15 0%, #CA8A04 100%);
+.bar-segment:hover {
+    filter: brightness(1.1);
+    transform: scaleX(1.1);
 }
 
-/* Mar - Yellow */
-.bar-col:nth-child(4) .bar {
-    background: linear-gradient(180deg, #4ADE80 0%, #16A34A 100%);
+/* Category Color Palette */
+.cat-color-0 {
+    background: #6366f1;
 }
 
-/* Apr - Green */
-.bar-col:nth-child(5) .bar {
-    background: linear-gradient(180deg, #2DD4BF 0%, #0D9488 100%);
+/* Indigo */
+.cat-color-1 {
+    background: #0ea5e9;
 }
 
-/* May - Teal */
-.bar-col:nth-child(6) .bar {
-    background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
+/* Sky */
+.cat-color-2 {
+    background: #10b981;
 }
 
-/* Jun - Sky */
-.bar-col:nth-child(7) .bar {
-    background: linear-gradient(180deg, #60A5FA 0%, #2563EB 100%);
+/* Emerald */
+.cat-color-3 {
+    background: #f59e0b;
 }
 
-/* Jul - Blue */
-.bar-col:nth-child(8) .bar {
-    background: linear-gradient(180deg, #818CF8 0%, #4F46E5 100%);
+/* Amber */
+.cat-color-4 {
+    background: #ef4444;
 }
 
-/* Aug - Indigo */
-.bar-col:nth-child(9) .bar {
-    background: linear-gradient(180deg, #A78BFA 0%, #7C3AED 100%);
+/* Red */
+.cat-color-5 {
+    background: #8b5cf6;
 }
 
-/* Sep - Purple */
-.bar-col:nth-child(10) .bar {
-    background: linear-gradient(180deg, #C084FC 0%, #9333EA 100%);
+/* Violet */
+.cat-color-6 {
+    background: #ec4899;
 }
 
-/* Oct - Fuchsia */
-.bar-col:nth-child(11) .bar {
-    background: linear-gradient(180deg, #F472B6 0%, #DB2777 100%);
+/* Pink */
+.cat-color-7 {
+    background: #14b8a6;
 }
 
-/* Nov - Pink */
-.bar-col:nth-child(12) .bar {
-    background: linear-gradient(180deg, #FB7185 0%, #E11D48 100%);
+/* Teal */
+.cat-color-8 {
+    background: #a855f7;
 }
 
-/* Dec - Rose */
+/* Purple */
+.cat-color-9 {
+    background: #f97316;
+}
+
+/* Orange */
 
 .bar-label {
     font-size: 12px;

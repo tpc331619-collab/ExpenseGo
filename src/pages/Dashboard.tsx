@@ -44,24 +44,48 @@ const Dashboard: React.FC = () => {
             };
         }).filter(b => b.spent > 0).sort((a, b) => b.percent - a.percent);
 
-        // Monthly
-        const monthly = Array(12).fill(0);
+        // Monthly stacked data
+        const accountColors: Record<string, number> = {};
+        let colorCounter = 0;
+
+        const monthlyStacked = Array(12).fill(null).map(() => ({
+            total: 0,
+            categories: {} as Record<string, { name: string; amount: number; colorIdx: number }>
+        }));
         const monthlyItems: Record<number, Purchase[]> = {};
         for (let i = 0; i < 12; i++) monthlyItems[i] = [];
 
         yearPurchases.forEach((p) => {
             const m = p.purchaseDate.toDate().getMonth();
-            monthly[m] += p.amount;
+            const accId = p.ledgerAccountId;
+
+            if (accountColors[accId] === undefined) {
+                accountColors[accId] = colorCounter % 10;
+                colorCounter++;
+            }
+
+            if (!monthlyStacked[m].categories[accId]) {
+                monthlyStacked[m].categories[accId] = {
+                    name: p.ledgerAccountName,
+                    amount: 0,
+                    colorIdx: accountColors[accId]
+                };
+            }
+
+            monthlyStacked[m].total += p.amount;
+            monthlyStacked[m].categories[accId].amount += p.amount;
             monthlyItems[m].push(p);
         });
 
         // Sort items in each month by newest first
         Object.keys(monthlyItems).forEach((key) => {
             const m = parseInt(key);
-            monthlyItems[m].sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+            monthlyItems[m].sort((a: Purchase, b: Purchase) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
         });
 
-        return { total, count, topAccounts, budgetStatus, monthly, monthlyItems };
+        const monthly = monthlyStacked.map(m => m.total);
+
+        return { total, count, topAccounts, budgetStatus, monthly, monthlyItems, monthlyStacked };
     }, [purchases, ledgerAccounts, currentYear]);
 
     const fmt = (n: number) =>
@@ -93,21 +117,21 @@ const Dashboard: React.FC = () => {
 
             {/* KPI Cards */}
             <div className="kpi-grid">
-                <div className="kpi-card accent-purple">
+                <div className="kpi-card accent-emerald">
                     <div className="kpi-icon-box">
-                        <DollarSign size={24} />
+                        <DollarSign size={20} />
                     </div>
                     <div className="kpi-content">
                         <div className="kpi-label">累積採購金額 (未稅)</div>
                         <div className="kpi-value">{fmt(stats.total)}</div>
                     </div>
                 </div>
-                <div className="kpi-card accent-blue">
+                <div className="kpi-card accent-indigo">
                     <div className="kpi-icon-box">
-                        <Hash size={24} />
+                        <Hash size={20} />
                     </div>
                     <div className="kpi-content">
-                        <div className="kpi-label">採購筆數</div>
+                        <div className="kpi-label">累積採購筆數</div>
                         <div className="kpi-value">{stats.count} 筆</div>
                     </div>
                 </div>
@@ -117,18 +141,27 @@ const Dashboard: React.FC = () => {
             <div className="card">
                 <h2 className="card-title">月度採購金額 (未稅)</h2>
                 <div className="bar-chart">
-                    {stats.monthly.map((val, i) => (
+                    {stats.monthlyStacked.map((m, i) => (
                         <div
                             className={`bar-col clickable ${selectedMonth === i ? 'active' : ''}`}
                             key={i}
-                            onClick={() => val > 0 && setSelectedMonth(i)}
+                            onClick={() => m.total > 0 && setSelectedMonth(i)}
                         >
-                            {val > 0 && <div className="bar-value">{fmt(val)}</div>}
+                            {m.total > 0 && <div className="bar-value">{fmt(m.total)}</div>}
                             <div
-                                className="bar"
-                                style={{ height: `${(val / maxMonthly) * 100}%` }}
-                                title={`${i + 1}月: ${fmt(val)} (點擊查看明細)`}
-                            />
+                                className="bar stacked"
+                                style={{ height: `${(m.total / maxMonthly) * 100}%` }}
+                                title={`${i + 1}月: ${fmt(m.total)} (點擊查看明細)`}
+                            >
+                                {Object.values(m.categories).map((cat, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`bar-segment cat-color-${cat.colorIdx}`}
+                                        style={{ height: `${(cat.amount / m.total) * 100}%` }}
+                                        title={`${cat.name}: ${fmt(cat.amount)}`}
+                                    />
+                                ))}
+                            </div>
                             <div className="bar-label">{i + 1}月</div>
                         </div>
                     ))}
@@ -241,7 +274,7 @@ const Dashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {stats.monthlyItems[selectedMonth].map((p, idx) => (
+                                        {stats.monthlyItems[selectedMonth].map((p: Purchase, idx: number) => (
                                             <tr key={p.id}>
                                                 <td>{idx + 1}</td>
                                                 <td>{fmtDateShort(p)}</td>
