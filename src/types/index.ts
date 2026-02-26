@@ -41,8 +41,7 @@ export interface Purchase {
     requisitionType: string;   // 請購類型: 經MM, 非經MM
     itemNo: number;            // 項次: 10, 20, 30...
     groupId: string;           // 群組 ID，用於關聯同一筆採購的多個品項
-    invoice: string;           // 發票
-    docNumber: string;         // 發票文件號碼
+    docNumber: string;         // 文件號碼
     note: string;
     createdBy: string;      // uid
     createdAt: Timestamp;
@@ -63,7 +62,6 @@ export interface PurchaseFormData {
     purchaseType: string;
     requisitionType: string;
     items: PurchaseItem[];
-    invoice: string;
     docNumber: string;
     note: string;
 }

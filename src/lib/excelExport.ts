@@ -1,8 +1,6 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import type { Purchase, AnnualSummaryByAccount, AnnualSummaryByVendor, AnnualSummaryByRequisition, AnnualSummaryByPurchaseType } from '../types';
-
-
+import type { Purchase, AnnualSummaryByAccount, AnnualSummaryByVendor, AnnualSummaryByRequisition, AnnualSummaryByPurchaseType, LedgerAccount } from '../types';
 
 export const exporttoExcel = async (
     year: number,
@@ -11,6 +9,7 @@ export const exporttoExcel = async (
     byVendor: AnnualSummaryByVendor[],
     byRequisition: AnnualSummaryByRequisition[],
     byPurchaseType: AnnualSummaryByPurchaseType[],
+    ledgerAccounts: LedgerAccount[],
 ) => {
     const wb = new ExcelJS.Workbook();
     wb.creator = 'PurchaseGo';
@@ -39,14 +38,13 @@ export const exporttoExcel = async (
     // ── Sheet 1: 依總帳科目彙總 ──────────────────────────────────────────────
     const ws1 = wb.addWorksheet(`${year}年-依科目彙總`);
     ws1.columns = [
-        { header: '', key: 'code', width: 14 },
-        { header: '', key: 'name', width: 24 },
+        { header: '', key: 'code', width: 20 },
         { header: '', key: 'count', width: 10 },
         { header: '', key: 'total', width: 18 },
     ];
-    addHeaderRow(ws1, ['科目代碼', '科目名稱', '採購筆數', '合計金額']);
+    addHeaderRow(ws1, ['總帳科目代碼', '採購筆數', '合計金額']);
     byAccount.forEach((a) => {
-        ws1.addRow([a.ledgerAccountCode, a.ledgerAccountName, a.count, a.total]);
+        ws1.addRow([a.ledgerAccountCode, a.count, a.total]);
     });
     // Total row
     const total1 = byAccount.reduce((s, a) => s + a.total, 0);
@@ -106,7 +104,7 @@ export const exporttoExcel = async (
     const ws3 = wb.addWorksheet(`${year}年-採購明細`);
     ws3.columns = [
         { header: '', key: 'date', width: 14 },
-        { header: '', key: 'itemNo', width: 8 },
+
         { header: '', key: 'title', width: 24 },
         { header: '', key: 'vendor', width: 20 },
         { header: '', key: 'account', width: 20 },
@@ -116,18 +114,18 @@ export const exporttoExcel = async (
         { header: '', key: 'type', width: 14 },
         { header: '', key: 'note', width: 30 },
     ];
-    addHeaderRow(ws3, ['採購日期', '項次', '品名', '廠商', '總帳科目', '金額 (未稅)', '金額 (含稅)', '發票', '文件號碼', '請購類型', '採購類型', '備註']);
+    addHeaderRow(ws3, ['採購日期', '品名', '廠商', '總帳科目', '金額 (未稅)', '金額 (含稅)', '文件號碼', '請購類型', '採購類型', '備註']);
     purchases.forEach((p) => {
         const d = p.purchaseDate.toDate();
+        const accountCode = ledgerAccounts.find(a => a.id === p.ledgerAccountId)?.code || p.ledgerAccountName;
         ws3.addRow([
             `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`,
-            p.itemNo,
+
             p.title,
             p.vendor,
-            p.ledgerAccountName,
+            accountCode,
             p.amount,
             Math.round(p.amount * 1.05),
-            p.invoice,
             p.docNumber,
             p.requisitionType,
             p.purchaseType,
@@ -136,7 +134,7 @@ export const exporttoExcel = async (
     });
     const total3 = purchases.reduce((s, p) => s + p.amount, 0);
     const totalIncl3 = purchases.reduce((s, p) => s + Math.round(p.amount * 1.05), 0);
-    const tr3 = ws3.addRow(['', '', '', '', '合計', total3, totalIncl3, '', '', '', '', '']);
+    const tr3 = ws3.addRow(['', '', '', '合計', total3, totalIncl3, '', '', '', '', '']);
     tr3.font = { bold: true };
 
     const buf = await wb.xlsx.writeBuffer();

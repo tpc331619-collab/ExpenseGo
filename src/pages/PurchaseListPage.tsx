@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { deletePurchaseGroup } from '../lib/firestore';
 import type { Purchase } from '../types';
@@ -23,8 +23,36 @@ const PurchaseListPage: React.FC = () => {
                 ? p.title.includes(search) || p.vendor.includes(search) || p.purchaseType.includes(search)
                 : true;
             return a && v && s;
+        }).sort((a, b) => {
+            const dateDiff = b.purchaseDate.toMillis() - a.purchaseDate.toMillis();
+            if (dateDiff !== 0) return dateDiff;
+            return b.createdAt.toMillis() - a.createdAt.toMillis();
         });
     }, [purchases, filterAccount, filterVendor, search]);
+
+    const grouped = useMemo(() => {
+        const groups: Record<string, Purchase[]> = {};
+        filtered.forEach(p => {
+            const d = p.purchaseDate.toDate();
+            const monthKey = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (!groups[monthKey]) groups[monthKey] = [];
+            groups[monthKey].push(p);
+        });
+        return groups;
+    }, [filtered]);
+
+    const sortedMonthKeys = useMemo(() => Object.keys(grouped).sort((a, b) => b.localeCompare(a)), [grouped]);
+    const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (sortedMonthKeys.length > 0 && expandedMonths.length === 0) {
+            setExpandedMonths([sortedMonthKeys[0]]);
+        }
+    }, [sortedMonthKeys]);
+
+    const toggleMonth = (key: string) => {
+        setExpandedMonths(prev => prev.includes(key) ? prev.filter(m => m !== key) : [...prev, key]);
+    };
 
     const totalAmount = useMemo(() => filtered.reduce((s, p) => s + p.amount, 0), [filtered]);
 
@@ -77,7 +105,7 @@ const PurchaseListPage: React.FC = () => {
             <div className="filter-bar">
                 <select value={filterAccount} onChange={(e) => setFilterAccount(e.target.value)}>
                     <option value="">全部科目</option>
-                    {ledgerAccounts.map((a) => <option key={a.id} value={a.id}>{a.code} {a.name}</option>)}
+                    {ledgerAccounts.map((a) => <option key={a.id} value={a.id}>{a.code}</option>)}
                 </select>
 
                 <input
@@ -114,62 +142,101 @@ const PurchaseListPage: React.FC = () => {
                     <table className="purchase-table">
                         <thead>
                             <tr>
+                                <th>序號</th>
                                 <th>日期</th>
-                                <th>項次</th>
-                                <th>廠商</th>
-                                <th>品名</th>
+                                <th>廠商/品名</th>
                                 <th>總帳科目</th>
-                                <th>金額 (未稅)</th>
-                                <th>發票/文件號碼</th>
-                                <th>請購類型</th>
-                                <th>採購類型</th>
+                                <th>金額 (未稅 / 含稅)</th>
+                                <th>類型</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((p) => (
-                                <tr key={p.id}>
-                                    <td className="td-date">{fmtDate(p)}</td>
-                                    <td className="td-center" style={{ color: 'var(--text3)', fontSize: '12px' }}>{p.itemNo}</td>
-                                    <td>{p.vendor}</td>
-                                    <td className="td-title">{p.title}</td>
-                                    <td><span className="tag-account">{p.ledgerAccountName}</span></td>
-                                    <td className="td-amount">{fmt(p.amount)}</td>
-                                    <td className="td-center">
-                                        <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{p.invoice || '-'}</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{p.docNumber || '-'}</div>
-                                    </td>
-                                    <td className="td-center">
-                                        <span className={`tag-req ${p.requisitionType === '經MM' ? 'mm' : 'non-mm'}`}>
-                                            {p.requisitionType}
-                                        </span>
-                                    </td>
-                                    <td className="td-center">
-                                        <span className={`tag-type ${p.purchaseType === '工程' ? 'eng' : p.purchaseType === '財務' ? 'fin' : 'srv'}`}>
-                                            {p.purchaseType}
-                                        </span>
-                                    </td>
-                                    <td className="td-actions">
-                                        <button className="action-btn edit" onClick={() => handleCopy(p)} title="複製">📋</button>
-                                        <button className="action-btn edit" onClick={() => handleEdit(p)} title="編輯">✏️</button>
-                                        <button
-                                            className="action-btn delete"
-                                            onClick={() => handleDelete(p)}
-                                            disabled={deleting === p.id}
-                                            title="刪除"
-                                        >
-                                            {deleting === p.id ? '…' : '🗑️'}
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {sortedMonthKeys.map((monthKey) => {
+                                const isExpanded = expandedMonths.includes(monthKey);
+                                const items = grouped[monthKey];
+                                return (
+                                    <React.Fragment key={monthKey}>
+                                        <tr className="month-group-header" onClick={() => toggleMonth(monthKey)}>
+                                            <td colSpan={7}>
+                                                <div className="month-header-content">
+                                                    <span className={`arrow ${isExpanded ? 'open' : ''}`}>
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                                    </span>
+                                                    <strong>{monthKey} 月份</strong>
+                                                    <span className="month-count">({items.length} 筆)</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {isExpanded && items.map((p) => {
+                                            const globalIdx = filtered.findIndex(f => f.id === p.id);
+                                            return (
+                                                <tr key={p.id}>
+                                                    <td data-label="序號" className="td-index">{globalIdx + 1}</td>
+                                                    <td data-label="日期" className="td-date">
+                                                        <div className="text-bold">{fmtDate(p)}</div>
+                                                    </td>
+                                                    <td data-label="廠商/品名" className="td-vendor-title">
+                                                        <div className="vertical-stack">
+                                                            <div className="vendor-name">{p.vendor}</div>
+                                                            <div className="title-name">{p.title}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td data-label="總帳科目">
+                                                        <div className="ledger-code-simple">
+                                                            {ledgerAccounts.find(a => a.id === p.ledgerAccountId)?.code || p.ledgerAccountName}
+                                                        </div>
+                                                    </td>
+                                                    <td data-label="金額" className="td-amounts">
+                                                        <div className="vertical-stack amount-stack">
+                                                            <div className="amount-line">
+                                                                <span className="val-excl">{fmt(p.amount)}</span>
+                                                            </div>
+                                                            <div className="amount-line subgroup">
+                                                                <span className="val-incl">{fmt(Math.round(p.amount * 1.05))}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td data-label="類型" className="td-types">
+                                                        <div className="vertical-stack type-stack">
+                                                            <div className="type-text requisition">{p.requisitionType}</div>
+                                                            <div className="type-text purchase">{p.purchaseType}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="td-actions">
+                                                        <div className="action-group">
+                                                            <button className="action-btn-new copy" onClick={() => handleCopy(p)} title="複製">
+                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                                            </button>
+                                                            <button className="action-btn-new edit" onClick={() => handleEdit(p)} title="編輯">
+                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                                            </button>
+                                                            <button
+                                                                className="action-btn-new delete"
+                                                                onClick={() => handleDelete(p)}
+                                                                disabled={deleting === p.id}
+                                                                title="刪除"
+                                                            >
+                                                                {deleting === p.id ? '…' : (
+                                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 )}
             </div>
 
             {showModal && <PurchaseModal onClose={closeModal} editPurchase={editTarget} isCopy={isCopy} />}
-        </div>
+        </div >
     );
 };
 

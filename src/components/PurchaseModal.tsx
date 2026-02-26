@@ -21,10 +21,9 @@ const emptyItem = () => ({
 const emptyForm = (): PurchaseFormData => ({
     vendor: '',
     items: [emptyItem()],
-    purchaseDate: new Date().toISOString().slice(0, 10),
+    purchaseDate: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
     purchaseType: '勞務',
     requisitionType: '經MM',
-    invoice: '',
     docNumber: '',
     note: '',
 });
@@ -47,7 +46,6 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                 purchaseDate: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
                 purchaseType: editPurchase.purchaseType || '工程',
                 requisitionType: editPurchase.requisitionType || '非經MM',
-                invoice: isCopy ? '' : (editPurchase.invoice || ''),
                 docNumber: isCopy ? '' : (editPurchase.docNumber || ''),
                 note: editPurchase.note,
                 items: groupItems.length > 0 ? groupItems.map(p => ({
@@ -96,8 +94,8 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const invalid = form.items.some(it => !it.title || !it.ledgerAccountId || !it.amount);
-        if (!form.vendor || !form.invoice || !form.docNumber || invalid) {
-            setError('請填寫必填欄位（廠商、發票、單號，以及所有品項的品名/科目/金額）');
+        if (!form.vendor || !form.docNumber || invalid) {
+            setError('請填寫必填欄位（廠商、單號，以及所有品項的品名/科目/金額）');
             return;
         }
         setSaving(true);
@@ -153,8 +151,8 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                             </select>
                         </div>
 
-                        {/* Row 2: 廠商 / 發票號碼 / FI費用報核單號 */}
-                        <div className="form-group col-4">
+                        {/* Row 2: 廠商 / 文件號碼 */}
+                        <div className="form-group col-6">
                             <label>廠商 <span className="required">*</span></label>
                             <select value={form.vendor} onChange={(e) => set('vendor', e.target.value)}>
                                 <option value="">選擇廠商</option>
@@ -165,16 +163,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                 ))}
                             </select>
                         </div>
-                        <div className="form-group col-4">
-                            <label>發票號碼 <span className="required">*</span></label>
-                            <input
-                                value={form.invoice}
-                                onChange={(e) => set('invoice', e.target.value.toUpperCase())}
-                                placeholder="請輸入發票號碼"
-                                required
-                            />
-                        </div>
-                        <div className="form-group col-4">
+                        <div className="form-group col-6">
                             <label>{form.requisitionType === '非經MM' ? 'FI費用報核單號' : '文件號碼'} <span className="required">*</span></label>
                             <input
                                 value={form.docNumber}
@@ -183,6 +172,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                 required
                             />
                         </div>
+
 
                         <div className="items-section col-12">
                             <div className="items-header">
@@ -238,8 +228,8 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                         </div>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

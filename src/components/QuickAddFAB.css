@@ -1,0 +1,45 @@
+.quick-add-fab {
+    position: fixed;
+    right: 32px;
+    bottom: 32px;
+    width: 60px;
+    height: 60px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #7f56d9 0%, #6941c6 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 15px -3px rgba(127, 86, 217, 0.4), 0 4px 6px -2px rgba(127, 86, 217, 0.2);
+    z-index: 1500;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+}
+
+.quick-add-fab:hover {
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 20px 25px -5px rgba(127, 86, 217, 0.5), 0 10px 10px -5px rgba(127, 86, 217, 0.3);
+}
+
+.quick-add-fab:active {
+    transform: scale(0.95);
+}
+
+.fab-icon {
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1;
+}
+
+/* Adjust for mobile - move up if bottom nav is present */
+@media (max-width: 600px) {
+    .quick-add-fab {
+        right: 20px;
+        bottom: 90px;
+        /* Above the bottom nav */
+        width: 56px;
+        height: 56px;
+    }
+}

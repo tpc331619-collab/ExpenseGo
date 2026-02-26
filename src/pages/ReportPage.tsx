@@ -81,7 +81,7 @@ const ReportPage: React.FC = () => {
     const handleExport = async () => {
         setExporting(true);
         try {
-            await exporttoExcel(year, yearPurchases, byAccount, byVendor, byRequisition, byPurchaseType);
+            await exporttoExcel(year, yearPurchases, byAccount, byVendor, byRequisition, byPurchaseType, ledgerAccounts);
         } finally {
             setExporting(false);
         }
@@ -146,7 +146,7 @@ const ReportPage: React.FC = () => {
                             <div className="report-section-header" onClick={() => setExpandedId(expandedId === acc.ledgerAccountId ? null : acc.ledgerAccountId)}>
                                 <div className="rs-left">
                                     <span className="rs-expand">{expandedId === acc.ledgerAccountId ? '▾' : '▸'}</span>
-                                    <span className="rs-name">{acc.ledgerAccountName}</span>
+                                    <span className="rs-name">{acc.ledgerAccountCode}</span>
                                     <span className="rs-count">{acc.count} 筆</span>
                                 </div>
                                 <div className="rs-right">
@@ -161,19 +161,19 @@ const ReportPage: React.FC = () => {
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
-                                            <tr><th>日期</th><th>項次</th><th>品名</th><th>廠商</th><th>金額 (未稅)</th><th>發票/文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
+                                            <tr><th>序號</th><th>日期</th><th>品名</th><th>廠商</th><th>金額 (未稅)</th><th>文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
                                         </thead>
                                         <tbody>
-                                            {acc.items.map((item) => (
+                                            {acc.items.map((item, idx) => (
                                                 <tr key={item.id}>
+                                                    <td className="td-center" style={{ color: 'var(--text3)', fontSize: '11px' }}>{idx + 1}</td>
                                                     <td>{fmtDate(item.purchaseDate)}</td>
-                                                    <td className="td-center" style={{ color: 'var(--text3)', fontSize: '12px' }}>{item.itemNo}</td>
+
                                                     <td>{item.title}</td>
                                                     <td>{item.vendor}</td>
                                                     <td>{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{item.invoice || '-'}</div>
-                                                        <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{item.docNumber || '-'}</div>
+                                                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{item.docNumber || '-'}</div>
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
@@ -221,7 +221,7 @@ const ReportPage: React.FC = () => {
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
-                                            <tr><th>日期</th><th>項次</th><th>品名</th><th>科目</th><th>金額 (未稅)</th><th>發票/發票文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
+                                            <tr><th>日期</th><th>項次</th><th>品名</th><th>科目</th><th>金額 (未稅)</th><th>文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
                                         </thead>
                                         <tbody>
                                             {v.items.map((item) => (
@@ -232,8 +232,7 @@ const ReportPage: React.FC = () => {
                                                     <td>{item.ledgerAccountName}</td>
                                                     <td className="td-amount">{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{item.invoice || '-'}</div>
-                                                        <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{item.docNumber || '-'}</div>
+                                                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{item.docNumber || '-'}</div>
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>

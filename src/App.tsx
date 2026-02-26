@@ -10,11 +10,13 @@ import Dashboard from './pages/Dashboard';
 import PurchaseListPage from './pages/PurchaseListPage';
 import ReportPage from './pages/ReportPage';
 import AdminPage from './pages/AdminPage';
+import QuickAddFAB from './components/QuickAddFAB';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <>
     <Navbar />
     <main className="main-content">{children}</main>
+    <QuickAddFAB />
   </>
 );
 

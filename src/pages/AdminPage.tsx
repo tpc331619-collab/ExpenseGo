@@ -231,7 +231,7 @@ const AdminPage: React.FC = () => {
                             required
                         />
                         <input
-                            placeholder="預算金額 (新台幣)"
+                            placeholder="計畫成本 (新台幣)"
                             type="number"
                             value={accBudget}
                             onChange={(e) => setAccBudget(e.target.value)}
@@ -250,7 +250,7 @@ const AdminPage: React.FC = () => {
                         ) : (
                             <table className="admin-table">
                                 <thead>
-                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>科目代碼</th><th>科目名稱</th><th>預算金額</th><th>操作</th></tr>
+                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>科目代碼</th><th>科目名稱</th><th>計畫成本</th><th>操作</th></tr>
                                 </thead>
                                 <tbody>
                                     {ledgerAccounts.map((acc, idx) => (

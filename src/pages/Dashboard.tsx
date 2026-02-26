@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
+import type { Purchase } from '../types';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -44,12 +45,22 @@ const Dashboard: React.FC = () => {
 
         // Monthly
         const monthly = Array(12).fill(0);
+        const monthlyItems: Record<number, Purchase[]> = {};
+        for (let i = 0; i < 12; i++) monthlyItems[i] = [];
+
         yearPurchases.forEach((p) => {
             const m = p.purchaseDate.toDate().getMonth();
             monthly[m] += p.amount;
+            monthlyItems[m].push(p);
         });
 
-        return { total, count, topAccounts, budgetStatus, monthly };
+        // Sort items in each month by newest first
+        Object.keys(monthlyItems).forEach((key) => {
+            const m = parseInt(key);
+            monthlyItems[m].sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+        });
+
+        return { total, count, topAccounts, budgetStatus, monthly, monthlyItems };
     }, [purchases, ledgerAccounts, currentYear]);
 
     const fmt = (n: number) =>
@@ -58,6 +69,12 @@ const Dashboard: React.FC = () => {
     const maxMonthly = Math.max(...stats.monthly, 1);
 
     const [selectedBudget, setSelectedBudget] = React.useState<typeof stats.budgetStatus[0] | null>(null);
+    const [selectedMonth, setSelectedMonth] = React.useState<number | null>(null);
+
+    const fmtDateShort = (p: Purchase) => {
+        const d = p.purchaseDate.toDate();
+        return `${d.getMonth() + 1}/${d.getDate()}`;
+    };
 
     if (loadingData) {
         return (
@@ -76,7 +93,7 @@ const Dashboard: React.FC = () => {
             {/* KPI Cards */}
             <div className="kpi-grid">
                 <div className="kpi-card accent-purple">
-                    <div className="kpi-label">年度總採購金額 (未稅)</div>
+                    <div className="kpi-label">累積採購金額 (未稅)</div>
                     <div className="kpi-value">{fmt(stats.total)}</div>
                 </div>
                 <div className="kpi-card accent-blue">
@@ -90,12 +107,16 @@ const Dashboard: React.FC = () => {
                 <h2 className="card-title">月度採購金額 (未稅)</h2>
                 <div className="bar-chart">
                     {stats.monthly.map((val, i) => (
-                        <div className="bar-col" key={i}>
+                        <div
+                            className={`bar-col clickable ${selectedMonth === i ? 'active' : ''}`}
+                            key={i}
+                            onClick={() => val > 0 && setSelectedMonth(i)}
+                        >
                             {val > 0 && <div className="bar-value">{fmt(val)}</div>}
                             <div
                                 className="bar"
                                 style={{ height: `${(val / maxMonthly) * 100}%` }}
-                                title={fmt(val)}
+                                title={`${i + 1}月: ${fmt(val)} (點擊查看明細)`}
                             />
                             <div className="bar-label">{i + 1}月</div>
                         </div>
@@ -182,6 +203,44 @@ const Dashboard: React.FC = () => {
                                         {selectedBudget.percent.toFixed(1)}%
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Monthly Detail Modal */}
+            {selectedMonth !== null && (
+                <div className="modal-overlay" onClick={() => setSelectedMonth(null)}>
+                    <div className="modal-box drill-down-pop" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>{selectedMonth + 1} 月份採購明細</h2>
+                            <button className="modal-close" onClick={() => setSelectedMonth(null)}>×</button>
+                        </div>
+                        <div className="pop-body">
+                            <div className="drill-down-list">
+                                <table className="drill-table">
+                                    <thead>
+                                        <tr>
+                                            <th>序號</th>
+                                            <th>日期</th>
+                                            <th>廠商</th>
+                                            <th>品名</th>
+                                            <th className="text-right">金額 (未稅)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {stats.monthlyItems[selectedMonth].map((p, idx) => (
+                                            <tr key={p.id}>
+                                                <td>{idx + 1}</td>
+                                                <td>{fmtDateShort(p)}</td>
+                                                <td><div className="truncated" title={p.vendor}>{p.vendor}</div></td>
+                                                <td><div className="truncated" title={p.title}>{p.title}</div></td>
+                                                <td className="text-right amount-purple">{fmt(p.amount)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

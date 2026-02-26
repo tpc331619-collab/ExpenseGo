@@ -1,1 +1,286 @@
-/* PurchaseListPage inherits most from index.css */
+/* ── Final Refined Table Layout ─────────────────────────────────────────── */
+.purchase-table {
+    table-layout: auto;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.purchase-table th {
+    background: #fcfcfd !important;
+    border-bottom: 2px solid #eaecf0 !important;
+    padding: 12px 16px !important;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475467;
+}
+
+.purchase-table td {
+    padding: 16px !important;
+    border-top: 1px solid #f2f4f7 !important;
+    vertical-align: middle;
+}
+
+/* Stacking Helpers */
+.vertical-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.side-by-side.compact {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Row Specific Styling */
+.td-index {
+    width: 60px;
+    text-align: center;
+    color: #98a2b3;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.text-bold {
+    font-weight: 600;
+    color: #101828;
+}
+
+.text-secondary {
+    font-size: 12px;
+    color: #667085;
+}
+
+.vendor-name {
+    font-weight: 600;
+    color: #101828;
+    font-size: 14.5px;
+}
+
+.title-name {
+    font-size: 13px;
+    color: #475467;
+    font-weight: 400;
+}
+
+/* Simple Ledger Code */
+.ledger-code-simple {
+    font-family: inherit;
+    font-size: 14px;
+    color: #6941c0;
+    font-weight: 500;
+}
+
+/* Amount Stacking */
+.amount-stack {
+    gap: 2px;
+}
+
+.amount-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+
+
+.val-excl {
+    color: #444ce7;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.val-incl {
+    color: #039855;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* Rest of the UI */
+.doc-text {
+    font-size: 12px;
+    color: #667085;
+    font-family: monospace;
+}
+
+.type-stack {
+    gap: 2px;
+}
+
+.type-text {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.type-text.requisition {
+    color: #667085;
+}
+
+.type-text.purchase {
+    color: #98a2b3;
+}
+
+/* Actions */
+.action-group {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.action-btn-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #eaecf0;
+    background: #fff;
+    color: #667085;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn-new:hover {
+    background: #f9fafb;
+    border-color: #d0d5dd;
+    color: #1d2939;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+}
+
+.action-btn-new.delete:hover {
+    background: #fef3f2;
+    border-color: #fda29b;
+    color: #b42318;
+}
+
+.action-btn-new.edit:hover {
+    color: #444ce7;
+    border-color: #a4baf6;
+    background: #eef4ff;
+}
+
+.action-btn-new.copy:hover {
+    color: #039855;
+    border-color: #6ce9a6;
+    background: #ecfdf3;
+}
+
+/* Month Grouping */
+.month-group-header {
+    background: #f9fafb !important;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.month-group-header:hover {
+    background: #f2f4f7 !important;
+}
+
+.month-group-header td {
+    padding: 10px 16px !important;
+    border-top: 1px solid #eaecf0 !important;
+    border-bottom: 1px solid #eaecf0 !important;
+}
+
+.month-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #344054;
+}
+
+.month-header-content .arrow {
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s;
+    color: #98a2b3;
+}
+
+.month-header-content .arrow.open {
+    transform: rotate(90deg);
+}
+
+.month-header-content strong {
+    font-size: 14px;
+}
+
+.month-count {
+    color: #667085;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid #eaecf0;
+    background: #fff;
+    box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+}
+
+/* ── Mobile View (Cards) ────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .purchase-table {
+        min-width: 100%;
+        table-layout: auto;
+    }
+
+    .purchase-table thead {
+        display: none;
+    }
+
+    .purchase-table tbody,
+    .purchase-table tr,
+    .purchase-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .purchase-table tr {
+        background: #fff;
+        border-bottom: 8px solid #f9fafb;
+        padding: 16px;
+    }
+
+    .purchase-table td {
+        border: none !important;
+        padding: 8px 0 !important;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .purchase-table td::before {
+        content: attr(data-label);
+        font-weight: 500;
+        color: #667085;
+        font-size: 12px;
+        min-width: 100px;
+        flex-shrink: 0;
+    }
+
+    .vendor-name {
+        font-size: 17px;
+        border-bottom: 1px solid #f2f4f7 !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 4px;
+        width: 100%;
+    }
+
+    .td-vendor-title::before {
+        display: none;
+    }
+
+    .td-actions {
+        border-top: 1px solid #f2f4f7 !important;
+        margin-top: 12px;
+        padding-top: 12px !important;
+        justify-content: flex-end;
+    }
+}
