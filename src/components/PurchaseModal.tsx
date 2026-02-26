@@ -102,7 +102,9 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         setError('');
         try {
             if (editPurchase && !isCopy) {
-                await updatePurchase(editPurchase.groupId, form);
+                const originalYear = editPurchase.purchaseDate.toDate().getFullYear();
+                const isAdmin = appUser?.role === 'admin';
+                await updatePurchase(editPurchase.groupId, form, appUser!.uid, originalYear, isAdmin);
             } else {
                 await addPurchase(form, appUser!.uid);
             }

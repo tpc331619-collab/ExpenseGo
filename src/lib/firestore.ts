@@ -166,21 +166,28 @@ export const addPurchase = async (data: PurchaseFormData, uid: string): Promise<
     return groupId;
 };
 
-export const updatePurchase = async (groupId: string, data: PurchaseFormData) => {
+export const updatePurchase = async (groupId: string, data: PurchaseFormData, currentUid: string, originalYear?: number, isAdmin: boolean = false) => {
+    console.log(`[updatePurchase] START - groupId: ${groupId}, currentUid: ${currentUid}, isAdmin: ${isAdmin}`);
     const year = new Date(data.purchaseDate).getFullYear();
     const purchaseRef = getPurchaseRef(year);
 
-    // 1. 取得現有群組的所有品項
-    const q = query(purchaseRef, where('groupId', '==', groupId));
+    // 1. 取得舊資料：優先尋找原始年份，否則尋找當前年份
+    const searchYear = originalYear || year;
+    const q = isAdmin
+        ? query(getPurchaseRef(searchYear), where('groupId', '==', groupId))
+        : query(getPurchaseRef(searchYear), where('createdBy', '==', currentUid));
+
     const snap = await getDocs(q);
-    const existingDocs = snap.docs;
+    const existingDocs = isAdmin ? snap.docs : snap.docs.filter(d => d.data().groupId === groupId);
 
     const batch = writeBatch(db);
 
-    // 2. 刪除現有所有品項
+    // 2. 刪除舊資料
     existingDocs.forEach(d => batch.delete(d.ref));
 
-    // 3. 再寫入新的 (保留原 groupId)
+    // 3. 寫入新資料 (保留原建立時間)
+    const oldCreatedAt = existingDocs[0]?.data()?.createdAt || Timestamp.now();
+
     data.items.forEach((item, index) => {
         const ref = doc(purchaseRef);
         batch.set(ref, {
@@ -189,6 +196,8 @@ export const updatePurchase = async (groupId: string, data: PurchaseFormData) =>
             ledgerAccountId: item.ledgerAccountId,
             ledgerAccountName: item.ledgerAccountName,
             amount: parseFloat(item.amount) || 0,
+            quantity: 1,
+            unit: '項',
             purchaseDate: Timestamp.fromDate(new Date(data.purchaseDate)),
             purchaseType: data.purchaseType,
             requisitionType: data.requisitionType,
@@ -197,8 +206,8 @@ export const updatePurchase = async (groupId: string, data: PurchaseFormData) =>
             docNumber: data.docNumber,
             note: data.note,
             updatedAt: Timestamp.now(),
-            createdBy: existingDocs[0]?.data().createdBy || '',
-            createdAt: existingDocs[0]?.data().createdAt || Timestamp.now(),
+            createdBy: currentUid,
+            createdAt: oldCreatedAt,
         });
     });
 
