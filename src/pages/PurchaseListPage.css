@@ -85,8 +85,6 @@
     gap: 6px;
 }
 
-
-
 .val-excl {
     color: #444ce7;
     font-weight: 700;
@@ -225,35 +223,48 @@
 }
 
 /* ── Mobile View (Cards) ────────────────────────────────────────────────── */
-@media (max-width: 900px) {
+@media (max-width: 960px) {
     .purchase-table {
-        min-width: 100%;
-        table-layout: auto;
+        display: block;
+        border: none;
     }
 
     .purchase-table thead {
         display: none;
     }
 
-    .purchase-table tbody,
-    .purchase-table tr,
-    .purchase-table td {
+    .purchase-table tbody {
         display: block;
         width: 100%;
     }
 
     .purchase-table tr {
+        display: block;
+        width: 100%;
         background: #fff;
-        border-bottom: 8px solid #f9fafb;
+        border-radius: 12px;
+        margin-bottom: 16px;
         padding: 16px;
+        border: 1px solid #f2f4f7;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .purchase-table tr.month-group-header {
+        border: none;
+        background: transparent;
+        padding: 8px 4px;
+        margin-bottom: 8px;
+        box-shadow: none;
     }
 
     .purchase-table td {
-        border: none !important;
-        padding: 8px 0 !important;
         display: flex;
+        justify-content: space-between;
+        align-items: center;
         gap: 12px;
-        align-items: flex-start;
+        font-size: 14px;
+        border: none !important;
+        padding: 6px 0 !important;
     }
 
     .purchase-table td::before {
@@ -261,26 +272,49 @@
         font-weight: 500;
         color: #667085;
         font-size: 12px;
-        min-width: 100px;
         flex-shrink: 0;
     }
 
-    .vendor-name {
-        font-size: 17px;
+    /* Special handling for Vendor/Title header in mobile cards */
+    .td-vendor-title {
+        flex-direction: column !important;
+        align-items: flex-start !important;
         border-bottom: 1px solid #f2f4f7 !important;
-        padding-bottom: 8px !important;
-        margin-bottom: 4px;
-        width: 100%;
+        margin-bottom: 8px;
+        padding-bottom: 12px !important;
     }
 
     .td-vendor-title::before {
         display: none;
     }
 
+    .vendor-name {
+        font-size: 16px;
+        color: #101828;
+        margin-bottom: 2px;
+    }
+
+    .title-name {
+        font-size: 13px;
+        color: #475467;
+    }
+
+    .td-index {
+        display: none;
+    }
+
+    .td-date {
+        margin-bottom: 4px;
+    }
+
     .td-actions {
         border-top: 1px solid #f2f4f7 !important;
-        margin-top: 12px;
+        margin-top: 8px;
         padding-top: 12px !important;
-        justify-content: flex-end;
+        justify-content: flex-end !important;
+    }
+
+    .td-actions::before {
+        display: none;
     }
 }

@@ -302,13 +302,21 @@
     font-size: 10px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .desktop-only {
         display: none !important;
     }
 
     .hamburger {
         display: flex;
+    }
+
+    .navbar {
+        padding: 0 16px;
+    }
+
+    .nav-year-container {
+        margin: 0 12px;
     }
 
     .bottom-nav {

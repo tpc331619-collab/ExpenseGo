@@ -48,17 +48,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
             // 執行一次性遷移 + 載入初始數據
             const init = async () => {
-                try {
-                    if (appUser.role === 'admin') {
-                        // 自動嘗試遷移 (僅管理員有權限執行)
-                        console.log('Checking for legacy data migration (Admin only)...');
-                        await import('../lib/firestore').then(m => m.migrateToYearlyStructure());
-                    } else {
-                        console.log('Skipping migration check for non-admin user.');
-                    }
-                } catch (e) {
-                    console.error('Migration check skipped due to permission or error:', e);
-                }
+                // Migration check removed to avoid permission errors in console
 
                 try {
                     console.log(`Fetching initial data for year ${selectedYear}...`);
