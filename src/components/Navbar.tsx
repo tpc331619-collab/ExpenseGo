@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { getAllUsers } from '../lib/firestore';
+import { LayoutDashboard, FileText, BarChart3, Database } from 'lucide-react';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
@@ -25,10 +26,10 @@ const Navbar: React.FC = () => {
     };
 
     const navItems = [
-        { to: '/', label: '總覽', icon: '📊', exact: true, badge: 0 },
-        { to: '/purchases', label: '採購紀錄', icon: '🛒', exact: false, badge: 0 },
-        { to: '/report', label: '年度報表', icon: '📋', exact: false, badge: 0 },
-        { to: '/admin', label: '資料維護', icon: '⚙️', exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0 },
+        { to: '/', label: '總覽', icon: <LayoutDashboard size={18} />, exact: true, badge: 0 },
+        { to: '/purchases', label: '採購紀錄', icon: <FileText size={18} />, exact: false, badge: 0 },
+        { to: '/report', label: '年度報表', icon: <BarChart3 size={18} />, exact: false, badge: 0 },
+        { to: '/admin', label: '資料維護', icon: <Database size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0 },
     ];
 
     return (

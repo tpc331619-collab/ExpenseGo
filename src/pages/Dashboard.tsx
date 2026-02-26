@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import type { Purchase } from '../types';
+import { DollarSign, Hash } from 'lucide-react';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -93,12 +94,22 @@ const Dashboard: React.FC = () => {
             {/* KPI Cards */}
             <div className="kpi-grid">
                 <div className="kpi-card accent-purple">
-                    <div className="kpi-label">累積採購金額 (未稅)</div>
-                    <div className="kpi-value">{fmt(stats.total)}</div>
+                    <div className="kpi-icon-box">
+                        <DollarSign size={24} />
+                    </div>
+                    <div className="kpi-content">
+                        <div className="kpi-label">累積採購金額 (未稅)</div>
+                        <div className="kpi-value">{fmt(stats.total)}</div>
+                    </div>
                 </div>
                 <div className="kpi-card accent-blue">
-                    <div className="kpi-label">採購筆數</div>
-                    <div className="kpi-value">{stats.count} 筆</div>
+                    <div className="kpi-icon-box">
+                        <Hash size={24} />
+                    </div>
+                    <div className="kpi-content">
+                        <div className="kpi-label">採購筆數</div>
+                        <div className="kpi-value">{stats.count} 筆</div>
+                    </div>
                 </div>
             </div>
 

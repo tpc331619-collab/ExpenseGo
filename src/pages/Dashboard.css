@@ -36,34 +36,44 @@
     border: 1px solid #f2f4f7;
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
-.kpi-card::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
+.kpi-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.kpi-card.accent-purple::before {
-    background: #7f56d9;
+.accent-purple .kpi-icon-box {
+    background: #f9f5ff;
+    color: #7f56d9;
 }
 
-.kpi-card.accent-blue::before {
-    background: #2e90fa;
+.accent-blue .kpi-icon-box {
+    background: #f0f9ff;
+    color: #2e90fa;
+}
+
+.kpi-content {
+    flex: 1;
 }
 
 .kpi-label {
     font-size: 14px;
     color: #667085;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     font-weight: 500;
 }
 
 .kpi-value {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
     color: #101828;
 }

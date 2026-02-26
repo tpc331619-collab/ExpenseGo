@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Clock } from 'lucide-react';
 import './PendingPage.css';
 
 const PendingPage: React.FC = () => {
@@ -14,7 +15,7 @@ const PendingPage: React.FC = () => {
     return (
         <div className="pending-page">
             <div className="pending-card">
-                <div className="pending-icon">⏳</div>
+                <div className="pending-icon"><Clock size={48} strokeWidth={1.5} color="var(--purple)" /></div>
                 <h2>等待帳號審核</h2>
                 <p>
                     您的帳號 <strong>{appUser?.email}</strong> 已送出申請，
