@@ -4,6 +4,8 @@ import {
     addLedgerAccount, deleteLedgerAccount, updateLedgerAccount,
     addVendor, deleteVendor, updateVendor,
 } from '../lib/firestore';
+import * as XLSX from 'xlsx';
+import { Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { AppUser, LedgerAccount, Vendor } from '../types';
 import { useApp } from '../contexts/AppContext';
@@ -108,6 +110,74 @@ const AdminPage: React.FC = () => {
         setAccBudget('');
     };
 
+    const handleAccountImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const data = evt.target?.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const json: any[] = XLSX.utils.sheet_to_json(sheet);
+
+                if (json.length === 0) {
+                    alert('Excel 檔案內沒有資料。');
+                    return;
+                }
+
+                setAccSaving(true);
+                let successCount = 0;
+                let errors: string[] = [];
+
+                json.forEach((row, index) => {
+                    const rowNum = index + 2; // Data starts on line 2
+                    const code = String(row['科目代碼'] || row['代碼'] || '').trim();
+                    const name = String(row['科目名稱'] || row['名稱'] || '').trim();
+                    const budget = parseFloat(row['計畫成本'] || row['預算'] || '0');
+
+                    if (name.startsWith('範例-')) return;
+
+                    if (!code || !name) {
+                        errors.push(`第 ${rowNum} 列：代碼或名稱缺失`);
+                        return;
+                    }
+
+                    row._valid = true;
+                    row._processed = { code, name, budget, rowNum };
+                });
+
+                for (const row of json) {
+                    if (!row._valid) continue;
+                    const { code, name, budget, rowNum } = row._processed;
+                    try {
+                        await addLedgerAccount(code, name, budget);
+                        successCount++;
+                    } catch (err: any) {
+                        errors.push(`第 ${rowNum} 列：儲存失敗 (${err.message || '權限問題'})`);
+                    }
+                }
+
+                await refreshLedgerAccounts();
+                let msg = `導入完成！成功：${successCount} 筆。`;
+                if (errors.length > 0) {
+                    msg += `\n\n失敗原因：\n` + errors.slice(0, 10).join('\n');
+                    if (errors.length > 10) msg += `\n...以及其他 ${errors.length - 10} 筆錯誤`;
+                }
+                alert(msg);
+            } catch (err) {
+                console.error('Import error:', err);
+                alert('Excel 導入失敗，請檢查檔案格式。');
+            } finally {
+                setAccSaving(false);
+                e.target.value = '';
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
     const normalizeName = (name: string) => {
         return name.trim()
             .replace(/(股份有限公司|有限公司|實業有限公司|實業股份有限公司|股份公司|有限公司|公司)$/, '')
@@ -188,6 +258,105 @@ const AdminPage: React.FC = () => {
         setVendorTaxId('');
         setVendorContact('');
         setVendorPhone('');
+    };
+
+    const handleVendorImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const data = evt.target?.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const json: any[] = XLSX.utils.sheet_to_json(sheet);
+
+                if (json.length === 0) {
+                    alert('Excel 檔案內沒有資料。');
+                    return;
+                }
+
+                setVendorSaving(true);
+                let successCount = 0;
+                let skipCount = 0;
+                let errors: string[] = [];
+
+                json.forEach((row, index) => {
+                    const rowNum = index + 2;
+                    const name = String(row['廠商名稱'] || row['名稱'] || '').trim();
+                    const taxId = String(row['統一編號'] || row['統編'] || '').trim().replace(/\D/g, '').slice(0, 8);
+                    const contact = String(row['聯絡人'] || '').trim();
+                    const phone = String(row['電話'] || '').trim();
+
+                    if (!name || name.startsWith('範例-')) {
+                        if (name && !name.startsWith('範例-')) errors.push(`第 ${rowNum} 列：名稱缺失`);
+                        return;
+                    }
+
+                    // Duplicate Check
+                    const normName = normalizeName(name);
+                    const isNameDup = vendors.some(v => normalizeName(v.name) === normName);
+                    const isTaxDup = taxId ? vendors.some(v => v.taxId === taxId) : false;
+
+                    if (isNameDup || isTaxDup) {
+                        row._skip = true;
+                        return;
+                    }
+
+                    row._valid = true;
+                    row._processed = { name, taxId, contact, phone, rowNum };
+                });
+
+                for (const row of json) {
+                    if (row._skip) { skipCount++; continue; }
+                    if (!row._valid) continue;
+
+                    const { name, taxId, contact, phone, rowNum } = row._processed;
+                    try {
+                        await addVendor({ name, taxId, contact, phone });
+                        successCount++;
+                    } catch (err: any) {
+                        errors.push(`第 ${rowNum} 列：儲存失敗 (${err.message})`);
+                    }
+                }
+
+                await refreshVendors();
+                let msg = `導入完成！\n成功：${successCount} 筆\n跳過重複：${skipCount} 筆`;
+                if (errors.length > 0) {
+                    msg += `\n\n失敗原因：\n` + errors.slice(0, 10).join('\n');
+                    if (errors.length > 10) msg += `\n...以及其他 ${errors.length - 10} 筆錯誤`;
+                }
+                alert(msg);
+            } catch (err) {
+                console.error('Import error:', err);
+                alert('Excel 導入失敗，請檢查檔案格式。');
+            } finally {
+                setVendorSaving(false);
+                e.target.value = '';
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+    const downloadAccountTemplate = () => {
+        const data = [
+            { '科目代碼': 'M54000', '科目名稱': '範例-差旅費', '計畫成本': 50000 }
+        ];
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '科目範本');
+        XLSX.writeFile(wb, '總帳科目導入範本.xlsx');
+    };
+
+    const downloadVendorTemplate = () => {
+        const data = [
+            { '廠商名稱': '範例-國泰化工', '統一編號': '12345678', '聯絡人': '張小明', '電話': '02-12345678' }
+        ];
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '廠商範本');
+        XLSX.writeFile(wb, '廠商資料導入範本.xlsx');
     };
 
     const pendingCount = users.filter((u) => u.role === 'pending').length;
@@ -286,6 +455,17 @@ const AdminPage: React.FC = () => {
                         {editingAcc && (
                             <button type="button" className="btn-outline" onClick={cancelEdit}>取消</button>
                         )}
+                        <div className="batch-import-box">
+                            <label className="btn-batch-import">
+                                <Upload size={16} />
+                                批次導入 Excel
+                                <input type="file" accept=".xlsx, .xls" onChange={handleAccountImport} hidden />
+                            </label>
+                            <button type="button" className="btn-text-link" onClick={downloadAccountTemplate}>
+                                📥 下載科目範本
+                            </button>
+                            <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
+                        </div>
                     </form>
 
                     <div className="table-wrapper">
@@ -364,6 +544,17 @@ const AdminPage: React.FC = () => {
                             {editingVendor && (
                                 <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
                             )}
+                        </div>
+                        <div className="batch-import-box v-batch">
+                            <label className="btn-batch-import">
+                                <Upload size={16} />
+                                批次導入 Excel
+                                <input type="file" accept=".xlsx, .xls" onChange={handleVendorImport} hidden />
+                            </label>
+                            <button type="button" className="btn-text-link" onClick={downloadVendorTemplate}>
+                                📥 下載廠商範本
+                            </button>
+                            <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
                         </div>
                     </form>
 

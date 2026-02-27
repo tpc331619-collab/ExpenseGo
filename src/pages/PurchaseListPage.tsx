@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { deletePurchaseGroup, getPaginatedPurchases } from '../lib/firestore';
 import type { Purchase } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
+import { Upload, Download } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
 import './PurchaseListPage.css';
@@ -129,6 +131,175 @@ const PurchaseListPage: React.FC = () => {
         if (refresh) fetchPurchases();
     };
 
+    const downloadTemplate = () => {
+        const data = [
+            {
+                '日期': '2026-01-01',
+                '廠商名稱': '範例-國泰化工',
+                '品名': '範例-辦公用品費',
+                '科目代碼': 'M54000',
+                '金額(未稅)': 1000,
+                '請購類型': '經MM',
+                '採購性質': '勞務',
+                '文件號碼': 'DOC12345',
+                '備註': '範例描述'
+            }
+        ];
+        // Create worksheet with specific column formatting if possible, 
+        // but for CSV/XLSX simple JSON is usually enough.
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '採購導入範本');
+        XLSX.writeFile(wb, `採購紀錄導入範本_${selectedYear}.xlsx`);
+    };
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const data = evt.target?.result;
+                // Use array type for better compatibility
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json: any[] = XLSX.utils.sheet_to_json(sheet, {
+                    raw: false,
+                    dateNF: 'yyyy-mm-dd'
+                });
+
+                if (json.length === 0) {
+                    alert('Excel 內無資料');
+                    return;
+                }
+
+                setLoading(true);
+                let success = 0;
+                let errors: string[] = [];
+
+                const { addPurchase } = await import('../lib/firestore');
+
+                json.forEach((row, index) => {
+                    const rowNum = index + 2;
+                    const dateStr = String(row['日期'] || '').trim();
+                    const vendor = String(row['廠商名稱'] || '').trim();
+                    const title = String(row['品名'] || '').trim();
+                    const accCode = String(row['科目代碼'] || '').trim();
+                    const amountRaw = row['金額(未稅)'];
+                    const amount = parseFloat(amountRaw || '0');
+                    const reqType = String(row['請購類型'] || '經MM').trim();
+                    const purType = String(row['採購性質'] || '勞務').trim();
+                    const docNum = String(row['文件號碼'] || '').trim();
+                    const note = String(row['備註'] || '').trim();
+
+                    if (vendor.startsWith('範例-') || title.startsWith('範例-')) return;
+
+                    const rowPrefix = `第 ${rowNum} 列：`;
+
+                    // 1. Basic empty check
+                    if (!dateStr) { errors.push(`${rowPrefix}「日期」不可為空`); return; }
+
+                    // 2. Strict Date Validation & Year Fix
+                    let finalDate = dateStr;
+                    let testDate = new Date(dateStr);
+
+                    // If simple parse fails, try to add current year (e.g., for "2/27" or "2月27日")
+                    if (isNaN(testDate.getTime())) {
+                        const cleanedDate = dateStr.replace(/[月日]/g, '-').replace(/-+$/, '');
+                        const tryDateStr = `${selectedYear}-${cleanedDate}`;
+                        const retryDate = new Date(tryDateStr);
+
+                        if (!isNaN(retryDate.getTime())) {
+                            testDate = retryDate;
+                            // Format to YYYY-MM-DD string
+                            finalDate = retryDate.toISOString().split('T')[0];
+                        }
+                    }
+
+                    if (isNaN(testDate.getTime())) {
+                        errors.push(`${rowPrefix}「日期」格式錯誤 [${dateStr}] (請提供包含年份的完整日期，例如：${selectedYear}-02-27)`);
+                        return;
+                    }
+
+                    // Ensure finalDate is formatted correctly for our system
+                    if (!finalDate.includes('-')) {
+                        finalDate = testDate.toISOString().split('T')[0];
+                    }
+
+                    if (!vendor) { errors.push(`${rowPrefix}「廠商名稱」不可為空`); return; }
+                    if (!title) { errors.push(`${rowPrefix}「品名」不可為空`); return; }
+                    if (!accCode) { errors.push(`${rowPrefix}「科目代碼」不可為空`); return; }
+                    if (isNaN(amount) || amount <= 0) {
+                        errors.push(`${rowPrefix}「金額」輸入無效 [${amountRaw}] (必須為大於 0 的數字)`);
+                        return;
+                    }
+
+                    const validReqTypes = ['經MM', '非經MM'];
+                    const validPurTypes = ['勞務', '財務', '工程'];
+                    if (!validReqTypes.includes(reqType)) {
+                        errors.push(`${rowPrefix}「請購類型」錯誤 [${reqType}] (應為：經MM 或 非經MM)`);
+                        return;
+                    }
+                    if (!validPurTypes.includes(purType)) {
+                        errors.push(`${rowPrefix}「採購性質」錯誤 [${purType}] (應為：勞務、財務 或 工程)`);
+                        return;
+                    }
+
+                    const acc = ledgerAccounts.find(a => a.code === accCode);
+                    if (!acc) {
+                        errors.push(`${rowPrefix}代碼 [${accCode}] 找不到對應科目`);
+                        return;
+                    }
+
+                    row._valid = true;
+                    row._processed = {
+                        data: {
+                            purchaseDate: finalDate, // 使用修正後的日期資料
+                            vendor,
+                            purchaseType: purType,
+                            requisitionType: reqType,
+                            docNumber: docNum,
+                            note: note,
+                            items: [{
+                                title,
+                                amount: amount.toString(),
+                                ledgerAccountId: acc.id,
+                                ledgerAccountName: acc.name
+                            }]
+                        },
+                        rowNum
+                    };
+                });
+
+                for (const row of json) {
+                    if (!row._valid) continue;
+                    const { data, rowNum } = row._processed;
+                    try {
+                        await addPurchase(data, appUser!.uid);
+                        success++;
+                    } catch (err: any) {
+                        errors.push(`第 ${rowNum} 列：資料庫存入失敗 (${err.message})`);
+                    }
+                }
+
+                let msg = `導入完成！成功：${success} 筆。`;
+                if (errors.length > 0) {
+                    msg += `\n\n發現以下錯誤：\n` + errors.slice(0, 10).join('\n');
+                    if (errors.length > 10) msg += `\n...以及其他 ${errors.length - 10} 筆錯誤`;
+                }
+                alert(msg);
+                fetchPurchases();
+            } catch (err) {
+                alert('處理失敗，請檢查 Excel 格式');
+            } finally {
+                setLoading(false);
+                e.target.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     const fmt = (n: number) => `NT$ ${n.toLocaleString()}`;
     const fmtDate = (p: Purchase) => {
         const d = p.purchaseDate.toDate();
@@ -139,7 +310,16 @@ const PurchaseListPage: React.FC = () => {
         <div className="page-container">
             <div className="page-header">
                 <h1 className="page-title">{selectedYear} 年採購紀錄</h1>
-                <button className="btn-primary" onClick={() => setShowModal(true)}>＋ 新增採購</button>
+                <div className="header-actions">
+                    <label className="btn-outline btn-import-records">
+                        <Upload size={16} /> 批次導入
+                        <input type="file" accept=".xlsx, .xls" onChange={handleImport} hidden />
+                    </label>
+                    <button className="btn-outline-text" onClick={downloadTemplate}>
+                        <Download size={14} /> 範本
+                    </button>
+                    <button className="btn-primary" onClick={() => setShowModal(true)}>＋ 新增採購</button>
+                </div>
             </div>
 
             {/* Filters */}

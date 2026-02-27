@@ -163,3 +163,64 @@
 .required {
     color: #ef4444;
 }
+
+.batch-import-box {
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.batch-import-box.v-batch {
+    margin-top: 0;
+}
+
+.btn-batch-import {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-batch-import:hover {
+    border-color: var(--purple);
+    color: var(--purple);
+    transform: translateY(-1px);
+}
+
+.import-hint {
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 400;
+}
+
+.btn-text-link {
+    background: none;
+    border: none;
+    color: var(--purple);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px;
+    transition: opacity 0.2s;
+}
+
+.btn-text-link:hover {
+    opacity: 0.7;
+}
