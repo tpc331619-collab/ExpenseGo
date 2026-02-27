@@ -120,7 +120,7 @@ const ReportPage: React.FC = () => {
             <div className="modal-overlay" onClick={() => setShowAnalysis(false)}>
                 <div className="modal-box analysis-modal" onClick={e => e.stopPropagation()}>
                     <div className="modal-header">
-                        <h2>年度科目支出分析</h2>
+                        <h2>AI 分析列表</h2>
                         <button className="modal-close" onClick={() => setShowAnalysis(false)}>✕</button>
                     </div>
                     <div className="pop-body">
@@ -164,7 +164,7 @@ const ReportPage: React.FC = () => {
                 <h1 className="page-title">年度採購報表</h1>
                 <div className="report-actions">
                     <button className="btn-analysis" onClick={() => setShowAnalysis(true)}>
-                        ✨ 分析列表
+                        ✨ AI 分析列表
                     </button>
                     <button className="btn-export" onClick={handleExport} disabled={exporting}>
                         {exporting ? '匯出中⋯' : '📥 匯出 Excel'}

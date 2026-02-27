@@ -14,6 +14,7 @@ const Dashboard: React.FC = () => {
     const [hiddenCategories, setHiddenCategories] = React.useState<Set<string>>(new Set());
     const [comparePurchases, setComparePurchases] = React.useState<Purchase[]>([]);
     const [vendorDetail, setVendorDetail] = React.useState<string | null>(null);
+    const [monthRange, setMonthRange] = React.useState<'1-6' | '7-12' | '1-12'>('1-12');
 
     // Fetch comparison data
     React.useEffect(() => {
@@ -159,9 +160,15 @@ const Dashboard: React.FC = () => {
         });
     }, [stats.monthlyStacked, hiddenCategories]);
 
+    const visibleMonths = useMemo(() => {
+        if (monthRange === '1-6') return [0, 1, 2, 3, 4, 5];
+        if (monthRange === '7-12') return [6, 7, 8, 9, 10, 11];
+        return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    }, [monthRange]);
+
     const maxVal = Math.max(
-        ...filteredMonthlyStacked.map(m => m.total),
-        ...stats.compareMonthly,
+        ...visibleMonths.map(mIdx => filteredMonthlyStacked[mIdx].total),
+        ...visibleMonths.map(mIdx => stats.compareMonthly[mIdx]),
         1
     );
 
@@ -229,7 +236,14 @@ const Dashboard: React.FC = () => {
             {/* Monthly bar chart */}
             <div className="card">
                 <div className="card-header-flex">
-                    <h2 className="card-title">月度採購金額對比 (未稅)</h2>
+                    <div className="chart-title-area">
+                        <h2 className="card-title">月度採購金額對比 (未稅)</h2>
+                        <div className="month-range-selector">
+                            <button className={monthRange === '1-6' ? 'active' : ''} onClick={() => setMonthRange('1-6')}>1-6月</button>
+                            <button className={monthRange === '7-12' ? 'active' : ''} onClick={() => setMonthRange('7-12')}>7-12月</button>
+                            <button className={monthRange === '1-12' ? 'active' : ''} onClick={() => setMonthRange('1-12')}>1-12月</button>
+                        </div>
+                    </div>
                     <div className="chart-legend">
                         {compareYear && (
                             <div className="legend-item compare">
@@ -257,7 +271,8 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
                 <div className="bar-chart">
-                    {filteredMonthlyStacked.map((m, i) => {
+                    {visibleMonths.map(i => {
+                        const m = filteredMonthlyStacked[i];
                         const compareTotal = stats.compareMonthly[i];
                         const isActive = drillDown?.month === i;
                         return (
