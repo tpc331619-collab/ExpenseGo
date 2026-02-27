@@ -424,27 +424,24 @@
 .bar.stacked {
     width: 100%;
     max-width: 40px;
-    background: #f8fafc;
+    background: #f0f4f8;
     border-radius: 6px 6px 0 0;
     overflow: hidden;
     position: relative;
     display: flex;
     flex-direction: column-reverse;
-    border: 1px solid #e2e8f0;
 }
 
 .bar.compare-bar {
     width: 100%;
     max-width: 22px;
-    background: #cbd5e1;
+    background: rgba(148, 163, 184, 0.35);
     border-radius: 4px 4px 0 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid #94a3b8;
-    opacity: 0.6;
 }
 
 .bar.compare-bar:hover {
-    opacity: 1;
+    background: rgba(148, 163, 184, 0.55);
 }
 
 .bar-compare-color {

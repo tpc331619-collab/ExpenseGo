@@ -88,6 +88,16 @@ const ReportPage: React.FC = () => {
         }
     };
 
+    // Budget execution rate per account (spent / budget)
+    const getBudgetExec = (acc: AnnualSummaryByAccount) => {
+        const la = ledgerAccounts.find(a => a.id === acc.ledgerAccountId);
+        const budget = la?.budget ?? 0;
+        if (!budget) return { pct: null, hasBudget: false };
+        const pct = (acc.total / budget) * 100;
+        return { pct, hasBudget: true };
+    };
+
+    // Percentage of grand total (used for vendor / requisition / purchaseType tabs)
     const pct = (v: number) => grandTotal ? ((v / grandTotal) * 100).toFixed(1) : '0.0';
 
     const SubjectSummaryModal = () => {
@@ -222,11 +232,28 @@ const ReportPage: React.FC = () => {
                                     <span className="rs-count">{acc.count} 筆</span>
                                 </div>
                                 <div className="rs-right">
-                                    <div className="rs-bar-wrap">
-                                        <div className="rs-bar" style={{ width: `${pct(acc.total)}%` }} />
-                                    </div>
-                                    <span className="rs-pct">{pct(acc.total)}%</span>
-                                    <span className="rs-amount">{fmt(acc.total)}</span>
+                                    {(() => {
+                                        const be = getBudgetExec(acc);
+                                        if (!be.hasBudget) return (
+                                            <>
+                                                <div className="rs-bar-wrap"><div className="rs-bar" style={{ width: '0%' }} /></div>
+                                                <span className="rs-pct rs-pct-none">未設預算</span>
+                                                <span className="rs-amount">{fmt(acc.total)}</span>
+                                            </>
+                                        );
+                                        const p = be.pct!;
+                                        const cls = p > 100 ? 'rs-pct-over' : p > 90 ? 'rs-pct-warn' : 'rs-pct-ok';
+                                        return (
+                                            <>
+                                                <div className="rs-bar-wrap">
+                                                    <div className={`rs-bar ${p > 100 ? 'rs-bar-over' : p > 90 ? 'rs-bar-warn' : ''}`}
+                                                        style={{ width: `${Math.min(p, 100)}%` }} />
+                                                </div>
+                                                <span className={`rs-pct ${cls}`}>{p.toFixed(1)}%</span>
+                                                <span className="rs-amount">{fmt(acc.total)}</span>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                             {expandedId === acc.ledgerAccountId && (

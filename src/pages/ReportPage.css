@@ -126,11 +126,37 @@
     transition: width .4s ease;
 }
 
+.rs-bar.rs-bar-warn {
+    background: linear-gradient(90deg, #b45309, #f59e0b);
+}
+
+.rs-bar.rs-bar-over {
+    background: linear-gradient(90deg, #b91c1c, #ef4444);
+}
+
 .rs-pct {
     font-size: 12px;
-    color: var(--text3);
-    width: 40px;
+    font-weight: 600;
+    width: 48px;
     text-align: right;
+}
+
+.rs-pct-none {
+    color: var(--text3);
+    font-weight: 400;
+    font-size: 11px;
+}
+
+.rs-pct-ok {
+    color: #15803d;
+}
+
+.rs-pct-warn {
+    color: #b45309;
+}
+
+.rs-pct-over {
+    color: #b91c1c;
 }
 
 .rs-amount {
