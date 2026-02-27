@@ -4,14 +4,16 @@ import type { Purchase } from '../types';
 import { DollarSign, Hash } from 'lucide-react';
 import { getPurchases } from '../lib/firestore';
 import DashboardSkeleton from '../components/DashboardSkeleton';
+import VendorDetailCard from '../components/VendorDetailCard';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
     const { purchases, ledgerAccounts, loadingData, selectedYear: currentYear, compareYear } = useApp();
 
-    const [drillDown, setDrillDown] = React.useState<{ month: number; year: number } | null>(null);
+    const [drillDown, setDrillDown] = React.useState<{ month: number; year: number; type?: 'vendor' | 'account'; target?: string } | null>(null);
     const [hiddenCategories, setHiddenCategories] = React.useState<Set<string>>(new Set());
     const [comparePurchases, setComparePurchases] = React.useState<Purchase[]>([]);
+    const [vendorDetail, setVendorDetail] = React.useState<string | null>(null);
 
     // Fetch comparison data
     React.useEffect(() => {
@@ -41,6 +43,20 @@ const Dashboard: React.FC = () => {
         });
 
         const topAccounts = Object.entries(byAccount)
+            .sort((a, b) => b[1].total - a[1].total)
+            .slice(0, 5);
+
+        // By vendor
+        const byVendor: Record<string, { total: number; count: number }> = {};
+        yearPurchases.forEach((p) => {
+            if (!byVendor[p.vendor]) {
+                byVendor[p.vendor] = { total: 0, count: 0 };
+            }
+            byVendor[p.vendor].total += p.amount;
+            byVendor[p.vendor].count += 1;
+        });
+
+        const topVendors = Object.entries(byVendor)
             .sort((a, b) => b[1].total - a[1].total)
             .slice(0, 5);
 
@@ -132,7 +148,7 @@ const Dashboard: React.FC = () => {
             compareMonthlyItems[m].sort((a: Purchase, b: Purchase) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
         });
 
-        return { total, count, topAccounts, budgetStatus, monthly, monthlyItems, monthlyStacked, allCategories, compareMonthly, compareMonthlyItems };
+        return { total, count, topAccounts, topVendors, budgetStatus, monthly, monthlyItems, monthlyStacked, allCategories, compareMonthly, compareMonthlyItems };
     }, [purchases, ledgerAccounts, currentYear, comparePurchases]);
 
     const filteredMonthlyStacked = useMemo(() => {
@@ -162,6 +178,25 @@ const Dashboard: React.FC = () => {
     if (loadingData) {
         return <DashboardSkeleton />;
     }
+
+    const drillDownItems = useMemo(() => {
+        if (!drillDown) return [];
+        let items: Purchase[] = [];
+        if (drillDown.type === 'vendor') {
+            const pool = drillDown.year === currentYear ? purchases : comparePurchases;
+            items = pool.filter(p => p.vendor === drillDown.target);
+        } else {
+            const list = drillDown.year === currentYear ? stats.monthlyItems : stats.compareMonthlyItems;
+            items = list[drillDown.month] || [];
+        }
+        return [...items].sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+    }, [drillDown, purchases, comparePurchases, stats.monthlyItems, stats.compareMonthlyItems, currentYear]);
+
+    const drillDownTitle = useMemo(() => {
+        if (!drillDown) return '';
+        if (drillDown.type === 'vendor') return `${drillDown.target} - ${drillDown.year}年度採購明細`;
+        return `${drillDown.year}年 ${drillDown.month + 1}月份採購紀錄`;
+    }, [drillDown]);
 
     return (
         <div className="page-container">
@@ -275,7 +310,7 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            <div className="two-col">
+            <div className="three-col">
                 {/* Top accounts */}
                 {stats.topAccounts.length > 0 && (
                     <div className="card">
@@ -285,6 +320,36 @@ const Dashboard: React.FC = () => {
                                 <div className="rank-item" key={id}>
                                     <span className={`rank-no rank-${idx + 1}`}>{idx + 1}</span>
                                     <span className="rank-name">{v.name}</span>
+                                    <span className="rank-count">{v.count} 筆</span>
+                                    <span className="rank-amount">{fmt(v.total)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Top Vendors */}
+                {stats.topVendors.length > 0 && (
+                    <div className="card">
+                        <h2 className="card-title">廠商排行 Top 5</h2>
+                        <div className="rank-list">
+                            {stats.topVendors.map(([name, v], idx) => (
+                                <div
+                                    className="rank-item clickable"
+                                    key={name}
+                                    onClick={() => setDrillDown({ month: 0, year: currentYear, type: 'vendor', target: name })}
+                                >
+                                    <span className={`rank-no rank-${idx + 1}`}>{idx + 1}</span>
+                                    <span
+                                        className="rank-name truncated v-profile-link"
+                                        title="查看廠商資料卡"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setVendorDetail(name);
+                                        }}
+                                    >
+                                        {name}
+                                    </span>
                                     <span className="rank-count">{v.count} 筆</span>
                                     <span className="rank-amount">{fmt(v.total)}</span>
                                 </div>
@@ -360,12 +425,12 @@ const Dashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Monthly Detail Modal */}
+            {/* Monthly / Vendor Detail Modal */}
             {drillDown && (
                 <div className="modal-overlay" onClick={() => setDrillDown(null)}>
                     <div className="modal-box drill-down-pop" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{drillDown.year} 年度 {drillDown.month + 1} 月份採購明細</h2>
+                            <h2>{drillDownTitle}</h2>
                             <button className="modal-close" onClick={() => setDrillDown(null)}>×</button>
                         </div>
                         <div className="pop-body">
@@ -381,7 +446,7 @@ const Dashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(drillDown.year === currentYear ? stats.monthlyItems[drillDown.month] : stats.compareMonthlyItems[drillDown.month]).map((p: Purchase, idx: number) => (
+                                        {drillDownItems.map((p, idx) => (
                                             <tr key={p.id}>
                                                 <td>{idx + 1}</td>
                                                 <td>{fmtDateShort(p)}</td>
@@ -396,6 +461,13 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {vendorDetail && (
+                <VendorDetailCard
+                    vendorName={vendorDetail}
+                    onClose={() => setVendorDetail(null)}
+                />
             )}
         </div>
     );

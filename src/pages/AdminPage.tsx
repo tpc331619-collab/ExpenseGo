@@ -33,6 +33,9 @@ const AdminPage: React.FC = () => {
     // Vendor form
     const [vendorCode, setVendorCode] = useState('');
     const [vendorName, setVendorName] = useState('');
+    const [vendorTaxId, setVendorTaxId] = useState('');
+    const [vendorContact, setVendorContact] = useState('');
+    const [vendorPhone, setVendorPhone] = useState('');
     const [vendorSaving, setVendorSaving] = useState(false);
     const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
     const [adminError, setAdminError] = useState('');
@@ -105,26 +108,57 @@ const AdminPage: React.FC = () => {
         setAccBudget('');
     };
 
+    const normalizeName = (name: string) => {
+        return name.trim()
+            .replace(/(股份有限公司|有限公司|實業有限公司|實業股份有限公司|股份公司|有限公司|公司)$/, '')
+            .replace(/[\(\)（）\s]/g, ''); // 移除空格與括弧
+    };
+
     const handleAddVendor = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!vendorName.trim()) return;
         setVendorSaving(true);
-        console.log('Adding/Updating vendor:', { code: vendorCode, name: vendorName, editingVendor });
+
+        const vendorData: Partial<Vendor> = {
+            code: vendorCode.trim(),
+            name: vendorName.trim(),
+            taxId: vendorTaxId.trim(),
+            contact: vendorContact.trim(),
+            phone: vendorPhone.trim()
+        };
+
         try {
             if (editingVendor) {
-                await updateVendor(editingVendor.id, vendorCode.trim(), vendorName.trim());
+                await updateVendor(editingVendor.id, vendorData);
                 setEditingVendor(null);
             } else {
-                await addVendor(vendorCode.trim(), vendorName.trim());
+                // Duplicate Check
+                const normName = normalizeName(vendorName);
+                const nameDup = vendors.find(v => normalizeName(v.name) === normName);
+                const taxDup = vendorTaxId.trim() ? vendors.find(v => v.taxId === vendorTaxId.trim()) : null;
+
+                if (taxDup) {
+                    throw new Error(`統編 ${vendorTaxId} 已由「${taxDup.name}」使用，請勿重複建立。`);
+                }
+                if (nameDup) {
+                    throw new Error(`偵測到相似廠商：「${nameDup.name}」。\n系統已自動比對並排除「股份有限公司/有限公司」等字眼，請確認是否為同一家廠商。`);
+                }
+
+                await addVendor(vendorData);
             }
-            console.log('Vendor saved successfully');
+
+            // Clean up
             setVendorCode('');
             setVendorName('');
+            setVendorTaxId('');
+            setVendorContact('');
+            setVendorPhone('');
+
             await refreshVendors();
             setAdminError('');
         } catch (err: any) {
             console.error('Vendor save error:', err);
-            const msg = `廠商儲存失敗: ${err.message || '請檢查 Firebase 權限（Rules）'}`;
+            const msg = `廠商儲存失敗: ${err.message}`;
             setAdminError(msg);
             alert(msg);
         } finally {
@@ -142,16 +176,26 @@ const AdminPage: React.FC = () => {
         setEditingVendor(v);
         setVendorCode(v.code || '');
         setVendorName(v.name);
+        setVendorTaxId(v.taxId || '');
+        setVendorContact(v.contact || '');
+        setVendorPhone(v.phone || '');
     };
 
-    const cancelEditVendor = () => { setEditingVendor(null); setVendorCode(''); setVendorName(''); };
+    const cancelEditVendor = () => {
+        setEditingVendor(null);
+        setVendorCode('');
+        setVendorName('');
+        setVendorTaxId('');
+        setVendorContact('');
+        setVendorPhone('');
+    };
 
     const pendingCount = users.filter((u) => u.role === 'pending').length;
 
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1 className="page-title">{isAdmin ? '系統管理' : '資料維護'}</h1>
+                <h1 className="page-title">{isAdmin ? '系統管理' : '管理'}</h1>
             </div>
 
             <div className="admin-tabs">
@@ -277,27 +321,50 @@ const AdminPage: React.FC = () => {
             {/* Vendors tab */}
             {tab === 'vendors' && (
                 <div className="accounts-panel">
-                    <form className="acc-form" onSubmit={handleAddVendor}>
-                        <input
-                            placeholder="統編 (8位數字)"
-                            value={vendorCode}
-                            onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, ''); // 僅保留數字
-                                if (val.length <= 8) setVendorCode(val);
-                            }}
-                        />
-                        <input
-                            placeholder="廠商名稱，如 國泰化工"
-                            value={vendorName}
-                            onChange={(e) => setVendorName(e.target.value)}
-                            required
-                        />
-                        <button type="submit" className="btn-primary" disabled={vendorSaving}>
-                            {vendorSaving ? '儲存中⋯' : editingVendor ? '更新' : '新增'}
-                        </button>
-                        {editingVendor && (
-                            <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
-                        )}
+                    <form className="vendor-form-premium" onSubmit={handleAddVendor}>
+                        <div className="v-form-grid">
+                            <div className="f-group">
+                                <label>廠商名稱 <span className="required">*</span></label>
+                                <input
+                                    placeholder="如：國泰化工"
+                                    value={vendorName}
+                                    onChange={(e) => setVendorName(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="f-group">
+                                <label>統一編號</label>
+                                <input
+                                    placeholder="8位數字"
+                                    value={vendorTaxId}
+                                    onChange={(e) => setVendorTaxId(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                                />
+                            </div>
+                            <div className="f-group">
+                                <label>聯絡人</label>
+                                <input
+                                    placeholder="聯絡姓名"
+                                    value={vendorContact}
+                                    onChange={(e) => setVendorContact(e.target.value)}
+                                />
+                            </div>
+                            <div className="f-group">
+                                <label>聯絡電話</label>
+                                <input
+                                    placeholder="電話或分機"
+                                    value={vendorPhone}
+                                    onChange={(e) => setVendorPhone(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="v-form-actions">
+                            <button type="submit" className="btn-primary" disabled={vendorSaving}>
+                                {vendorSaving ? '儲存中⋯' : editingVendor ? '更新廠商資料' : '新增廠商'}
+                            </button>
+                            {editingVendor && (
+                                <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
+                            )}
+                        </div>
                     </form>
 
                     <div className="table-wrapper">
@@ -306,14 +373,16 @@ const AdminPage: React.FC = () => {
                         ) : (
                             <table className="admin-table">
                                 <thead>
-                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>統編</th><th>廠商名稱</th><th>操作</th></tr>
+                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>統編</th><th>廠商名稱</th><th>聯絡人</th><th>電話</th><th>操作</th></tr>
                                 </thead>
                                 <tbody>
                                     {vendors.map((v, idx) => (
                                         <tr key={v.id}>
                                             <td style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</td>
-                                            <td><code>{v.code || '-'}</code></td>
+                                            <td><code>{v.taxId || v.code || '-'}</code></td>
                                             <td>{v.name}</td>
+                                            <td>{v.contact || '-'}</td>
+                                            <td>{v.phone || '-'}</td>
                                             <td>
                                                 <div className="role-actions">
                                                     <button className="role-btn user" onClick={() => startEditVendor(v)}>編輯</button>

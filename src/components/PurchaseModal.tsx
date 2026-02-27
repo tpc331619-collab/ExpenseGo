@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { addPurchase, updatePurchase } from '../lib/firestore';
-import type { Purchase, PurchaseFormData, PurchaseItem } from '../types';
+import type { Purchase, PurchaseFormData, PurchaseItem, Vendor } from '../types';
 import './PurchaseModal.css';
 
 interface Props {
@@ -89,6 +89,62 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         set('items', newItems);
     };
 
+    const handleVendorChange = (vendorName: string) => {
+        set('vendor', vendorName);
+        if (!vendorName) return;
+
+        // Predictive Suggestion: Find most frequent account and title for this vendor
+        const vendorHistory = purchases.filter(p => p.vendor === vendorName);
+        if (vendorHistory.length > 0) {
+            const accountCounts: Record<string, number> = {};
+            const titleCounts: Record<string, number> = {};
+
+            vendorHistory.forEach(p => {
+                accountCounts[p.ledgerAccountId] = (accountCounts[p.ledgerAccountId] || 0) + 1;
+                titleCounts[p.title] = (titleCounts[p.title] || 0) + 1;
+            });
+
+            const topAccountId = Object.entries(accountCounts).sort((a, b) => b[1] - a[1])[0][0];
+            const topTitle = Object.entries(titleCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+            const newItems = [...form.items];
+            const acc = ledgerAccounts.find(a => a.id === topAccountId);
+
+            if (acc || topTitle) {
+                newItems.forEach((it, idx) => {
+                    const isNewOrCopy = !editPurchase || isCopy;
+                    const isSingleItem = newItems.length === 1;
+
+                    // 自動切換品名：如果是空的，或者單一品項且為新增模式
+                    if (topTitle && (!it.title || (isSingleItem && isNewOrCopy))) {
+                        it.title = topTitle;
+                    }
+
+                    // 自動切換科目
+                    if (acc && (!it.ledgerAccountId || (isSingleItem && isNewOrCopy))) {
+                        it.ledgerAccountId = acc.id;
+                        it.ledgerAccountName = `${acc.code} ${acc.name}`;
+                    }
+
+                    newItems[idx] = { ...it };
+                });
+                set('items', newItems);
+            }
+        }
+    };
+
+    const sortedVendors = useMemo(() => {
+        // Sort vendors: Recently used first
+        const recentVendors = new Set(purchases.slice(0, 20).map(p => p.vendor));
+        return [...vendors].sort((a, b) => {
+            const aRecent = recentVendors.has(a.name);
+            const bRecent = recentVendors.has(b.name);
+            if (aRecent && !bRecent) return -1;
+            if (!aRecent && bRecent) return 1;
+            return a.name.localeCompare(b.name, 'zh-TW');
+        });
+    }, [vendors, purchases]);
+
     const totalExclTax = form.items.reduce((s, item) => s + (parseFloat(item.amount) || 0), 0);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -156,11 +212,14 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                         {/* Row 2: 廠商 / 文件號碼 */}
                         <div className="form-group col-6">
                             <label>廠商 <span className="required">*</span></label>
-                            <select value={form.vendor} onChange={(e) => set('vendor', e.target.value)}>
+                            <select
+                                value={form.vendor}
+                                onChange={(e) => handleVendorChange(e.target.value)}
+                            >
                                 <option value="">選擇廠商</option>
-                                {vendors.map(v => (
+                                {sortedVendors.map((v: Vendor) => (
                                     <option key={v.id} value={v.name}>
-                                        {v.code ? `${v.code} ${v.name}` : v.name}
+                                        {v.taxId ? `[${v.taxId}] ` : ''}{v.name}
                                     </option>
                                 ))}
                             </select>

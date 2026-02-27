@@ -61,10 +61,19 @@
     color: #667085;
 }
 
-.vendor-name {
-    font-weight: 600;
-    color: #101828;
+.vendor-name-clickable {
+    font-weight: 700;
+    color: var(--primary);
     font-size: 14.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.vendor-name-clickable:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+    transform: translateX(2px);
 }
 
 .title-name {

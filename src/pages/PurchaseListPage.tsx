@@ -5,6 +5,7 @@ import { deletePurchaseGroup, getPaginatedPurchases } from '../lib/firestore';
 import type { Purchase } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
 import PurchaseModal from '../components/PurchaseModal';
+import VendorDetailCard from '../components/VendorDetailCard';
 import './PurchaseListPage.css';
 
 const PurchaseListPage: React.FC = () => {
@@ -24,6 +25,7 @@ const PurchaseListPage: React.FC = () => {
     const [filterAccount, setFilterAccount] = useState('');
     const [filterVendor, setFilterVendor] = useState('');
     const [search, setSearch] = useState('');
+    const [vendorDetail, setVendorDetail] = useState<string | null>(null);
 
     const fetchPurchases = async (isLoadMore = false) => {
         if (!isLoadMore) setLoading(true);
@@ -167,7 +169,9 @@ const PurchaseListPage: React.FC = () => {
 
             {/* Table */}
             <div className="table-wrapper">
-                {filtered.length === 0 ? (
+                {loading ? (
+                    <div className="full-loading"><div className="spinner" /></div>
+                ) : filtered.length === 0 ? (
                     <div className="empty-state">
                         <svg className="empty-svg" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M16 12C16 9.79086 17.7909 8 20 8H36L48 20V52C48 54.2091 46.2091 56 44 56H20C17.7909 56 16 54.2091 16 52V12Z" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
@@ -217,7 +221,13 @@ const PurchaseListPage: React.FC = () => {
                                                     </td>
                                                     <td data-label="廠商/品名" className="td-vendor-title">
                                                         <div className="vertical-stack">
-                                                            <div className="vendor-name">{p.vendor}</div>
+                                                            <div
+                                                                className="vendor-name-clickable"
+                                                                onClick={() => setVendorDetail(p.vendor)}
+                                                                title="查看廠商資料卡"
+                                                            >
+                                                                {p.vendor}
+                                                            </div>
                                                             <div className="title-name">{p.title}</div>
                                                         </div>
                                                     </td>
@@ -292,6 +302,13 @@ const PurchaseListPage: React.FC = () => {
                     onClose={(refresh) => closeModal(refresh === true)}
                     editPurchase={editTarget}
                     isCopy={isCopy}
+                />
+            )}
+
+            {vendorDetail && (
+                <VendorDetailCard
+                    vendorName={vendorDetail}
+                    onClose={() => setVendorDetail(null)}
                 />
             )}
         </div >

@@ -24,6 +24,9 @@ export interface Vendor {
     id: string;
     code?: string;
     name: string;
+    taxId?: string;       // 統編
+    contact?: string;     // 聯絡人
+    phone?: string;       // 電話
     createdAt: Timestamp;
 }
 

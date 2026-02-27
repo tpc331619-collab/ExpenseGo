@@ -100,16 +100,22 @@ export const getVendors = async (): Promise<Vendor[]> => {
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Vendor);
 };
 
-export const addVendor = async (code: string, name: string) => {
-    await addDoc(collection(db, 'vendors'), { code, name, createdAt: Timestamp.now() });
+export const getVendor = async (id: string): Promise<Vendor | null> => {
+    const snap = await getDoc(doc(db, 'vendors', id));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() } as Vendor;
+};
+
+export const addVendor = async (data: Partial<Vendor>) => {
+    await addDoc(collection(db, 'vendors'), { ...data, createdAt: Timestamp.now() });
 };
 
 export const deleteVendor = async (id: string) => {
     await deleteDoc(doc(db, 'vendors', id));
 };
 
-export const updateVendor = async (id: string, code: string, name: string) => {
-    await updateDoc(doc(db, 'vendors', id), { code, name });
+export const updateVendor = async (id: string, data: Partial<Vendor>) => {
+    await updateDoc(doc(db, 'vendors', id), data);
 };
 
 // ─── Purchases ───────────────────────────────────────────────────────────────

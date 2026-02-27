@@ -1,0 +1,220 @@
+.v-card-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.v-card-modal {
+    background: white;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(15px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.v-card-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #f1f5f9;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.v-card-close:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.v-card-header {
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+    padding: 24px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.v-icon-box {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.v-title-area h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.v-tax-tag {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 1px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+}
+
+.v-card-body {
+    padding: 24px;
+}
+
+.v-info-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.v-info-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.v-info-item:last-child {
+    margin-bottom: 0;
+}
+
+.v-item-icon {
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+.v-item-content label {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.v-item-content span {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.v-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 4px 0 20px;
+}
+
+.v-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 12px;
+}
+
+.v-bank-box {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.v-bank-name {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.v-bank-account {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 15px;
+    color: #0f172a;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.v-note-section {
+    margin-top: 20px;
+}
+
+.v-note-text {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+    background: #fff9e6;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin: 0;
+}
+
+.v-card-loading,
+.v-card-empty {
+    padding: 40px 24px;
+    text-align: center;
+}
+
+.v-card-empty h3 {
+    margin: 16px 0 8px;
+    color: #1e293b;
+    font-size: 16px;
+}
+
+.v-card-empty p {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.empty-icon {
+    color: #e2e8f0;
+}

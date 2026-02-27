@@ -407,6 +407,17 @@
     font-weight: 500;
 }
 
+.rank-name.v-profile-link {
+    cursor: pointer;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.rank-name.v-profile-link:hover {
+    text-decoration: underline;
+    color: var(--primary-dark);
+}
+
 .rank-count {
     font-size: 12px;
     color: #667085;
@@ -500,15 +511,31 @@
     color: #12b76a;
 }
 
-.two-col {
+.two-col,
+.three-col {
     display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 24px;
     margin-top: 24px;
 }
 
+.two-col {
+    grid-template-columns: 1fr 1fr;
+}
+
+.three-col {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 1100px) {
+    .three-col {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 @media (max-width: 900px) {
-    .two-col {
+
+    .two-col,
+    .three-col {
         grid-template-columns: 1fr;
     }
 }
