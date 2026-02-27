@@ -1,22 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ── CSS Variables ─────────────────────────────────────────────────────────── */
 :root {
-  --bg: #f8fafc;
-  --bg2: #f1f5f9;
+  --bg: #f0f4f8;
+  --bg2: #e8edf3;
   --card: #ffffff;
-  --card2: #f8fafc;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text2: #475569;
-  --text3: #94a3b8;
-  --purple: #4f46e5;
-  --purple-d: #4338ca;
+  --card2: #f5f8fb;
+  --border: #d1dce8;
+  --text: #0d1b2a;
+  --text2: #3d5166;
+  --text3: #8da0b3;
+  /* Primary: Deep Navy Blue */
+  --primary: #1e3a5f;
+  --primary-dark: #162d4a;
+  /* Legacy alias for compatibility */
+  --purple: #1e3a5f;
+  --purple-d: #162d4a;
+  /* Action blue (buttons, links, focus) */
   --blue: #2563eb;
   --teal: #0d9488;
-  --green: #16a34a;
-  --amber: #d97706;
-  --red: #dc2626;
+  --green: #15803d;
+  --amber: #b45309;
+  --red: #b91c1c;
   --radius: 16px;
   --radius-sm: 10px;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -234,71 +238,84 @@ select option {
 }
 
 .kpi-card {
+  background: #0d1b2a;
   border-radius: var(--radius);
   padding: 20px 24px;
   position: relative;
   overflow: hidden;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 12px rgba(13, 27, 42, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(13, 27, 42, 0.35);
 }
 
 .kpi-card::before {
   content: '';
   position: absolute;
-  inset: 0;
-  opacity: .12;
-  border-radius: var(--radius);
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
 }
 
-.kpi-card.accent-purple {
-  background: rgba(99, 102, 241, .15);
-  border-color: rgba(99, 102, 241, .3);
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0.06;
 }
 
-.kpi-card.accent-purple::before {
-  background: var(--purple);
+.kpi-card.accent-purple::before,
+.kpi-card.accent-purple::after {
+  background: #2563eb;
 }
 
-.kpi-card.accent-blue {
-  background: rgba(59, 130, 246, .15);
-  border-color: rgba(59, 130, 246, .3);
+.kpi-card.accent-blue::before,
+.kpi-card.accent-blue::after {
+  background: #10b981;
 }
 
-.kpi-card.accent-blue::before {
-  background: var(--blue);
-}
-
-.kpi-card.accent-teal {
-  background: rgba(20, 184, 166, .15);
-  border-color: rgba(20, 184, 166, .3);
-}
-
-.kpi-card.accent-teal::before {
-  background: var(--teal);
+.kpi-card.accent-teal::before,
+.kpi-card.accent-teal::after {
+  background: #0d9488;
 }
 
 .kpi-label {
-  font-size: 13px;
-  color: var(--text2);
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 6px;
 }
 
 .kpi-value {
   font-size: 1.6rem;
   font-weight: 700;
-  margin-top: 6px;
+  color: #ffffff;
+  margin-top: 4px;
   letter-spacing: -0.5px;
 }
 
 .accent-purple .kpi-value {
-  color: var(--purple);
+  color: #ffffff;
 }
 
 .accent-blue .kpi-value {
-  color: var(--blue);
+  color: #ffffff;
 }
 
 .accent-teal .kpi-value {
-  color: var(--teal);
+  color: #ffffff;
 }
 
 /* ── Tags ───────────────────────────────────────────────────────────────────── */

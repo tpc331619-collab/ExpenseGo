@@ -121,7 +121,7 @@
 
 .rs-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--purple), #a78bfa);
+    background: linear-gradient(90deg, #1e3a5f, #2563eb);
     border-radius: 4px;
     transition: width .4s ease;
 }
@@ -135,7 +135,7 @@
 
 .rs-amount {
     font-weight: 700;
-    color: var(--purple);
+    color: #1e3a5f;
     white-space: nowrap;
     min-width: 110px;
     text-align: right;
@@ -162,8 +162,8 @@
     align-items: center;
     gap: 6px;
     background: white;
-    color: var(--purple);
-    border: 1.5px solid var(--purple);
+    color: #1e3a5f;
+    border: 1.5px solid #1e3a5f;
     padding: 10px 18px;
     border-radius: var(--radius-sm);
     font-weight: 700;
@@ -173,9 +173,9 @@
 }
 
 .btn-analysis:hover {
-    background: #f5f3ff;
+    background: #f0f4f8;
     transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 4px 6px rgba(30, 58, 95, 0.1);
 }
 
 .analysis-modal {
@@ -222,7 +222,7 @@
 }
 
 .ai-code {
-    background: var(--purple);
+    background: #1e3a5f;
     color: white;
     font-size: 11px;
     font-weight: 800;
