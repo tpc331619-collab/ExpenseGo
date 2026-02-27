@@ -29,6 +29,41 @@
     margin-bottom: 24px;
 }
 
+.collapsible-card {
+    cursor: default;
+}
+
+.collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+}
+
+.collapsible-header:hover .card-title {
+    color: #2563eb;
+}
+
+.collapse-icon {
+    font-size: 18px;
+    color: #8da0b3;
+    transition: transform 0.25s ease;
+    display: inline-block;
+    line-height: 1;
+}
+
+.collapse-icon.open {
+    transform: rotate(180deg);
+    color: #2563eb;
+}
+
+.collapsible-header+.rank-list,
+.collapsible-header+.budget-list-simple {
+    margin-top: 16px;
+}
+
 .chart-legend {
     display: flex;
     flex-wrap: wrap;
@@ -495,6 +530,27 @@
     color: white;
 }
 
+/* ── Three-Column Panel Cards ──────────────────────────────────────── */
+.three-col .card {
+    border-top: 4px solid transparent;
+    transition: border-color 0.2s;
+}
+
+/* 科目排行 - navy blue accent */
+.three-col .card:nth-child(1) {
+    border-top-color: #1e3a5f;
+}
+
+/* 廠商排行 - steel blue accent */
+.three-col .card:nth-child(2) {
+    border-top-color: #2563eb;
+}
+
+/* 預算執行率 - emerald accent */
+.three-col .card:nth-child(3) {
+    border-top-color: #10b981;
+}
+
 /* Rankings */
 .rank-list {
     display: flex;
@@ -505,8 +561,17 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid #f2f4f7;
+    padding: 10px 12px;
+    border-radius: 10px;
+    transition: background 0.15s;
+}
+
+.rank-item:nth-child(even) {
+    background: #f5f8fb;
+}
+
+.rank-item:hover {
+    background: #e8edf3;
 }
 
 .rank-no {
@@ -518,27 +583,38 @@
     border-radius: 50%;
     font-size: 12px;
     font-weight: 700;
+    flex-shrink: 0;
 }
 
 .rank-no.rank-1 {
     background: #fef3f2;
     color: #b42318;
+    border: 1.5px solid #fca5a5;
 }
 
 .rank-no.rank-2 {
     background: #fef6ee;
     color: #b93815;
+    border: 1.5px solid #fdba74;
 }
 
 .rank-no.rank-3 {
     background: #f0f9ff;
     color: #026aa2;
+    border: 1.5px solid #7dd3fc;
+}
+
+.rank-no.rank-4,
+.rank-no.rank-5 {
+    background: var(--card2);
+    color: var(--text3);
+    border: 1.5px solid var(--border);
 }
 
 .rank-name {
     flex: 1;
-    font-size: 14px;
-    color: #344054;
+    font-size: 13px;
+    color: var(--text);
     font-weight: 500;
 }
 
@@ -659,6 +735,7 @@
 
 .three-col {
     grid-template-columns: 1fr 1fr 1fr;
+    align-items: start;
 }
 
 @media (max-width: 1100px) {

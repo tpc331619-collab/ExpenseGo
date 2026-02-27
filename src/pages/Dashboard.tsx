@@ -15,6 +15,13 @@ const Dashboard: React.FC = () => {
     const [comparePurchases, setComparePurchases] = React.useState<Purchase[]>([]);
     const [vendorDetail, setVendorDetail] = React.useState<string | null>(null);
     const [monthRange, setMonthRange] = React.useState<'1-6' | '7-12' | '1-12'>('1-12');
+    const [openPanels, setOpenPanels] = React.useState<Set<string>>(new Set());
+    const togglePanel = (key: string) =>
+        setOpenPanels(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key); else next.add(key);
+            return next;
+        });
 
     // Fetch comparison data
     React.useEffect(() => {
@@ -328,74 +335,89 @@ const Dashboard: React.FC = () => {
             <div className="three-col">
                 {/* Top accounts */}
                 {stats.topAccounts.length > 0 && (
-                    <div className="card">
-                        <h2 className="card-title">科目排行 Top 5</h2>
-                        <div className="rank-list">
-                            {stats.topAccounts.map(([id, v], idx) => (
-                                <div className="rank-item" key={id}>
-                                    <span className={`rank-no rank-${idx + 1}`}>{idx + 1}</span>
-                                    <span className="rank-name">{v.name}</span>
-                                    <span className="rank-count">{v.count} 筆</span>
-                                    <span className="rank-amount">{fmt(v.total)}</span>
-                                </div>
-                            ))}
+                    <div className="card collapsible-card">
+                        <div className="collapsible-header" onClick={() => togglePanel('accounts')}>
+                            <h2 className="card-title">科目排行 Top 5</h2>
+                            <span className={`collapse-icon ${openPanels.has('accounts') ? 'open' : ''}`}>▾</span>
                         </div>
+                        {openPanels.has('accounts') && (
+                            <div className="rank-list">
+                                {stats.topAccounts.map(([id, v], idx) => (
+                                    <div className="rank-item" key={id}>
+                                        <span className={`rank-no rank-${idx + 1}`}>{idx + 1}</span>
+                                        <span className="rank-name">{v.name}</span>
+                                        <span className="rank-count">{v.count} 筆</span>
+                                        <span className="rank-amount">{fmt(v.total)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* Top Vendors */}
                 {stats.topVendors.length > 0 && (
-                    <div className="card">
-                        <h2 className="card-title">廠商排行 Top 5</h2>
-                        <div className="rank-list">
-                            {stats.topVendors.map(([name, v], idx) => (
-                                <div
-                                    className="rank-item clickable"
-                                    key={name}
-                                    onClick={() => setDrillDown({ month: 0, year: currentYear, type: 'vendor', target: name })}
-                                >
-                                    <span className={`rank-no rank-${idx + 1}`}>{idx + 1}</span>
-                                    <span
-                                        className="rank-name truncated v-profile-link"
-                                        title="查看廠商資料卡"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setVendorDetail(name);
-                                        }}
-                                    >
-                                        {name}
-                                    </span>
-                                    <span className="rank-count">{v.count} 筆</span>
-                                    <span className="rank-amount">{fmt(v.total)}</span>
-                                </div>
-                            ))}
+                    <div className="card collapsible-card">
+                        <div className="collapsible-header" onClick={() => togglePanel('vendors')}>
+                            <h2 className="card-title">廠商排行 Top 5</h2>
+                            <span className={`collapse-icon ${openPanels.has('vendors') ? 'open' : ''}`}>▾</span>
                         </div>
+                        {openPanels.has('vendors') && (
+                            <div className="rank-list">
+                                {stats.topVendors.map(([name, v], idx) => (
+                                    <div
+                                        className="rank-item clickable"
+                                        key={name}
+                                        onClick={() => setDrillDown({ month: 0, year: currentYear, type: 'vendor', target: name })}
+                                    >
+                                        <span className={`rank-no rank-${idx + 1}`}>{idx + 1}</span>
+                                        <span
+                                            className="rank-name truncated v-profile-link"
+                                            title="查看廠商資料卡"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setVendorDetail(name);
+                                            }}
+                                        >
+                                            {name}
+                                        </span>
+                                        <span className="rank-count">{v.count} 筆</span>
+                                        <span className="rank-amount">{fmt(v.total)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* Budget Status */}
                 {stats.budgetStatus.length > 0 && (
-                    <div className="card">
-                        <h2 className="card-title">預算執行率</h2>
-                        <div className="budget-list-simple">
-                            {stats.budgetStatus.map((b, idx) => (
-                                <div className="budget-row-simple" key={b.id} onClick={() => setSelectedBudget(b)}>
-                                    <span className="b-no">{idx + 1}.</span>
-                                    <span className="b-name-simple">{b.code}</span>
-                                    <div className="b-progress-box">
-                                        <div className="b-bar-mini">
-                                            <div
-                                                className={`b-fill-mini ${b.percent > 100 ? 'over' : b.percent > 90 ? 'danger' : ''}`}
-                                                style={{ width: `${Math.min(b.percent, 100)}%` }}
-                                            />
-                                        </div>
-                                        <span className={`b-pct ${b.percent > 90 ? 'text-red' : b.percent > 70 ? 'text-orange' : 'text-green'}`}>
-                                            {b.percent.toFixed(0)}%
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
+                    <div className="card collapsible-card">
+                        <div className="collapsible-header" onClick={() => togglePanel('budget')}>
+                            <h2 className="card-title">預算執行率</h2>
+                            <span className={`collapse-icon ${openPanels.has('budget') ? 'open' : ''}`}>▾</span>
                         </div>
+                        {openPanels.has('budget') && (
+                            <div className="budget-list-simple">
+                                {stats.budgetStatus.map((b, idx) => (
+                                    <div className="budget-row-simple" key={b.id} onClick={() => setSelectedBudget(b)}>
+                                        <span className={`rank-no rank-${Math.min(idx + 1, 5)}`}>{idx + 1}</span>
+                                        <span className="b-name-simple">{b.code}</span>
+                                        <div className="b-progress-box">
+                                            <div className="b-bar-mini">
+                                                <div
+                                                    className={`b-fill-mini ${b.percent > 100 ? 'over' : b.percent > 90 ? 'danger' : ''}`}
+                                                    style={{ width: `${Math.min(b.percent, 100)}%` }}
+                                                />
+                                            </div>
+                                            <span className={`b-pct ${b.percent > 90 ? 'text-red' : b.percent > 70 ? 'text-orange' : 'text-green'}`}>
+                                                {b.percent.toFixed(0)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
