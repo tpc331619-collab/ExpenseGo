@@ -3,6 +3,7 @@ import { useApp } from '../contexts/AppContext';
 import type { Purchase } from '../types';
 import { DollarSign, Hash } from 'lucide-react';
 import { getPurchases } from '../lib/firestore';
+import DashboardSkeleton from '../components/DashboardSkeleton';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -159,11 +160,7 @@ const Dashboard: React.FC = () => {
     };
 
     if (loadingData) {
-        return (
-            <div className="page-container">
-                <div className="full-loading"><div className="spinner" /></div>
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     return (
