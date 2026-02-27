@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    getAllUsers, updateUserRole,
+    getAllUsers, updateUserRole, deleteUser,
     addLedgerAccount, deleteLedgerAccount, updateLedgerAccount,
     addVendor, deleteVendor, updateVendor,
 } from '../lib/firestore';
@@ -59,6 +59,20 @@ const AdminPage: React.FC = () => {
     const handleRoleChange = async (uid: string, role: AppUser['role']) => {
         await updateUserRole(uid, role);
         await fetchUsers();
+    };
+
+    const handleDeleteUser = async (uid: string, name: string) => {
+        if (uid === appUser?.uid) {
+            alert('不可刪除自己的帳號！');
+            return;
+        }
+        if (!confirm(`確定要刪除使用者「${name}」？此操作僅會移除系統權限設定，不會影響 Firebase Auth 帳號。`)) return;
+        try {
+            await deleteUser(uid);
+            await fetchUsers();
+        } catch (err: any) {
+            alert('刪除失敗：' + err.message);
+        }
     };
 
     const handleAddAccount = async (e: React.FormEvent) => {
@@ -419,6 +433,7 @@ const AdminPage: React.FC = () => {
                                                     {u.role !== 'user' && (
                                                         <button className="role-btn user" onClick={() => handleRoleChange(u.uid, 'user')}>使用者</button>
                                                     )}
+                                                    <button className="role-btn reject" onClick={() => handleDeleteUser(u.uid, u.displayName)}>刪除</button>
                                                 </div>
                                             </td>
                                         </tr>

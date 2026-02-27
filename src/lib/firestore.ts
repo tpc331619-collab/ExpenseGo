@@ -67,6 +67,10 @@ export const updateUserRole = async (uid: string, role: AppUser['role']) => {
     });
 };
 
+export const deleteUser = async (uid: string) => {
+    await deleteDoc(doc(db, 'users', uid));
+};
+
 // ─── Ledger Accounts ─────────────────────────────────────────────────────────
 
 export const getLedgerAccounts = async (): Promise<LedgerAccount[]> => {
