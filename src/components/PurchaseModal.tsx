@@ -260,6 +260,27 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                             </div>
                                             <div className="f-group">
                                                 <input type="number" placeholder="金額 (未稅)" value={item.amount} onChange={(e) => setItem(idx, 'amount', e.target.value)} required />
+                                                {(() => {
+                                                    const acc = ledgerAccounts.find(a => a.id === item.ledgerAccountId);
+                                                    if (acc && acc.budget) {
+                                                        const currentYear = new Date(form.purchaseDate).getFullYear();
+                                                        const spent = purchases
+                                                            .filter(p => p.ledgerAccountId === acc.id && p.purchaseDate.toDate().getFullYear() === currentYear && p.id !== (editPurchase?.id))
+                                                            .reduce((sum, p) => sum + p.amount, 0);
+
+                                                        const itemAmount = parseFloat(item.amount) || 0;
+                                                        const totalAfter = spent + itemAmount;
+
+                                                        if (totalAfter > acc.budget) {
+                                                            return (
+                                                                <div className="budget-warning">
+                                                                    ⚠️ 已超出預算 ${(totalAfter - acc.budget).toLocaleString()}
+                                                                </div>
+                                                            );
+                                                        }
+                                                    }
+                                                    return null;
+                                                })()}
                                             </div>
                                         </div>
                                         {form.items.length > 1 && (

@@ -175,10 +175,6 @@ const Dashboard: React.FC = () => {
         return `${d.getMonth() + 1}/${d.getDate()}`;
     };
 
-    if (loadingData) {
-        return <DashboardSkeleton />;
-    }
-
     const drillDownItems = useMemo(() => {
         if (!drillDown) return [];
         let items: Purchase[] = [];
@@ -197,6 +193,10 @@ const Dashboard: React.FC = () => {
         if (drillDown.type === 'vendor') return `${drillDown.target} - ${drillDown.year}年度採購明細`;
         return `${drillDown.year}年 ${drillDown.month + 1}月份採購紀錄`;
     }, [drillDown]);
+
+    if (loadingData) {
+        return <DashboardSkeleton />;
+    }
 
     return (
         <div className="page-container">
@@ -361,7 +361,7 @@ const Dashboard: React.FC = () => {
                 {/* Budget Status */}
                 {stats.budgetStatus.length > 0 && (
                     <div className="card">
-                        <h2 className="card-title">預算支用進度</h2>
+                        <h2 className="card-title">預算執行率</h2>
                         <div className="budget-list-simple">
                             {stats.budgetStatus.map((b, idx) => (
                                 <div className="budget-row-simple" key={b.id} onClick={() => setSelectedBudget(b)}>
