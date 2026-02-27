@@ -233,6 +233,44 @@
     font-weight: 400;
 }
 
+.tax-mode-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.tax-toggle {
+    display: flex;
+    background: var(--bg2);
+    padding: 2px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    width: fit-content;
+}
+
+.tax-toggle button {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.2s;
+    color: var(--text3);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.tax-toggle button.active {
+    background: white;
+    color: var(--purple);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tax-toggle button:hover:not(.active) {
+    color: var(--text);
+}
+
 .btn-add-item {
     font-size: 13px;
     font-weight: 600;
@@ -284,7 +322,7 @@
 .item-fields {
     flex: 1;
     display: grid;
-    grid-template-columns: 2fr 2fr 1.5fr;
+    grid-template-columns: 3fr 2.2fr 1.2fr;
     gap: 10px;
 }
 

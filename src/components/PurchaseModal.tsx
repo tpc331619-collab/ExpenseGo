@@ -34,6 +34,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
     const [form, setForm] = useState<PurchaseFormData>(emptyForm());
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [isGrossMode, setIsGrossMode] = useState(false);
 
     useEffect(() => {
         if (editPurchase) {
@@ -133,6 +134,19 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         }
     };
 
+    const toggleTaxMode = () => {
+        const nextMode = !isGrossMode;
+        const newItems = form.items.map(it => {
+            if (!it.amount) return it;
+            const val = parseFloat(it.amount);
+            if (isNaN(val)) return it;
+            const newVal = nextMode ? val * 1.05 : val / 1.05;
+            return { ...it, amount: Math.round(newVal).toString() };
+        });
+        set('items', newItems);
+        setIsGrossMode(nextMode);
+    };
+
     const sortedVendors = useMemo(() => {
         // Sort vendors: Recently used first
         const recentVendors = new Set(purchases.slice(0, 20).map(p => p.vendor));
@@ -145,7 +159,10 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         });
     }, [vendors, purchases]);
 
-    const totalExclTax = form.items.reduce((s, item) => s + (parseFloat(item.amount) || 0), 0);
+    const totalExclTax = form.items.reduce((s, item) => {
+        const val = parseFloat(item.amount) || 0;
+        return s + (isGrossMode ? val / 1.05 : val);
+    }, 0);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -157,12 +174,23 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         setSaving(true);
         setError('');
         try {
+            // Normalize amounts to Net before saving
+            const finalForm = {
+                ...form,
+                items: form.items.map(it => ({
+                    ...it,
+                    amount: isGrossMode
+                        ? (Math.round((parseFloat(it.amount) / 1.05) * 100) / 100).toString()
+                        : it.amount
+                }))
+            };
+
             if (editPurchase && !isCopy) {
                 const originalYear = editPurchase.purchaseDate.toDate().getFullYear();
                 const isAdmin = appUser?.role === 'admin';
-                await updatePurchase(editPurchase.groupId, form, appUser!.uid, originalYear, isAdmin);
+                await updatePurchase(editPurchase.groupId, finalForm, appUser!.uid, originalYear, isAdmin);
             } else {
-                await addPurchase(form, appUser!.uid);
+                await addPurchase(finalForm, appUser!.uid);
             }
             await refreshPurchases();
             onClose(true);
@@ -239,7 +267,15 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                             <div className="items-header">
                                 <div>
                                     <h3>採購品項</h3>
-                                    <p className="section-note">※ 請輸入未稅金額，系統將自動計算 5% 營業稅。</p>
+                                    <div className="tax-mode-info">
+                                        <div className="tax-toggle">
+                                            <button type="button" className={!isGrossMode ? 'active' : ''} onClick={toggleTaxMode}>未稅輸入</button>
+                                            <button type="button" className={isGrossMode ? 'active' : ''} onClick={toggleTaxMode}>含稅輸入</button>
+                                        </div>
+                                        <p className="section-note">
+                                            {isGrossMode ? '※ 您輸入的是「含稅價」，系統會自動反推 5% 營業稅。' : '※ 您輸入的是「未稅價」，系統將自動計算 5% 營業稅。'}
+                                        </p>
+                                    </div>
                                 </div>
                                 <button type="button" className="btn-add-item" onClick={addItem}>＋ 新增品項</button>
                             </div>
@@ -259,7 +295,13 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                                 </select>
                                             </div>
                                             <div className="f-group">
-                                                <input type="number" placeholder="金額 (未稅)" value={item.amount} onChange={(e) => setItem(idx, 'amount', e.target.value)} required />
+                                                <input
+                                                    type="number"
+                                                    placeholder={isGrossMode ? "金額 (含稅)" : "金額 (未稅)"}
+                                                    value={item.amount}
+                                                    onChange={(e) => setItem(idx, 'amount', e.target.value)}
+                                                    required
+                                                />
                                                 {(() => {
                                                     const acc = ledgerAccounts.find(a => a.id === item.ledgerAccountId);
                                                     if (acc && acc.budget) {
@@ -268,7 +310,8 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                                             .filter(p => p.ledgerAccountId === acc.id && p.purchaseDate.toDate().getFullYear() === currentYear && p.id !== (editPurchase?.id))
                                                             .reduce((sum, p) => sum + p.amount, 0);
 
-                                                        const itemAmount = parseFloat(item.amount) || 0;
+                                                        const rawVal = parseFloat(item.amount) || 0;
+                                                        const itemAmount = isGrossMode ? rawVal / 1.05 : rawVal;
                                                         const totalAfter = spent + itemAmount;
 
                                                         if (totalAfter > acc.budget) {

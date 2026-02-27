@@ -5,7 +5,7 @@ import {
     addVendor, deleteVendor, updateVendor,
 } from '../lib/firestore';
 import * as XLSX from 'xlsx';
-import { Upload } from 'lucide-react';
+import { Upload, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { AppUser, LedgerAccount, Vendor } from '../types';
 import { useApp } from '../contexts/AppContext';
@@ -41,6 +41,9 @@ const AdminPage: React.FC = () => {
     const [vendorSaving, setVendorSaving] = useState(false);
     const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
     const [adminError, setAdminError] = useState('');
+
+    const [showAccImport, setShowAccImport] = useState(false);
+    const [showVendorImport, setShowVendorImport] = useState(false);
 
     const fetchUsers = async () => {
         setLoadingUsers(true);
@@ -455,17 +458,28 @@ const AdminPage: React.FC = () => {
                         {editingAcc && (
                             <button type="button" className="btn-outline" onClick={cancelEdit}>取消</button>
                         )}
-                        <div className="batch-import-box">
-                            <label className="btn-batch-import">
-                                <Upload size={16} />
-                                批次導入 Excel
-                                <input type="file" accept=".xlsx, .xls" onChange={handleAccountImport} hidden />
-                            </label>
-                            <button type="button" className="btn-text-link" onClick={downloadAccountTemplate}>
-                                📥 下載科目範本
-                            </button>
-                            <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
-                        </div>
+                        <button
+                            type="button"
+                            className={`btn-import-toggle ${showAccImport ? 'active' : ''}`}
+                            onClick={() => setShowAccImport(!showAccImport)}
+                            title="批次導入選項"
+                        >
+                            <Plus size={20} />
+                        </button>
+
+                        {showAccImport && (
+                            <div className="batch-import-box">
+                                <label className="btn-batch-import">
+                                    <Upload size={16} />
+                                    批次導入 Excel
+                                    <input type="file" accept=".xlsx, .xls" onChange={handleAccountImport} hidden />
+                                </label>
+                                <button type="button" className="btn-text-link" onClick={downloadAccountTemplate}>
+                                    📥 下載科目範本
+                                </button>
+                                <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
+                            </div>
+                        )}
                     </form>
 
                     <div className="table-wrapper">
@@ -544,18 +558,28 @@ const AdminPage: React.FC = () => {
                             {editingVendor && (
                                 <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
                             )}
-                        </div>
-                        <div className="batch-import-box v-batch">
-                            <label className="btn-batch-import">
-                                <Upload size={16} />
-                                批次導入 Excel
-                                <input type="file" accept=".xlsx, .xls" onChange={handleVendorImport} hidden />
-                            </label>
-                            <button type="button" className="btn-text-link" onClick={downloadVendorTemplate}>
-                                📥 下載廠商範本
+                            <button
+                                type="button"
+                                className={`btn-import-toggle ${showVendorImport ? 'active' : ''}`}
+                                onClick={() => setShowVendorImport(!showVendorImport)}
+                                title="批次導入選項"
+                            >
+                                <Plus size={20} />
                             </button>
-                            <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
                         </div>
+                        {showVendorImport && (
+                            <div className="batch-import-box v-batch">
+                                <label className="btn-batch-import">
+                                    <Upload size={16} />
+                                    批次導入 Excel
+                                    <input type="file" accept=".xlsx, .xls" onChange={handleVendorImport} hidden />
+                                </label>
+                                <button type="button" className="btn-text-link" onClick={downloadVendorTemplate}>
+                                    📥 下載廠商範本
+                                </button>
+                                <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
+                            </div>
+                        )}
                     </form>
 
                     <div className="table-wrapper">

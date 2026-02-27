@@ -224,3 +224,39 @@
 .btn-text-link:hover {
     opacity: 0.7;
 }
+
+.btn-import-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1.5px solid #e0e7ff;
+    background: #f8fafc;
+    color: #6366f1;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-import-toggle:hover {
+    color: white;
+    border-color: #4f46e5;
+    background: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-import-toggle.active {
+    background: #4f46e5;
+    color: white;
+    border-color: #4f46e5;
+    transform: rotate(45deg);
+    /*變成 X*/
+}
+
+.btn-import-toggle.active:hover {
+    background: #4338ca;
+}
