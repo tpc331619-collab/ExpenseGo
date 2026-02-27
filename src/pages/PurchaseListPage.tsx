@@ -1,12 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { deletePurchaseGroup } from '../lib/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { deletePurchaseGroup, getPaginatedPurchases } from '../lib/firestore';
 import type { Purchase } from '../types';
+import { QueryDocumentSnapshot } from 'firebase/firestore';
 import PurchaseModal from '../components/PurchaseModal';
 import './PurchaseListPage.css';
 
 const PurchaseListPage: React.FC = () => {
-    const { purchases, ledgerAccounts, refreshPurchases, selectedYear } = useApp();
+    const { ledgerAccounts, selectedYear } = useApp();
+    const { appUser } = useAuth();
+
+    const [localPurchases, setLocalPurchases] = useState<Purchase[]>([]);
+    const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+
     const [showModal, setShowModal] = useState(false);
     const [editTarget, setEditTarget] = useState<Purchase | null>(null);
     const [isCopy, setIsCopy] = useState(false);
@@ -15,20 +25,48 @@ const PurchaseListPage: React.FC = () => {
     const [filterVendor, setFilterVendor] = useState('');
     const [search, setSearch] = useState('');
 
+    const fetchPurchases = async (isLoadMore = false) => {
+        if (!isLoadMore) setLoading(true);
+        else setLoadingMore(true);
+
+        try {
+            const uid = appUser?.role === 'admin' ? undefined : appUser?.uid;
+            const res = await getPaginatedPurchases(
+                selectedYear,
+                20,
+                isLoadMore ? lastDoc : null,
+                {
+                    uid,
+                    ledgerAccountId: filterAccount || undefined,
+                    vendor: filterVendor || undefined,
+                }
+            );
+
+            if (isLoadMore) {
+                setLocalPurchases(prev => [...prev, ...res.data]);
+            } else {
+                setLocalPurchases(res.data);
+            }
+            setLastDoc(res.lastDoc);
+            setHasMore(res.hasMore);
+        } catch (err) {
+            console.error('Fetch failed:', err);
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchPurchases();
+    }, [selectedYear, filterAccount, filterVendor, appUser]);
+
     const filtered = useMemo(() => {
-        return purchases.filter((p) => {
-            const a = filterAccount ? p.ledgerAccountId === filterAccount : true;
-            const v = filterVendor ? p.vendor.includes(filterVendor) : true;
-            const s = search
-                ? p.title.includes(search) || p.vendor.includes(search) || p.purchaseType.includes(search)
-                : true;
-            return a && v && s;
-        }).sort((a, b) => {
-            const dateDiff = b.purchaseDate.toMillis() - a.purchaseDate.toMillis();
-            if (dateDiff !== 0) return dateDiff;
-            return b.createdAt.toMillis() - a.createdAt.toMillis();
+        // Only simple title search remains on client side
+        return localPurchases.filter((p) => {
+            return search ? p.title.includes(search) : true;
         });
-    }, [purchases, filterAccount, filterVendor, search]);
+    }, [localPurchases, search]);
 
     const grouped = useMemo(() => {
         const groups: Record<string, Purchase[]> = {};
@@ -61,7 +99,7 @@ const PurchaseListPage: React.FC = () => {
         setDeleting(p.id);
         try {
             await deletePurchaseGroup(p.groupId, selectedYear);
-            await refreshPurchases();
+            fetchPurchases();
         } catch (err: any) {
             console.error('Delete failed:', err);
             alert('刪除失敗：' + (err.message || '請管理員確認權限'));
@@ -82,10 +120,11 @@ const PurchaseListPage: React.FC = () => {
         setShowModal(true);
     };
 
-    const closeModal = () => {
+    const closeModal = (refresh = false) => {
         setShowModal(false);
         setEditTarget(null);
         setIsCopy(false);
+        if (refresh) fetchPurchases();
     };
 
     const fmt = (n: number) => `NT$ ${n.toLocaleString()}`;
@@ -235,7 +274,26 @@ const PurchaseListPage: React.FC = () => {
                 )}
             </div>
 
-            {showModal && <PurchaseModal onClose={closeModal} editPurchase={editTarget} isCopy={isCopy} />}
+            {/* Load More */}
+            {hasMore && (
+                <div className="load-more-box">
+                    <button
+                        className="btn-outline"
+                        onClick={() => fetchPurchases(true)}
+                        disabled={loadingMore}
+                    >
+                        {loadingMore ? '載入中...' : '載入更多'}
+                    </button>
+                </div>
+            )}
+
+            {showModal && (
+                <PurchaseModal
+                    onClose={(refresh) => closeModal(refresh === true)}
+                    editPurchase={editTarget}
+                    isCopy={isCopy}
+                />
+            )}
         </div >
     );
 };

@@ -6,7 +6,7 @@ import type { Purchase, PurchaseFormData, PurchaseItem } from '../types';
 import './PurchaseModal.css';
 
 interface Props {
-    onClose: () => void;
+    onClose: (refresh?: boolean) => void;
     editPurchase?: Purchase | null;
     isCopy?: boolean;
 }
@@ -109,7 +109,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                 await addPurchase(form, appUser!.uid);
             }
             await refreshPurchases();
-            onClose();
+            onClose(true);
         } catch (err: any) {
             const msg = err.message || '儲存失敗，請再試一次';
             setError(msg);
@@ -121,11 +121,11 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" onClick={() => onClose()}>
             <div className="modal-box" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>{isCopy ? '複製採購紀錄' : editPurchase ? '編輯採購紀錄' : '新增採購紀錄'}</h2>
-                    <button className="modal-close" onClick={onClose}>✕</button>
+                    <button className="modal-close" onClick={() => onClose()}>✕</button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="modal-form">
@@ -223,7 +223,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                             <div className="total-display-premium">{Math.round(totalExclTax * 1.05).toLocaleString()}</div>
                         </div>
                         <div className="footer-actions">
-                            <button type="button" className="btn-outline" onClick={onClose}>取消</button>
+                            <button type="button" className="btn-outline" onClick={() => onClose()}>取消</button>
                             <button type="submit" className="btn-primary" disabled={saving}>
                                 {saving ? '儲存中⋯' : (isCopy ? '複製' : (editPurchase ? '更新' : '新增'))}
                             </button>

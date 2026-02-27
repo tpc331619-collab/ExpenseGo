@@ -325,3 +325,35 @@
         display: none;
     }
 }
+
+/* Pagination */
+.load-more-box {
+    display: flex;
+    justify-content: center;
+    padding: 32px 0;
+    margin-bottom: 40px;
+}
+
+.load-more-box .btn-outline {
+    min-width: 160px;
+    height: 44px;
+    border: 2px solid #eaecf0;
+    background: white;
+    color: #344054;
+    font-weight: 500;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.load-more-box .btn-outline:hover:not(:disabled) {
+    border-color: #6366f1;
+    color: #6366f1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+.load-more-box .btn-outline:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}

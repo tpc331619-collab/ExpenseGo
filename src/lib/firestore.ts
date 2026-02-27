@@ -12,6 +12,9 @@ import {
     Timestamp,
     setDoc,
     writeBatch,
+    limit,
+    startAfter,
+    QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor } from '../types';
@@ -112,6 +115,54 @@ export const updateVendor = async (id: string, code: string, name: string) => {
 // ─── Purchases ───────────────────────────────────────────────────────────────
 
 const getPurchaseRef = (year: number) => collection(db, 'years', String(year), 'purchases');
+
+export interface PaginatedResult<T> {
+    data: T[];
+    lastDoc: QueryDocumentSnapshot | null;
+    hasMore: boolean;
+}
+
+export const getPaginatedPurchases = async (
+    year: number,
+    pageSize: number = 20,
+    lastDoc: QueryDocumentSnapshot | null = null,
+    filters: {
+        uid?: string;
+        ledgerAccountId?: string;
+        vendor?: string;
+    } = {}
+): Promise<PaginatedResult<Purchase>> => {
+    const purchaseRef = getPurchaseRef(year);
+    let q = query(purchaseRef, orderBy('purchaseDate', 'desc'), orderBy('createdAt', 'desc'));
+
+    if (filters.uid) {
+        q = query(q, where('createdBy', '==', filters.uid));
+    }
+    if (filters.ledgerAccountId) {
+        q = query(q, where('ledgerAccountId', '==', filters.ledgerAccountId));
+    }
+    if (filters.vendor) {
+        // Firestore doesn't support partial string match ('contains') natively with where.
+        // For simple equality:
+        q = query(q, where('vendor', '==', filters.vendor));
+    }
+
+    if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+    }
+
+    q = query(q, limit(pageSize));
+
+    const snap = await getDocs(q);
+    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Purchase);
+    const nextLastDoc = snap.docs[snap.docs.length - 1] || null;
+
+    return {
+        data,
+        lastDoc: nextLastDoc,
+        hasMore: snap.docs.length === pageSize
+    };
+};
 
 export const getPurchases = async (year: number, uid?: string): Promise<Purchase[]> => {
     const purchaseRef = getPurchaseRef(year);
