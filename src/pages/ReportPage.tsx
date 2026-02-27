@@ -11,6 +11,7 @@ const ReportPage: React.FC = () => {
     const [tab, setTab] = useState<Tab>('account');
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [exporting, setExporting] = useState(false);
+    const [showAnalysis, setShowAnalysis] = useState(false);
 
     const yearPurchases = purchases; // purchases are already filtered by year in context
 
@@ -89,11 +90,82 @@ const ReportPage: React.FC = () => {
 
     const pct = (v: number) => grandTotal ? ((v / grandTotal) * 100).toFixed(1) : '0.0';
 
+    const SubjectSummaryModal = () => {
+        const sortedData = [...byAccount].sort((a, b) => b.total - a.total);
+
+        // 清理品名，移除「第X期」、「X月份」、「XX年度」等重複性字眼
+        const cleanTitle = (t: string) => {
+            return t.replace(/\d+\s*月份/g, '')
+                .replace(/第\s*\d+\s*[期次]/g, '')
+                .replace(/\d+\s*年度/g, '')
+                .replace(/\d+年\d+月/g, '')
+                .replace(/[-\s]+$/g, '')
+                .trim();
+        };
+
+        const copyToClipboard = () => {
+            const text = sortedData.map(acc => {
+                const cleanedTitles = [...new Set(acc.items.map(it => cleanTitle(it.title)))]
+                    .filter(t => t.length > 0)
+                    .slice(0, 3);
+                const titlesStr = cleanedTitles.length > 0 ? `，${cleanedTitles.join('、')}` : '';
+                return `${acc.ledgerAccountCode}，採購 ${acc.total.toLocaleString()} NTD${titlesStr}`;
+            }).join('；\n');
+
+            navigator.clipboard.writeText(text);
+            alert('已複製到剪貼簿！');
+        };
+
+        return (
+            <div className="modal-overlay" onClick={() => setShowAnalysis(false)}>
+                <div className="modal-box analysis-modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h2>年度科目支出分析</h2>
+                        <button className="modal-close" onClick={() => setShowAnalysis(false)}>✕</button>
+                    </div>
+                    <div className="pop-body">
+                        <div className="analysis-intro">
+                            系統已自動簡化重複性採購（如月份、期數），僅顯示核心採購項目。
+                        </div>
+                        <div className="analysis-content">
+                            {sortedData.map(acc => {
+                                const cleanedTitles = [...new Set(acc.items.map(it => cleanTitle(it.title)))]
+                                    .filter(t => t.length > 0)
+                                    .slice(0, 5);
+                                return (
+                                    <div key={acc.ledgerAccountId} className="analysis-item">
+                                        <div className="ai-header">
+                                            <span className="ai-code">{acc.ledgerAccountCode}</span>
+                                            <span className="ai-name">{acc.ledgerAccountName}</span>
+                                        </div>
+                                        <div className="ai-values">
+                                            <span className="ai-amount">NT$ {acc.total.toLocaleString()}</span>
+                                            <span className="ai-count">({acc.count} 筆)</span>
+                                        </div>
+                                        <div className="ai-description">
+                                            主要項目：{cleanedTitles.join('、') || '無明確品名'}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="analysis-footer">
+                            <button className="btn-primary" onClick={copyToClipboard}>📋 複製純文字報告</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1 className="page-title">年度採購報表</h1>
                 <div className="report-actions">
+                    <button className="btn-analysis" onClick={() => setShowAnalysis(true)}>
+                        ✨ 分析列表
+                    </button>
                     <button className="btn-export" onClick={handleExport} disabled={exporting}>
                         {exporting ? '匯出中⋯' : '📥 匯出 Excel'}
                     </button>
@@ -357,6 +429,8 @@ const ReportPage: React.FC = () => {
                     ))}
                 </div>
             )}
+
+            {showAnalysis && <SubjectSummaryModal />}
         </div>
     );
 };
