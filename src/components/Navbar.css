@@ -63,34 +63,60 @@
 .nav-year-container {
     display: flex;
     align-items: center;
-    margin: 0 24px;
+    margin-right: auto;
+    margin-left: 12px;
+}
+
+.nav-selector-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    padding: 3px 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.nav-selector-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
 }
 
 .year-select-premium {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    font-weight: 700;
-    color: var(--purple);
-    width: auto;
-    min-width: 85px;
-    cursor: pointer;
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
     font-size: 13px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
+    font-weight: 700;
+    color: #1e293b;
+    cursor: pointer;
+    outline: none;
+    transition: color 0.2s;
+}
+
+.year-select-premium.compare {
+    color: #6366f1;
 }
 
 .year-select-premium:hover {
-    border-color: var(--purple);
-    background: #fff;
-    box-shadow: var(--shadow-sm);
+    color: #4f46e5;
 }
 
 .nav-links {
     display: flex;
+    align-items: center;
     gap: 8px;
     flex: 1;
     margin-left: 12px;
+}
+
+.nav-links .nav-selector-item.compare {
+    margin-left: 16px;
 }
 
 .nav-link {
@@ -125,11 +151,17 @@
     box-shadow: var(--shadow);
 }
 
+.nav-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+}
+
 .nav-user {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-left: auto;
 }
 
 .nav-avatar {

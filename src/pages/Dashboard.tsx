@@ -2,10 +2,26 @@ import React, { useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import type { Purchase } from '../types';
 import { DollarSign, Hash } from 'lucide-react';
+import { getPurchases } from '../lib/firestore';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
-    const { purchases, ledgerAccounts, loadingData, selectedYear: currentYear } = useApp();
+    const { purchases, ledgerAccounts, loadingData, selectedYear: currentYear, compareYear } = useApp();
+
+    const [drillDown, setDrillDown] = React.useState<{ month: number; year: number } | null>(null);
+    const [hiddenCategories, setHiddenCategories] = React.useState<Set<string>>(new Set());
+    const [comparePurchases, setComparePurchases] = React.useState<Purchase[]>([]);
+
+    // Fetch comparison data
+    React.useEffect(() => {
+        if (compareYear) {
+            getPurchases(compareYear).then(data => {
+                setComparePurchases(data);
+            }).catch(() => { });
+        } else {
+            setComparePurchases([]);
+        }
+    }, [compareYear]);
 
     const stats = useMemo(() => {
         const yearPurchases = purchases;
@@ -85,16 +101,57 @@ const Dashboard: React.FC = () => {
 
         const monthly = monthlyStacked.map(m => m.total);
 
-        return { total, count, topAccounts, budgetStatus, monthly, monthlyItems, monthlyStacked };
-    }, [purchases, ledgerAccounts, currentYear]);
+        // All active categories for legend
+        const allCategories: { name: string; colorIdx: number }[] = [];
+        const seenCats = new Set();
+        yearPurchases.forEach(p => {
+            if (!seenCats.has(p.ledgerAccountName)) {
+                seenCats.add(p.ledgerAccountName);
+                allCategories.push({
+                    name: p.ledgerAccountName,
+                    colorIdx: accountColors[p.ledgerAccountId]
+                });
+            }
+        });
+
+        // Monthly comparison totals and items
+        const compareMonthly = Array(12).fill(0);
+        const compareMonthlyItems: Record<number, Purchase[]> = {};
+        for (let i = 0; i < 12; i++) compareMonthlyItems[i] = [];
+
+        comparePurchases.forEach(p => {
+            const m = p.purchaseDate.toDate().getMonth();
+            compareMonthly[m] += p.amount;
+            compareMonthlyItems[m].push(p);
+        });
+
+        // Sort comparison items
+        Object.keys(compareMonthlyItems).forEach((key) => {
+            const m = parseInt(key);
+            compareMonthlyItems[m].sort((a: Purchase, b: Purchase) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+        });
+
+        return { total, count, topAccounts, budgetStatus, monthly, monthlyItems, monthlyStacked, allCategories, compareMonthly, compareMonthlyItems };
+    }, [purchases, ledgerAccounts, currentYear, comparePurchases]);
+
+    const filteredMonthlyStacked = useMemo(() => {
+        return stats.monthlyStacked.map(m => {
+            const filteredCats = Object.values(m.categories).filter(c => !hiddenCategories.has(c.name));
+            const newTotal = filteredCats.reduce((sum, c) => sum + c.amount, 0);
+            return { ...m, total: newTotal, categories: filteredCats };
+        });
+    }, [stats.monthlyStacked, hiddenCategories]);
+
+    const maxVal = Math.max(
+        ...filteredMonthlyStacked.map(m => m.total),
+        ...stats.compareMonthly,
+        1
+    );
 
     const fmt = (n: number) =>
         n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
 
-    const maxMonthly = Math.max(...stats.monthly, 1);
-
     const [selectedBudget, setSelectedBudget] = React.useState<typeof stats.budgetStatus[0] | null>(null);
-    const [selectedMonth, setSelectedMonth] = React.useState<number | null>(null);
 
     const fmtDateShort = (p: Purchase) => {
         const d = p.purchaseDate.toDate();
@@ -139,32 +196,85 @@ const Dashboard: React.FC = () => {
 
             {/* Monthly bar chart */}
             <div className="card">
-                <h2 className="card-title">月度採購金額 (未稅)</h2>
-                <div className="bar-chart">
-                    {stats.monthlyStacked.map((m, i) => (
-                        <div
-                            className={`bar-col clickable ${selectedMonth === i ? 'active' : ''}`}
-                            key={i}
-                            onClick={() => m.total > 0 && setSelectedMonth(i)}
-                        >
-                            {m.total > 0 && <div className="bar-value">{fmt(m.total)}</div>}
-                            <div
-                                className="bar stacked"
-                                style={{ height: `${(m.total / maxMonthly) * 100}%` }}
-                                title={`${i + 1}月: ${fmt(m.total)} (點擊查看明細)`}
-                            >
-                                {Object.values(m.categories).map((cat, idx) => (
-                                    <div
-                                        key={idx}
-                                        className={`bar-segment cat-color-${cat.colorIdx}`}
-                                        style={{ height: `${(cat.amount / m.total) * 100}%` }}
-                                        title={`${cat.name}: ${fmt(cat.amount)}`}
-                                    />
-                                ))}
+                <div className="card-header-flex">
+                    <h2 className="card-title">月度採購金額對比 (未稅)</h2>
+                    <div className="chart-legend">
+                        {compareYear && (
+                            <div className="legend-item compare">
+                                <span className="legend-dot bar-compare-color" />
+                                <span className="legend-text">{compareYear} 年度 (總額)</span>
                             </div>
-                            <div className="bar-label">{i + 1}月</div>
-                        </div>
-                    ))}
+                        )}
+                        {stats.allCategories.map(cat => (
+                            <div
+                                key={cat.name}
+                                className={`legend-item ${hiddenCategories.has(cat.name) ? 'hidden' : ''}`}
+                                onClick={() => {
+                                    setHiddenCategories(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(cat.name)) next.delete(cat.name);
+                                        else next.add(cat.name);
+                                        return next;
+                                    });
+                                }}
+                            >
+                                <span className={`legend-dot cat-color-${cat.colorIdx}`} />
+                                <span className="legend-text">{cat.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="bar-chart">
+                    {filteredMonthlyStacked.map((m, i) => {
+                        const compareTotal = stats.compareMonthly[i];
+                        const isActive = drillDown?.month === i;
+                        return (
+                            <div
+                                className={`bar-col clickable ${isActive ? 'active' : ''}`}
+                                key={i}
+                            >
+                                <div className="bar-group">
+                                    {/* Comparison Year Bar (Left) - Only show if has data */}
+                                    {compareYear && compareTotal > 0 && (
+                                        <div
+                                            className="bar-container compare"
+                                            onClick={() => setDrillDown({ month: i, year: compareYear })}
+                                        >
+                                            <div className="bar-value">{fmt(compareTotal)}</div>
+                                            <div
+                                                className="bar compare-bar"
+                                                style={{ height: `${(compareTotal / maxVal) * 100}%` }}
+                                                title={`${i + 1}月總計 (${compareYear}): ${fmt(compareTotal)}`}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Main Year Stacked Bar (Right) */}
+                                    <div
+                                        className="bar-container current"
+                                        onClick={() => m.total > 0 && setDrillDown({ month: i, year: currentYear })}
+                                    >
+                                        {m.total > 0 && <div className="bar-value">{fmt(m.total)}</div>}
+                                        <div
+                                            className="bar stacked"
+                                            style={{ height: `${(m.total / maxVal) * 100}%` }}
+                                            title={`${i + 1}月總計 (${currentYear}): ${fmt(m.total)}`}
+                                        >
+                                            {m.categories.map((cat, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className={`bar-segment cat-color-${cat.colorIdx}`}
+                                                    style={{ height: `${(cat.amount / m.total) * 100}%` }}
+                                                    title={`${cat.name}: ${fmt(cat.amount)}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bar-label">{i + 1}月</div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -254,12 +364,12 @@ const Dashboard: React.FC = () => {
             )}
 
             {/* Monthly Detail Modal */}
-            {selectedMonth !== null && (
-                <div className="modal-overlay" onClick={() => setSelectedMonth(null)}>
+            {drillDown && (
+                <div className="modal-overlay" onClick={() => setDrillDown(null)}>
                     <div className="modal-box drill-down-pop" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{selectedMonth + 1} 月份採購明細</h2>
-                            <button className="modal-close" onClick={() => setSelectedMonth(null)}>×</button>
+                            <h2>{drillDown.year} 年度 {drillDown.month + 1} 月份採購明細</h2>
+                            <button className="modal-close" onClick={() => setDrillDown(null)}>×</button>
                         </div>
                         <div className="pop-body">
                             <div className="drill-down-list">
@@ -274,7 +384,7 @@ const Dashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {stats.monthlyItems[selectedMonth].map((p: Purchase, idx: number) => (
+                                        {(drillDown.year === currentYear ? stats.monthlyItems[drillDown.month] : stats.compareMonthlyItems[drillDown.month]).map((p: Purchase, idx: number) => (
                                             <tr key={p.id}>
                                                 <td>{idx + 1}</td>
                                                 <td>{fmtDateShort(p)}</td>

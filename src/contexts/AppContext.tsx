@@ -10,6 +10,8 @@ interface AppContextValue {
     loadingData: boolean;
     selectedYear: number;
     setSelectedYear: (year: number) => void;
+    compareYear: number | null;
+    setCompareYear: (year: number | null) => void;
     refreshPurchases: (year?: number) => Promise<void>;
     refreshLedgerAccounts: () => Promise<void>;
     refreshVendors: () => Promise<void>;
@@ -24,6 +26,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loadingData, setLoadingData] = useState(false);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [compareYear, setCompareYearState] = useState<number | null>(() => {
+        const saved = localStorage.getItem('compareYear');
+        return saved ? Number(saved) : null;
+    });
+
+    const setCompareYear = (year: number | null) => {
+        setCompareYearState(year);
+        if (year === null) {
+            localStorage.removeItem('compareYear');
+        } else {
+            localStorage.setItem('compareYear', String(year));
+        }
+    };
 
     const refreshPurchases = async (year: number = selectedYear) => {
         if (!appUser) return;
@@ -41,6 +56,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const data = await getVendors();
         setVendors(data);
     };
+
+    useEffect(() => {
+        if (compareYear !== null && compareYear === selectedYear) {
+            setCompareYear(null);
+        }
+    }, [selectedYear, compareYear]);
 
     useEffect(() => {
         if (appUser && (appUser.role === 'admin' || appUser.role === 'user')) {
@@ -71,6 +92,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         <AppContext.Provider value={{
             purchases, ledgerAccounts, vendors, loadingData,
             selectedYear, setSelectedYear,
+            compareYear, setCompareYear,
             refreshPurchases, refreshLedgerAccounts, refreshVendors
         }}>
             {children}

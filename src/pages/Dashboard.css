@@ -18,7 +18,108 @@
     font-size: 16px;
     font-weight: 700;
     color: #101828;
-    margin-bottom: 20px;
+    margin-bottom: 0;
+}
+
+.card-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
+    max-width: 60%;
+}
+
+.chart-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.compare-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.compare-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.year-dropdown {
+    appearance: none;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 4px 28px 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.year-dropdown:hover {
+    background: #e2e8f0;
+}
+
+.select-icon {
+    position: absolute;
+    right: 8px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.mini-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #e2e8f0;
+    border-top: 2px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    user-select: none;
+}
+
+.legend-item.hidden {
+    opacity: 0.3;
+    text-decoration: line-through;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-text {
+    font-size: 11px;
+    color: #475569;
+    font-weight: 600;
 }
 
 .kpi-grid {
@@ -88,11 +189,12 @@
 
 /* Charts */
 .bar-chart {
-    height: 300px;
+    height: 320px;
     display: flex;
     align-items: flex-end;
-    gap: 16px;
-    padding: 20px 8px;
+    gap: 24px;
+    padding: 24px 16px;
+    overflow-x: auto;
 }
 
 .bar-col {
@@ -105,6 +207,36 @@
 
 .bar-col.clickable {
     cursor: pointer;
+    padding-top: 10px;
+    flex: 1;
+    min-width: 60px;
+}
+
+.bar-group {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* Card footer can be removed or kept for other things, but selector styles are gone */
+
+.bar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.bar-container.current {
+    flex: 0 0 36px;
+}
+
+.bar-container.compare {
+    flex: 0 0 28px;
 }
 
 .bar-col.clickable:hover .bar {
@@ -131,12 +263,31 @@
 }
 
 .bar.stacked {
+    width: 36px;
+    background: #f8fafc;
+    border-radius: 6px 6px 0 0;
+    overflow: hidden;
+    position: relative;
     display: flex;
     flex-direction: column-reverse;
-    /* Bottom to top */
-    overflow: hidden;
-    background: #f2f4f7;
-    border: 1px solid #eaecf0;
+    border: 1px solid #f1f5f9;
+}
+
+.bar.compare-bar {
+    width: 28px;
+    background: #e2e8f0;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #cbd5e1;
+}
+
+.bar.compare-bar:hover {
+    background: #cbd5e1;
+}
+
+.bar-compare-color {
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
 }
 
 .bar-segment {

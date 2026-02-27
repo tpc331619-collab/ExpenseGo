@@ -8,7 +8,7 @@ import './Navbar.css';
 
 const Navbar: React.FC = () => {
     const { appUser, logout } = useAuth();
-    const { selectedYear, setSelectedYear } = useApp();
+    const { selectedYear, setSelectedYear, compareYear, setCompareYear } = useApp();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
@@ -44,15 +44,18 @@ const Navbar: React.FC = () => {
 
                 {/* Global Year Selector */}
                 <div className="nav-year-container">
-                    <select
-                        className="year-select-premium"
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    >
-                        {Array.from({ length: 5 }, (_, i) => 2024 + i).map(y => (
-                            <option key={y} value={y}>{y}</option>
-                        ))}
-                    </select>
+                    <div className="nav-selector-item">
+                        <span className="nav-selector-label">年度</span>
+                        <select
+                            className="year-select-premium"
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        >
+                            {Array.from({ length: 5 }, (_, i) => 2024 + i).map(y => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="nav-links desktop-only">
@@ -70,13 +73,33 @@ const Navbar: React.FC = () => {
                             )}
                         </NavLink>
                     ))}
+
+                    {/* Comparison Year Selector */}
+                    <div className="nav-selector-item compare">
+                        <span className="nav-selector-label">對比</span>
+                        <select
+                            className="year-select-premium compare"
+                            value={compareYear || ''}
+                            onChange={(e) => setCompareYear(e.target.value ? Number(e.target.value) : null)}
+                        >
+                            <option value="">(無)</option>
+                            {Array.from({ length: 5 }, (_, i) => 2024 + i)
+                                .filter(y => y !== selectedYear)
+                                .map(y => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))
+                            }
+                        </select>
+                    </div>
                 </div>
 
-                <div className="nav-user desktop-only">
-                    <img src={appUser?.photoURL || ''} className="nav-avatar" alt={appUser?.displayName} />
-                    <span className="nav-name">{appUser?.displayName}</span>
-                    {appUser?.role === 'admin' && <span className="role-badge admin">Admin</span>}
-                    <button className="nav-logout" onClick={handleLogout}>登出</button>
+                <div className="nav-right-actions desktop-only">
+                    <div className="nav-user">
+                        <img src={appUser?.photoURL || ''} className="nav-avatar" alt={appUser?.displayName} />
+                        <span className="nav-name">{appUser?.displayName}</span>
+                        {appUser?.role === 'admin' && <span className="role-badge admin">Admin</span>}
+                        <button className="nav-logout" onClick={handleLogout}>登出</button>
+                    </div>
                 </div>
 
                 <button className="hamburger" onClick={() => setMenuOpen((v) => !v)}>
