@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { exporttoExcel } from '../lib/excelExport';
 import type { AnnualSummaryByAccount, AnnualSummaryByVendor, AnnualSummaryByRequisition, AnnualSummaryByPurchaseType } from '../types';
+import { BarChartBig, FolderOpen, Building2, Tags, Layers } from 'lucide-react';
 import './ReportPage.css';
 
 type Tab = 'account' | 'vendor' | 'requisition' | 'purchaseType';
@@ -150,6 +151,58 @@ const ReportPage: React.FC = () => {
         );
     };
 
+    const ReportChart = ({ data, total }: { data: { id: string, label: string, value: number }[], total: number }) => {
+        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b', '#14b8a6'];
+
+        const sorted = [...data].sort((a, b) => b.value - a.value);
+        const top = sorted.slice(0, 8);
+        const others = sorted.slice(8).reduce((sum, item) => sum + item.value, 0);
+
+        if (others > 0) {
+            top.push({ id: 'others', label: '其他', value: others });
+        }
+
+        if (total === 0) return null;
+
+        return (
+            <div className="report-chart-container">
+                <h3 className="report-chart-title">費用分佈結構圖</h3>
+                <div className="stacked-bar-chart">
+                    {top.map((item, idx) => {
+                        const pct = (item.value / total) * 100;
+                        if (pct === 0) return null;
+                        return (
+                            <div
+                                key={item.id}
+                                className="stacked-bar-segment"
+                                style={{ width: `${pct}%`, backgroundColor: colors[idx % colors.length] }}
+                                title={`${item.label}: NT$ ${Math.round(item.value).toLocaleString()}`}
+                            >
+                                {pct > 10 && (
+                                    <span className="segment-label">
+                                        ${Math.round(item.value / 1000)}k
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="chart-legend-grid">
+                    {top.map((item, idx) => {
+                        const pct = (item.value / total) * 100;
+                        if (pct === 0) return null;
+                        return (
+                            <div className="chart-legend-item" key={item.id}>
+                                <div className="chart-legend-color" style={{ backgroundColor: colors[idx % colors.length] }} />
+                                <span className="chart-legend-label" title={item.label}>{item.label}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     const SubjectSummaryModal = () => {
         const sortedData = [...byAccount].sort((a, b) => b.total - a.total);
 
@@ -221,7 +274,10 @@ const ReportPage: React.FC = () => {
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1 className="page-title">年度採購報表</h1>
+                <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <BarChartBig size={26} color="var(--purple)" />
+                    年度採購報表
+                </h1>
                 <div className="report-actions">
                     <button className="btn-analysis" onClick={() => setShowAnalysis(true)}>
                         ✨ AI 分析列表
@@ -247,18 +303,24 @@ const ReportPage: React.FC = () => {
             {/* Tabs */}
             <div className="report-tabs">
                 <button className={`tab-btn ${tab === 'account' ? 'active' : ''}`} onClick={() => setTab('account')}>
-                    依總帳科目
+                    <FolderOpen size={16} /> 依總帳科目
                 </button>
                 <button className={`tab-btn ${tab === 'vendor' ? 'active' : ''}`} onClick={() => setTab('vendor')}>
-                    依廠商
+                    <Building2 size={16} /> 依廠商
                 </button>
                 <button className={`tab-btn ${tab === 'requisition' ? 'active' : ''}`} onClick={() => setTab('requisition')}>
-                    依請購類型
+                    <Tags size={16} /> 依請購類型
                 </button>
                 <button className={`tab-btn ${tab === 'purchaseType' ? 'active' : ''}`} onClick={() => setTab('purchaseType')}>
-                    依採購類型
+                    <Layers size={16} /> 依採購類型
                 </button>
             </div>
+
+            {/* Render the selected tab's chart */}
+            {tab === 'account' && <ReportChart data={byAccount.map(a => ({ id: a.ledgerAccountId, label: a.ledgerAccountName, value: a.total }))} total={grandTotal} />}
+            {tab === 'vendor' && <ReportChart data={byVendor.map(v => ({ id: v.vendor, label: v.vendor, value: v.total }))} total={grandTotal} />}
+            {tab === 'requisition' && <ReportChart data={byRequisition.map(r => ({ id: r.type, label: r.type, value: r.total }))} total={grandTotal} />}
+            {tab === 'purchaseType' && <ReportChart data={byPurchaseType.map(p => ({ id: p.type, label: p.type, value: p.total }))} total={grandTotal} />}
 
             {/* Account summary */}
             {tab === 'account' && (
