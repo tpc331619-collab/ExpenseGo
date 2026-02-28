@@ -145,6 +145,8 @@ export const getPaginatedPurchases = async (
         uid?: string;
         ledgerAccountId?: string;
         vendor?: string;
+        requisitionType?: string;
+        purchaseType?: string;
     } = {}
 ): Promise<PaginatedResult<Purchase>> => {
     const purchaseRef = getPurchaseRef(year);
@@ -155,6 +157,12 @@ export const getPaginatedPurchases = async (
     }
     if (filters.ledgerAccountId) {
         q = query(q, where('ledgerAccountId', '==', filters.ledgerAccountId));
+    }
+    if (filters.requisitionType) {
+        q = query(q, where('requisitionType', '==', filters.requisitionType));
+    }
+    if (filters.purchaseType) {
+        q = query(q, where('purchaseType', '==', filters.purchaseType));
     }
     if (filters.vendor) {
         // Firestore doesn't support partial string match ('contains') natively with where.

@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import { deletePurchaseGroup, getPaginatedPurchases } from '../lib/firestore';
-import type { Purchase } from '../types';
+import { deletePurchaseGroup, getPaginatedPurchases, getAllUsers } from '../lib/firestore';
+import type { Purchase, AppUser } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
-import { Upload, Download } from 'lucide-react';
+import { Upload, Download, Copy, Pencil, Trash2 } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
 import './PurchaseListPage.css';
@@ -21,13 +21,17 @@ const PurchaseListPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
 
+    // Users fetched for admin view
+    const [usersMap, setUsersMap] = useState<Record<string, string>>({});
+
     const [showModal, setShowModal] = useState(false);
     const [editTarget, setEditTarget] = useState<Purchase | null>(null);
     const [isCopy, setIsCopy] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
     const [filterAccount, setFilterAccount] = useState('');
-    const [filterVendor, setFilterVendor] = useState('');
-    const [search, setSearch] = useState('');
+    const [filterCreator, setFilterCreator] = useState('');
+    const [filterReqType, setFilterReqType] = useState('');
+    const [filterPurType, setFilterPurType] = useState('');
     const [vendorDetail, setVendorDetail] = useState<string | null>(null);
 
     const fetchPurchases = async (isLoadMore = false) => {
@@ -40,9 +44,10 @@ const PurchaseListPage: React.FC = () => {
                 20,
                 isLoadMore ? lastDoc : null,
                 {
-                    uid: appUser?.role === 'admin' || appUser?.role === 'guest' ? undefined : appUser?.uid,
+                    uid: appUser?.role === 'admin' ? (filterCreator || undefined) : appUser?.role === 'guest' ? undefined : appUser?.uid,
                     ledgerAccountId: filterAccount || undefined,
-                    vendor: filterVendor || undefined,
+                    requisitionType: filterReqType || undefined,
+                    purchaseType: filterPurType || undefined,
                 }
             );
 
@@ -63,14 +68,21 @@ const PurchaseListPage: React.FC = () => {
 
     useEffect(() => {
         fetchPurchases();
-    }, [selectedYear, filterAccount, filterVendor, appUser]);
+    }, [selectedYear, filterAccount, filterCreator, filterReqType, filterPurType, appUser]);
+
+    useEffect(() => {
+        if (appUser?.role === 'admin') {
+            getAllUsers().then(users => {
+                const map: Record<string, string> = {};
+                users.forEach(u => map[u.uid] = u.displayName);
+                setUsersMap(map);
+            });
+        }
+    }, [appUser]);
 
     const filtered = useMemo(() => {
-        // Only simple title search remains on client side
-        return localPurchases.filter((p) => {
-            return search ? p.title.includes(search) : true;
-        });
-    }, [localPurchases, search]);
+        return localPurchases;
+    }, [localPurchases]);
 
     const grouped = useMemo(() => {
         const groups: Record<string, Purchase[]> = {};
@@ -327,25 +339,43 @@ const PurchaseListPage: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="filter-bar">
-                <select value={filterAccount} onChange={(e) => setFilterAccount(e.target.value)}>
-                    <option value="">全部科目</option>
-                    {ledgerAccounts.map((a) => <option key={a.id} value={a.id}>{a.code}</option>)}
-                </select>
-
-                <input
-                    placeholder="廠商篩選..."
-                    value={filterVendor}
-                    onChange={(e) => setFilterVendor(e.target.value)}
-                />
-
-                <input
-                    placeholder="搜尋品名/廠商/類型..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
+            <div className="list-controls" style={{ flexWrap: 'wrap', gap: '10px' }}>
+                <div className="filter-group">
+                    <span className="filter-label">科目</span>
+                    <select value={filterAccount} onChange={(e) => setFilterAccount(e.target.value)}>
+                        <option value="">全部科目</option>
+                        {ledgerAccounts.map(a => <option key={a.id} value={a.id}>{a.code} {a.name}</option>)}
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <span className="filter-label">請購</span>
+                    <select value={filterReqType} onChange={(e) => setFilterReqType(e.target.value)}>
+                        <option value="">全部</option>
+                        <option value="經MM">經MM</option>
+                        <option value="非經MM">非經MM</option>
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <span className="filter-label">採購</span>
+                    <select value={filterPurType} onChange={(e) => setFilterPurType(e.target.value)}>
+                        <option value="">全部</option>
+                        <option value="勞務">勞務</option>
+                        <option value="財務">財務</option>
+                        <option value="工程">工程</option>
+                    </select>
+                </div>
+                {appUser?.role === 'admin' && (
+                    <div className="filter-group">
+                        <span className="filter-label">建立人</span>
+                        <select value={filterCreator} onChange={(e) => setFilterCreator(e.target.value)}>
+                            <option value="">所有人</option>
+                            {Object.entries(usersMap).map(([uid, name]) => (
+                                <option key={uid} value={uid}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
-
             {/* Summary */}
             <div className="list-summary">
                 {selectedYear} 年共 <strong>{filtered.length}</strong> 筆，合計 <strong>{fmt(totalAmount)}</strong>
@@ -375,6 +405,7 @@ const PurchaseListPage: React.FC = () => {
                                 <th>總帳科目</th>
                                 <th>金額 (未稅 / 含稅)</th>
                                 <th>類型</th>
+                                {appUser?.role === 'admin' && <th>建立人</th>}
                                 {!isGuest && <th>操作</th>}
                             </tr>
                         </thead>
@@ -437,6 +468,13 @@ const PurchaseListPage: React.FC = () => {
                                                             <div className="type-text purchase">{p.purchaseType}</div>
                                                         </div>
                                                     </td>
+                                                    {appUser?.role === 'admin' && (
+                                                        <td data-label="建立人">
+                                                            <div style={{ fontSize: '13px', color: 'var(--text2)', fontWeight: 500 }}>
+                                                                {usersMap[p.createdBy] || '未知'}
+                                                            </div>
+                                                        </td>
+                                                    )}
                                                     {!isGuest && (
                                                         <td className="td-actions">
                                                             <div className="action-group">
