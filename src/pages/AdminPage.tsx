@@ -571,22 +571,22 @@ const AdminPage: React.FC = () => {
                                         onChange={(e) => setVendorPhone(e.target.value)}
                                     />
                                 </div>
-                            </div>
-                            <div className="v-form-actions">
-                                <button type="submit" className="btn-primary" disabled={vendorSaving}>
-                                    {vendorSaving ? '儲存中⋯' : editingVendor ? '更新廠商資料' : '新增廠商'}
-                                </button>
-                                {editingVendor && (
-                                    <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
-                                )}
-                                <button
-                                    type="button"
-                                    className={`btn-import-toggle ${showVendorImport ? 'active' : ''}`}
-                                    onClick={() => setShowVendorImport(!showVendorImport)}
-                                    title="批次導入選項"
-                                >
-                                    <Plus size={20} />
-                                </button>
+                                <div className="v-inline-actions">
+                                    <button type="submit" className="btn-primary" disabled={vendorSaving}>
+                                        {vendorSaving ? '儲存中⋯' : editingVendor ? '更新' : '新增廠商'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn-import-toggle ${showVendorImport ? 'active' : ''}`}
+                                        onClick={() => setShowVendorImport(!showVendorImport)}
+                                        title="批次導入選項"
+                                    >
+                                        <Plus size={20} />
+                                    </button>
+                                    {editingVendor && (
+                                        <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
+                                    )}
+                                </div>
                             </div>
                             {showVendorImport && (
                                 <div className="batch-import-box v-batch">

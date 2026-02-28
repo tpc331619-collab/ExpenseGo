@@ -156,15 +156,24 @@ const ReportPage: React.FC = () => {
 
     const PieChart = ({ data, total, title }: { data: { id: string, label: string, value: number }[], total: number, title: string }) => {
         const containerRef = React.useRef<HTMLDivElement>(null);
+        const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
+
         const sorted = [...data].sort((a, b) => b.value - a.value);
         const top = sorted.slice(0, 8);
         const others = sorted.slice(8).reduce((sum, item) => sum + item.value, 0);
-        if (others > 0) top.push({ id: 'others', label: '其他', value: others });
 
-        let cumulativePercent = 0;
-        const radius = 70;
+        const chartData = [...top];
+        if (others > 0) {
+            chartData.push({ id: 'others', label: '其他', value: others });
+        }
+
+        let currentAngle = -Math.PI / 2;
+        const radius = 80;
+        const innerRadius = 55;
         const centerX = 100;
         const centerY = 100;
+
+        const fmt = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
 
         return (
             <div ref={containerRef} className="chart-wrapper pie-wrapper">
@@ -174,41 +183,88 @@ const ReportPage: React.FC = () => {
                         <Copy size={14} />
                     </button>
                 </div>
-                <div className="pie-container">
-                    <svg width="200" height="200" viewBox="0 0 200 200">
-                        {total > 0 && top.map((item, idx) => {
-                            const percent = item.value / total;
-                            if (percent <= 0) return null;
+                <div className="pie-content-layout">
+                    <div className="pie-container">
+                        <svg width="200" height="200" viewBox="0 0 200 200">
+                            {total > 0 && chartData.map((item, idx) => {
+                                const percent = item.value / total;
+                                if (percent <= 0) return null;
+                                const arcLength = percent * 2 * Math.PI;
 
-                            const startX = centerX + radius * Math.cos(2 * Math.PI * cumulativePercent - Math.PI / 2);
-                            const startY = centerY + radius * Math.sin(2 * Math.PI * cumulativePercent - Math.PI / 2);
-                            cumulativePercent += percent;
-                            const endX = centerX + radius * Math.cos(2 * Math.PI * cumulativePercent - Math.PI / 2);
-                            const endY = centerY + radius * Math.sin(2 * Math.PI * cumulativePercent - Math.PI / 2);
+                                const x1 = centerX + Math.cos(currentAngle) * radius;
+                                const y1 = centerY + Math.sin(currentAngle) * radius;
+                                const x2 = centerX + Math.cos(currentAngle + arcLength) * radius;
+                                const y2 = centerY + Math.sin(currentAngle + arcLength) * radius;
 
-                            const largeArcFlag = percent > 0.5 ? 1 : 0;
-                            const d = `M ${centerX} ${centerY} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+                                const ix2 = centerX + Math.cos(currentAngle + arcLength) * innerRadius;
+                                const iy2 = centerY + Math.sin(currentAngle + arcLength) * innerRadius;
+                                const ix1 = centerX + Math.cos(currentAngle) * innerRadius;
+                                const iy1 = centerY + Math.sin(currentAngle) * innerRadius;
 
-                            return (
-                                <path
-                                    key={item.id}
-                                    d={d}
-                                    fill={item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length]}
-                                    stroke="white"
-                                    strokeWidth="1"
+                                const largeArc = arcLength > Math.PI ? 1 : 0;
+
+                                const d = [
+                                    `M ${x1} ${y1}`,
+                                    `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
+                                    `L ${ix2} ${iy2}`,
+                                    `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1}`,
+                                    'Z'
+                                ].join(' ');
+
+                                const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
+                                const isHovered = hoveredIdx === idx;
+
+                                const path = (
+                                    <path
+                                        key={item.id}
+                                        d={d}
+                                        fill={color}
+                                        style={{
+                                            opacity: hoveredIdx !== null && !isHovered ? 0.6 : 1,
+                                            transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+                                            transformOrigin: 'center',
+                                            transition: 'all 0.2s ease-out',
+                                            cursor: 'pointer'
+                                        }}
+                                        onMouseEnter={() => setHoveredIdx(idx)}
+                                        onMouseLeave={() => setHoveredIdx(null)}
+                                    />
+                                );
+                                currentAngle += arcLength;
+                                return path;
+                            })}
+
+                            {/* Center labels */}
+                            <g transform={`translate(${centerX}, ${centerY})`} style={{ pointerEvents: 'none' }}>
+                                <text
+                                    textAnchor="middle"
+                                    y="-5"
+                                    className="pie-center-label"
                                 >
-                                    <title>{item.label}: {Math.round(percent * 100)}%</title>
-                                </path>
-                            );
-                        })}
-                        <circle cx={centerX} cy={centerY} r={radius * 0.5} fill="white" />
-                    </svg>
-                    <div className="pie-legend">
-                        {top.map((item, idx) => (
-                            <div key={item.id} className="pie-legend-item">
+                                    {hoveredIdx !== null ? chartData[hoveredIdx].label : '總計金額'}
+                                </text>
+                                <text
+                                    textAnchor="middle"
+                                    y="18"
+                                    className="pie-center-value"
+                                >
+                                    {hoveredIdx !== null ? fmt(chartData[hoveredIdx].value) : fmt(total)}
+                                </text>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <div className="pie-legend-custom">
+                        {chartData.map((item, idx) => (
+                            <div
+                                key={item.id}
+                                className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''}`}
+                                onMouseEnter={() => setHoveredIdx(idx)}
+                                onMouseLeave={() => setHoveredIdx(null)}
+                            >
                                 <span className="pie-legend-dot" style={{ backgroundColor: item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length] }} />
-                                <span className="pie-legend-label">{item.label}</span>
-                                <span className="pie-legend-val">{(item.value / total * 100).toFixed(0)}%</span>
+                                <span className="pie-legend-name">{item.label}</span>
+                                <span className="pie-legend-percent">{((item.value / total) * 100).toFixed(1)}%</span>
                             </div>
                         ))}
                     </div>
@@ -219,7 +275,9 @@ const ReportPage: React.FC = () => {
 
     const StackedBarChart = ({ datasets, title }: { datasets: { label: string, color: string, purchases: any[] }[], title: string }) => {
         const containerRef = React.useRef<HTMLDivElement>(null);
+        const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
         const months = 12;
+
         const seriesData = datasets.map(ds => {
             const monthly = Array(months).fill(0);
             ds.purchases.forEach(p => {
@@ -241,12 +299,14 @@ const ReportPage: React.FC = () => {
         const maxTotal = Math.max(...stackedMonthly.map(m => m[m.length - 1]?.end || 0), 1) * 1.1;
 
         const width = 400;
-        const height = 160; // Slightly taller for labels
-        const padding = 30;
-        const bottomPadding = 25; // Space for labels
+        const height = 200;
+        const padding = 35;
+        const bottomPadding = 30;
         const chartHeight = height - padding - bottomPadding;
         const slotWidth = (width - 2 * padding) / months;
-        const barWidth = slotWidth * 0.7;
+        const barWidth = Math.min(slotWidth * 0.6, 24);
+
+        const fmt = (n: number) => n.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
 
         return (
             <div ref={containerRef} className="chart-wrapper trend-wrapper">
@@ -256,71 +316,103 @@ const ReportPage: React.FC = () => {
                         <Copy size={14} />
                     </button>
                 </div>
-                <div className="line-chart-svg-container">
-                    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-                        {/* Grid lines */}
-                        {[0, 0.5, 1].map(v => (
-                            <line
-                                key={v}
-                                x1={padding}
-                                y1={height - bottomPadding - v * chartHeight}
-                                x2={width - padding}
-                                y2={height - bottomPadding - v * chartHeight}
-                                stroke="#f1f5f9"
-                                strokeWidth="1"
-                            />
-                        ))}
 
-                        {stackedMonthly.map((monthData, mIdx) => {
-                            const xSlotStart = padding + mIdx * slotWidth;
-                            const xBar = xSlotStart + (slotWidth - barWidth) / 2;
+                <div className="trend-content-layout">
+                    <div className="trend-svg-container">
+                        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+                            {/* Grid lines & Y-Axis Labels */}
+                            {[0, 0.25, 0.5, 0.75, 1].map(v => {
+                                const y = height - bottomPadding - v * chartHeight;
+                                return (
+                                    <g key={v}>
+                                        <line
+                                            x1={padding} y1={y} x2={width - padding} y2={y}
+                                            stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3"
+                                        />
+                                        <text
+                                            x={padding - 8} y={y + 3}
+                                            textAnchor="end" fontSize="9" fill="#000000"
+                                        >
+                                            {fmt(v * maxTotal / 1000)}k
+                                        </text>
+                                    </g>
+                                );
+                            })}
 
-                            return (
-                                <g key={mIdx}>
-                                    {/* Month Label */}
-                                    <text
-                                        x={xSlotStart + slotWidth / 2}
-                                        y={height - 5}
-                                        textAnchor="middle"
-                                        fontSize="10"
-                                        fill="var(--text3)"
-                                        fontWeight="500"
-                                    >
-                                        {mIdx + 1}
-                                    </text>
+                            {stackedMonthly.map((monthData, mIdx) => {
+                                const xCenter = padding + mIdx * slotWidth + slotWidth / 2;
+                                const xBar = xCenter - barWidth / 2;
 
-                                    {/* Stacked Bars */}
-                                    {monthData.map((s, sIdx) => {
-                                        const h = (s.end - s.start) / maxTotal * chartHeight;
-                                        const y = height - bottomPadding - (s.end / maxTotal * chartHeight);
-                                        if (h <= 0.5) return null;
-                                        return (
-                                            <rect
-                                                key={sIdx}
-                                                x={xBar}
-                                                y={y}
-                                                width={barWidth}
-                                                height={h}
-                                                fill={seriesData[sIdx].color}
-                                                rx="1"
+                                return (
+                                    <g key={mIdx}>
+                                        {/* Month Axis Label */}
+                                        <text
+                                            x={xCenter} y={height - 8}
+                                            textAnchor="middle" fontSize="10" fill="#000000" fontWeight="600"
+                                        >
+                                            {mIdx + 1}月
+                                        </text>
+
+                                        {/* Bar Segments */}
+                                        {monthData.map((s, sIdx) => {
+                                            const h = (s.end - s.start) / maxTotal * chartHeight;
+                                            const y = height - bottomPadding - (s.end / maxTotal * chartHeight);
+                                            const isHovered = hoveredIdx === sIdx;
+                                            if (h <= 0.5) return null;
+
+                                            return (
+                                                <rect
+                                                    key={sIdx}
+                                                    x={xBar} y={y}
+                                                    width={barWidth} height={h}
+                                                    fill={seriesData[sIdx].color}
+                                                    rx="2"
+                                                    style={{
+                                                        opacity: hoveredIdx !== null && !isHovered ? 0.3 : 1,
+                                                        filter: isHovered ? 'brightness(1.1)' : 'none',
+                                                        transition: 'all 0.2s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onMouseEnter={() => setHoveredIdx(sIdx)}
+                                                    onMouseLeave={() => setHoveredIdx(null)}
+                                                >
+                                                    <title>{seriesData[sIdx].label}: NT$ {Math.round(s.end - s.start).toLocaleString()}</title>
+                                                </rect>
+                                            );
+                                        })}
+
+                                        {/* Total Amount Label on Top */}
+                                        {monthData[monthData.length - 1].end > 0 && (
+                                            <text
+                                                x={xCenter}
+                                                y={height - bottomPadding - (monthData[monthData.length - 1].end / maxTotal * chartHeight) - 6}
+                                                textAnchor="middle"
+                                                fontSize="9"
+                                                fontWeight="800"
+                                                fill="#000000"
                                             >
-                                                <title>{seriesData[sIdx].label} - {mIdx + 1}月: NT$ {Math.round(s.end - s.start).toLocaleString()}</title>
-                                            </rect>
-                                        );
-                                    })}
-                                </g>
-                            );
-                        })}
-                    </svg>
-                </div>
-                {/* Legend for Trend Chart */}
-                <div className="pie-legend" style={{ marginTop: '16px', flexDirection: 'row', flexWrap: 'wrap', gap: '12px' }}>
-                    {datasets.map((ds, idx) => (
-                        <div key={idx} className="pie-legend-item">
-                            <span className="pie-legend-dot" style={{ backgroundColor: ds.color }} />
-                            <span className="pie-legend-label" style={{ fontSize: '11px' }}>{ds.label}</span>
-                        </div>
-                    ))}
+                                                {fmt(monthData[monthData.length - 1].end / 1000)}k
+                                            </text>
+                                        )}
+                                    </g>
+                                );
+                            })}
+                        </svg>
+                    </div>
+
+                    <div className="trend-legend-custom">
+                        {seriesData.map((ds, idx) => (
+                            <div
+                                key={idx}
+                                className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''}`}
+                                onMouseEnter={() => setHoveredIdx(idx)}
+                                onMouseLeave={() => setHoveredIdx(null)}
+                            >
+                                <span className="pie-legend-dot" style={{ backgroundColor: ds.color }} />
+                                <span className="pie-legend-name" style={{ fontSize: '11px' }}>{ds.label}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
