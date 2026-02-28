@@ -238,13 +238,13 @@ select option {
 }
 
 .kpi-card {
-  background: #0d1b2a;
+  background: #ffffff;
   border-radius: var(--radius);
   padding: 20px 24px;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 12px rgba(13, 27, 42, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -290,32 +290,30 @@ select option {
 }
 
 .kpi-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: #64748b;
   margin-bottom: 6px;
 }
 
 .kpi-value {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #101828;
   margin-top: 4px;
   letter-spacing: -0.5px;
 }
 
 .accent-purple .kpi-value {
-  color: #ffffff;
+  color: #101828;
 }
 
 .accent-blue .kpi-value {
-  color: #ffffff;
+  color: #101828;
 }
 
 .accent-teal .kpi-value {
-  color: #ffffff;
+  color: #101828;
 }
 
 /* ── Tags ───────────────────────────────────────────────────────────────────── */

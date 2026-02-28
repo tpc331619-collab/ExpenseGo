@@ -241,10 +241,10 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Monthly bar chart */}
-            <div className="card">
+            <div className="card bar-chart-card">
                 <div className="card-header-flex">
                     <div className="chart-title-area">
-                        <h2 className="card-title">月度採購金額對比 (未稅)</h2>
+                        <h2 className="card-title">各月採購比較(未稅)</h2>
                         <div className="month-range-selector">
                             <button className={monthRange === '1-6' ? 'active' : ''} onClick={() => setMonthRange('1-6')}>1-6月</button>
                             <button className={monthRange === '7-12' ? 'active' : ''} onClick={() => setMonthRange('7-12')}>7-12月</button>
