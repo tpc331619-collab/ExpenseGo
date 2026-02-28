@@ -394,7 +394,7 @@ const Dashboard: React.FC = () => {
                                             const pct = ((currTotal - prevTotal) / prevTotal * 100);
                                             const isUp = pct >= 0;
                                             return (
-                                                <div className="mom-trend">
+                                                <div className="mom-trend" title="月環比 (MoM)：本月採購金額相比上個月的變動幅度">
                                                     <span className={isUp ? 'mom-up' : 'mom-down'}>
                                                         {isUp ? '↑' : '↓'}{Math.abs(pct).toFixed(0)}%
                                                     </span>
