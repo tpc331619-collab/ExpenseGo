@@ -220,13 +220,31 @@ const ReportPage: React.FC = () => {
 
                                     const largeArc = arcLength > Math.PI ? 1 : 0;
 
-                                    const d = [
-                                        `M ${x1} ${y1}`,
-                                        `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
-                                        `L ${ix2} ${iy2}`,
-                                        `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1}`,
-                                        'Z'
-                                    ].join(' ');
+                                    let d: string;
+                                    if (chartData.length === 1) {
+                                        // SVG cannot draw an arc from a point to itself; use two 180° arcs
+                                        const top = { x: centerX, y: centerY - radius };
+                                        const bot = { x: centerX, y: centerY + radius };
+                                        const itop = { x: centerX, y: centerY - innerRadius };
+                                        const ibot = { x: centerX, y: centerY + innerRadius };
+                                        d = [
+                                            `M ${top.x} ${top.y}`,
+                                            `A ${radius} ${radius} 0 0 1 ${bot.x} ${bot.y}`,
+                                            `A ${radius} ${radius} 0 0 1 ${top.x} ${top.y}`,
+                                            `L ${itop.x} ${itop.y}`,
+                                            `A ${innerRadius} ${innerRadius} 0 0 0 ${ibot.x} ${ibot.y}`,
+                                            `A ${innerRadius} ${innerRadius} 0 0 0 ${itop.x} ${itop.y}`,
+                                            'Z'
+                                        ].join(' ');
+                                    } else {
+                                        d = [
+                                            `M ${x1} ${y1}`,
+                                            `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
+                                            `L ${ix2} ${iy2}`,
+                                            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1}`,
+                                            'Z'
+                                        ].join(' ');
+                                    }
 
                                     const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
                                     const isFocused = hoveredIdx === idx || selectedId === item.id;

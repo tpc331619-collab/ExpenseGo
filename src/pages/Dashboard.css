@@ -1193,3 +1193,30 @@
     line-height: 1.8;
     margin-bottom: 4px;
 }
+
+/* --- MoM Trend Arrow Styles --- */
+.mom-trend {
+    text-align: center;
+    margin-bottom: 2px;
+    line-height: 1;
+}
+
+.mom-up {
+    font-size: 10px;
+    font-weight: 700;
+    color: #16a34a;
+    background: #f0fdf4;
+    padding: 1px 4px;
+    border-radius: 4px;
+    letter-spacing: -0.3px;
+}
+
+.mom-down {
+    font-size: 10px;
+    font-weight: 700;
+    color: #dc2626;
+    background: #fef2f2;
+    padding: 1px 4px;
+    border-radius: 4px;
+    letter-spacing: -0.3px;
+}

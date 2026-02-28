@@ -131,6 +131,12 @@ export const updateVendor = async (id: string, data: Partial<Vendor>) => {
 
 const getPurchaseRef = (year: number) => collection(db, 'years', String(year), 'purchases');
 
+/** Parse a YYYY-MM-DD string as local time (not UTC) to avoid timezone shift */
+const parseLocalDate = (dateStr: string): Date => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+};
+
 export interface PaginatedResult<T> {
     data: T[];
     lastDoc: QueryDocumentSnapshot | null;
@@ -210,7 +216,7 @@ export const getPurchases = async (year: number, uid?: string): Promise<Purchase
 };
 
 export const addPurchase = async (data: PurchaseFormData, uid: string): Promise<string> => {
-    const year = new Date(data.purchaseDate).getFullYear();
+    const year = parseLocalDate(data.purchaseDate).getFullYear();
     const purchaseRef = getPurchaseRef(year);
     const groupId = doc(purchaseRef).id;
     const batch = writeBatch(db);
@@ -223,7 +229,7 @@ export const addPurchase = async (data: PurchaseFormData, uid: string): Promise<
             ledgerAccountId: item.ledgerAccountId,
             ledgerAccountName: item.ledgerAccountName,
             amount: parseFloat(item.amount) || 0,
-            purchaseDate: Timestamp.fromDate(new Date(data.purchaseDate)),
+            purchaseDate: Timestamp.fromDate(parseLocalDate(data.purchaseDate)),
             purchaseType: data.purchaseType,
             requisitionType: data.requisitionType,
             itemNo: (index + 1) * 10,
@@ -242,7 +248,7 @@ export const addPurchase = async (data: PurchaseFormData, uid: string): Promise<
 
 export const updatePurchase = async (groupId: string, data: PurchaseFormData, currentUid: string, originalYear?: number, isAdmin: boolean = false) => {
     console.log(`[updatePurchase] START - groupId: ${groupId}, currentUid: ${currentUid}, isAdmin: ${isAdmin}`);
-    const year = new Date(data.purchaseDate).getFullYear();
+    const year = parseLocalDate(data.purchaseDate).getFullYear();
     const purchaseRef = getPurchaseRef(year);
 
     // 1. 取得舊資料：優先尋找原始年份，否則尋找當前年份
@@ -272,7 +278,7 @@ export const updatePurchase = async (groupId: string, data: PurchaseFormData, cu
             amount: parseFloat(item.amount) || 0,
             quantity: 1,
             unit: '項',
-            purchaseDate: Timestamp.fromDate(new Date(data.purchaseDate)),
+            purchaseDate: Timestamp.fromDate(parseLocalDate(data.purchaseDate)),
             purchaseType: data.purchaseType,
             requisitionType: data.requisitionType,
             itemNo: (index + 1) * 10,

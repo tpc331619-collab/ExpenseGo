@@ -192,6 +192,24 @@ const PurchaseListPage: React.FC = () => {
 
                 const { addPurchase } = await import('../lib/firestore');
 
+                const parseLocalDateStr = (s: string): { date: Date; str: string } | null => {
+                    // Try YYYY-MM-DD or YYYY/MM/DD directly
+                    const isoMatch = s.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})$/);
+                    if (isoMatch) {
+                        const [, y, m, d] = isoMatch.map(Number);
+                        const dt = new Date(y, m - 1, d);
+                        return { date: dt, str: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` };
+                    }
+                    // Try MM-DD or M/D (add current year)
+                    const shortMatch = s.replace(/[月日]/g, '-').replace(/-+$/, '').match(/^(\d{1,2})[\-\/](\d{1,2})$/);
+                    if (shortMatch) {
+                        const [, m, d] = shortMatch.map(Number);
+                        const dt = new Date(selectedYear, m - 1, d);
+                        return { date: dt, str: `${selectedYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` };
+                    }
+                    return null;
+                };
+
                 json.forEach((row, index) => {
                     const rowNum = index + 2;
                     const dateStr = String(row['日期'] || '').trim();
@@ -209,35 +227,14 @@ const PurchaseListPage: React.FC = () => {
 
                     const rowPrefix = `第 ${rowNum} 列：`;
 
-                    // 1. Basic empty check
                     if (!dateStr) { errors.push(`${rowPrefix}「日期」不可為空`); return; }
 
-                    // 2. Strict Date Validation & Year Fix
-                    let finalDate = dateStr;
-                    let testDate = new Date(dateStr);
-
-                    // If simple parse fails, try to add current year (e.g., for "2/27" or "2月27日")
-                    if (isNaN(testDate.getTime())) {
-                        const cleanedDate = dateStr.replace(/[月日]/g, '-').replace(/-+$/, '');
-                        const tryDateStr = `${selectedYear}-${cleanedDate}`;
-                        const retryDate = new Date(tryDateStr);
-
-                        if (!isNaN(retryDate.getTime())) {
-                            testDate = retryDate;
-                            // Format to YYYY-MM-DD string
-                            finalDate = retryDate.toISOString().split('T')[0];
-                        }
-                    }
-
-                    if (isNaN(testDate.getTime())) {
+                    const parsed = parseLocalDateStr(dateStr);
+                    if (!parsed) {
                         errors.push(`${rowPrefix}「日期」格式錯誤 [${dateStr}] (請提供包含年份的完整日期，例如：${selectedYear}-02-27)`);
                         return;
                     }
-
-                    // Ensure finalDate is formatted correctly for our system
-                    if (!finalDate.includes('-')) {
-                        finalDate = testDate.toISOString().split('T')[0];
-                    }
+                    const finalDate = parsed.str;
 
                     if (!vendor) { errors.push(`${rowPrefix}「廠商名稱」不可為空`); return; }
                     if (!title) { errors.push(`${rowPrefix}「品名」不可為空`); return; }
