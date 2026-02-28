@@ -104,6 +104,40 @@ const ReportPage: React.FC = () => {
     // Percentage of grand total (used for vendor / requisition / purchaseType tabs)
     const pct = (v: number) => grandTotal ? ((v / grandTotal) * 100).toFixed(1) : '0.0';
 
+    const renderDocNumber = (docNumber: string | undefined) => {
+        if (!docNumber) return <div style={{ fontSize: '11px', color: 'var(--text2)' }}>-</div>;
+        return (
+            <div
+                style={{
+                    fontSize: '11px',
+                    color: 'var(--blue)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'rgba(37, 99, 235, 0.05)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    transition: 'all 0.2s'
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(docNumber);
+                    alert('已複製：' + docNumber);
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.05)';
+                }}
+                title="點擊複製單號"
+            >
+                {docNumber}
+            </div>
+        );
+    };
+
     const SubjectSummaryModal = () => {
         const sortedData = [...byAccount].sort((a, b) => b.total - a.total);
 
@@ -276,7 +310,7 @@ const ReportPage: React.FC = () => {
                                                     <td>{item.vendor}</td>
                                                     <td>{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{item.docNumber || '-'}</div>
+                                                        {renderDocNumber(item.docNumber)}
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
@@ -335,7 +369,7 @@ const ReportPage: React.FC = () => {
                                                     <td>{item.ledgerAccountName}</td>
                                                     <td className="td-amount">{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        <div style={{ fontSize: '11px', color: 'var(--text2)' }}>{item.docNumber || '-'}</div>
+                                                        {renderDocNumber(item.docNumber)}
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
