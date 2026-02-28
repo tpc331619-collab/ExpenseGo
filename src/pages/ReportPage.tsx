@@ -157,6 +157,16 @@ const ReportPage: React.FC = () => {
     const PieChart = ({ data, total, title }: { data: { id: string, label: string, value: number }[], total: number, title: string }) => {
         const containerRef = React.useRef<HTMLDivElement>(null);
         const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
+        const [selectedIndices, setSelectedIndices] = React.useState<Set<number>>(new Set());
+
+        const handleSegClick = (idx: number) => {
+            setSelectedIndices(prev => {
+                const next = new Set(prev);
+                if (next.has(idx)) next.delete(idx);
+                else next.add(idx);
+                return next;
+            });
+        };
 
         const sorted = [...data].sort((a, b) => b.value - a.value);
         const top = sorted.slice(0, 8);
@@ -168,10 +178,10 @@ const ReportPage: React.FC = () => {
         }
 
         let currentAngle = -Math.PI / 2;
-        const radius = 80;
-        const innerRadius = 55;
-        const centerX = 100;
-        const centerY = 100;
+        const radius = 95;
+        const innerRadius = 65;
+        const centerX = 130;
+        const centerY = 125;
 
         const fmt = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
 
@@ -185,99 +195,97 @@ const ReportPage: React.FC = () => {
                 </div>
                 <div className="pie-content-layout">
                     <div className="pie-container">
-                        <svg width="200" height="200" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
-                            {total > 0 && chartData.map((item, idx) => {
-                                const percent = item.value / total;
-                                if (percent <= 0) return null;
-                                const arcLength = percent * 2 * Math.PI;
-                                const midAngle = currentAngle + arcLength / 2;
+                        {/* Enlarged SVG for better balance, width covers legend for copy fix */}
+                        <svg width="500" height="250" viewBox="0 0 500 250" style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible' }}>
+                            <g style={{ pointerEvents: 'auto' }}>
+                                {total > 0 && chartData.map((item, idx) => {
+                                    const percent = item.value / total;
+                                    if (percent <= 0) return null;
+                                    const arcLength = percent * 2 * Math.PI;
 
-                                // Coordinates for the arc path
-                                const x1 = centerX + Math.cos(currentAngle) * radius;
-                                const y1 = centerY + Math.sin(currentAngle) * radius;
-                                const x2 = centerX + Math.cos(currentAngle + arcLength) * radius;
-                                const y2 = centerY + Math.sin(currentAngle + arcLength) * radius;
+                                    const x1 = centerX + Math.cos(currentAngle) * radius;
+                                    const y1 = centerY + Math.sin(currentAngle) * radius;
+                                    const x2 = centerX + Math.cos(currentAngle + arcLength) * radius;
+                                    const y2 = centerY + Math.sin(currentAngle + arcLength) * radius;
 
-                                const ix2 = centerX + Math.cos(currentAngle + arcLength) * innerRadius;
-                                const iy2 = centerY + Math.sin(currentAngle + arcLength) * innerRadius;
-                                const ix1 = centerX + Math.cos(currentAngle) * innerRadius;
-                                const iy1 = centerY + Math.sin(currentAngle) * innerRadius;
+                                    const ix2 = centerX + Math.cos(currentAngle + arcLength) * innerRadius;
+                                    const iy2 = centerY + Math.sin(currentAngle + arcLength) * innerRadius;
+                                    const ix1 = centerX + Math.cos(currentAngle) * innerRadius;
+                                    const iy1 = centerY + Math.sin(currentAngle) * innerRadius;
 
-                                const largeArc = arcLength > Math.PI ? 1 : 0;
-                                const d = [
-                                    `M ${x1} ${y1}`,
-                                    `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
-                                    `L ${ix2} ${iy2}`,
-                                    `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1}`,
-                                    'Z'
-                                ].join(' ');
+                                    const largeArc = arcLength > Math.PI ? 1 : 0;
 
-                                // Leader line positions
-                                const lineStartRadius = radius + 2;
-                                const lx1 = centerX + Math.cos(midAngle) * lineStartRadius;
-                                const ly1 = centerY + Math.sin(midAngle) * lineStartRadius;
+                                    const d = [
+                                        `M ${x1} ${y1}`,
+                                        `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
+                                        `L ${ix2} ${iy2}`,
+                                        `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1}`,
+                                        'Z'
+                                    ].join(' ');
 
-                                // Target Y position synced with the 38px legend items
-                                const totalItems = chartData.length;
-                                // Calculate offset since pie is centered vertically relative to the legend
-                                const legendTotalHeight = totalItems * 38;
-                                const targetYRelativeToCenter = (idx * 38 + 19) - (legendTotalHeight / 2);
-                                const targetY = 100 + targetYRelativeToCenter;
+                                    const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
+                                    const isFocused = hoveredIdx === idx || selectedIndices.has(idx);
 
-                                const isHovered = hoveredIdx === idx;
-                                const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
+                                    // Smooth Curved Leader Line Logic
+                                    const midAngle = currentAngle + arcLength / 2;
+                                    const lx1 = centerX + Math.cos(midAngle) * radius;
+                                    const ly1 = centerY + Math.sin(midAngle) * radius;
 
-                                // Wrap around logic for left-side segments
-                                const isLeft = Math.cos(midAngle) < -0.2;
-                                let pathD = "";
+                                    const targetX = 304;
+                                    const totalItems = chartData.length;
+                                    const lgGap = 4;
+                                    const itemH = Math.min(46, (250 - (totalItems - 1) * lgGap) / totalItems);
+                                    const totalLgH = (totalItems * itemH) + ((totalItems - 1) * lgGap);
+                                    const targetY = centerY + (idx * (itemH + lgGap) + itemH / 2 - totalLgH / 2);
 
-                                if (isLeft) {
-                                    // Go out to the left, then move vertically outside the pie radius, then to the right edge
-                                    const outX = centerX - radius - 20;
-                                    const cornerY = midAngle < Math.PI ? centerY + radius + 12 : centerY - radius - 12;
-                                    pathD = `M ${lx1} ${ly1} L ${outX} ${ly1} L ${outX} ${cornerY} L 210 ${cornerY} L 210 ${targetY}`;
-                                } else {
-                                    // Right side: Simple elbow
-                                    const breakX = centerX + radius + 12;
-                                    pathD = `M ${lx1} ${ly1} L ${breakX} ${ly1} L ${breakX} ${targetY} L 210 ${targetY}`;
-                                }
+                                    const isLeft = Math.cos(midAngle) < 0;
+                                    let pathD = "";
+                                    if (isLeft) {
+                                        // Fluid wrap around curve: dynamic bounds based on 250px height
+                                        const wrapY = midAngle < Math.PI ? 249 : 1;
+                                        const cp1x = lx1 - 45;
+                                        const cpMidX = lx1 + (targetX - lx1) * 0.3;
+                                        pathD = `M ${lx1} ${ly1} C ${cp1x} ${ly1}, ${cp1x} ${wrapY}, ${cpMidX} ${wrapY} S ${targetX} ${targetY}, ${targetX} ${targetY}`;
+                                    } else {
+                                        // Smooth S-curve: balanced horizontal points to prevent inward bulging
+                                        const cp1x = lx1 + (targetX - lx1) * 0.5;
+                                        const cp2x = targetX - (targetX - lx1) * 0.5;
+                                        pathD = `M ${lx1} ${ly1} C ${cp1x} ${ly1}, ${cp2x} ${targetY}, ${targetX} ${targetY}`;
+                                    }
 
-                                const segment = (
-                                    <g key={item.id}>
-                                        {/* Leader Line - Only show on hover for clarity */}
-                                        {isHovered && (
-                                            <g>
+                                    const path = (
+                                        <g key={item.id} onClick={(e) => { e.stopPropagation(); handleSegClick(idx); }}>
+                                            {isFocused && (
                                                 <path
                                                     d={pathD}
                                                     fill="none"
                                                     stroke={color}
-                                                    strokeWidth="1"
+                                                    strokeWidth="0.7"
                                                     strokeLinecap="round"
                                                     strokeLinejoin="round"
-                                                    style={{ pointerEvents: 'none' }}
+                                                    style={{ pointerEvents: 'none', transition: 'all 0.4s ease-out' }}
                                                 />
-                                                <circle cx="210" cy={targetY} r="1.5" fill={color} />
-                                            </g>
-                                        )}
-                                        <path
-                                            d={d}
-                                            fill={color}
-                                            onMouseEnter={() => setHoveredIdx(idx)}
-                                            onMouseLeave={() => setHoveredIdx(null)}
-                                            style={{
-                                                cursor: 'pointer',
-                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-                                                transformOrigin: 'center',
-                                                filter: isHovered ? 'brightness(1.1) drop-shadow(0 4px 6px rgba(0,0,0,0.1))' : 'none',
-                                                opacity: hoveredIdx === null || isHovered ? 1 : 0.4
-                                            }}
-                                        />
-                                    </g>
-                                );
-                                currentAngle += arcLength;
-                                return segment;
-                            })}
+                                            )}
+                                            <path
+                                                d={d}
+                                                fill={color}
+                                                style={{
+                                                    opacity: (hoveredIdx === null && selectedIndices.size === 0) || isFocused ? 1 : 0.5,
+                                                    transform: isFocused ? 'scale(1.04)' : 'scale(1)',
+                                                    transformOrigin: 'center',
+                                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    cursor: 'pointer',
+                                                    filter: isFocused ? 'brightness(1.05)' : 'none'
+                                                }}
+                                                onMouseEnter={() => setHoveredIdx(idx)}
+                                                onMouseLeave={() => setHoveredIdx(null)}
+                                            />
+                                        </g>
+                                    );
+                                    currentAngle += arcLength;
+                                    return path;
+                                })}
+                            </g>
 
                             {/* Center labels */}
                             <g transform={`translate(${centerX}, ${centerY})`} style={{ pointerEvents: 'none' }}>
@@ -286,26 +294,30 @@ const ReportPage: React.FC = () => {
                                     y="-5"
                                     className="pie-center-label"
                                 >
-                                    {hoveredIdx !== null ? chartData[hoveredIdx].label : '總計金額'}
+                                    {hoveredIdx !== null || selectedIndices.size > 0
+                                        ? chartData[hoveredIdx ?? Array.from(selectedIndices)[0]].label
+                                        : '總計金額'}
                                 </text>
                                 <text
                                     textAnchor="middle"
                                     y="18"
                                     className="pie-center-value"
                                 >
-                                    {hoveredIdx !== null ? fmt(chartData[hoveredIdx].value) : fmt(total)}
+                                    {hoveredIdx !== null || selectedIndices.size > 0
+                                        ? fmt(chartData[hoveredIdx ?? Array.from(selectedIndices)[0]].value)
+                                        : fmt(total)}
                                 </text>
                             </g>
                         </svg>
                     </div>
-
                     <div className="pie-legend-custom">
                         {chartData.map((item, idx) => (
                             <div
                                 key={item.id}
-                                className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''}`}
+                                className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''} ${selectedIndices.has(idx) ? 'pinned' : ''}`}
                                 onMouseEnter={() => setHoveredIdx(idx)}
                                 onMouseLeave={() => setHoveredIdx(null)}
+                                onClick={(e) => { e.stopPropagation(); handleSegClick(idx); }}
                             >
                                 <span className="pie-legend-dot" style={{ backgroundColor: item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length] }} />
                                 <span className="pie-legend-name">{item.label}</span>

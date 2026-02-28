@@ -71,7 +71,8 @@
     display: flex;
     align-items: center;
     gap: 32px;
-    padding: 8px 0;
+    padding: 12px 0;
+    min-height: 250px;
 }
 
 .pie-container {
@@ -80,19 +81,19 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 200px;
-    height: 200px;
+    width: 260px;
+    height: 250px;
 }
 
 .pie-center-label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     fill: #000000;
     pointer-events: none;
 }
 
 .pie-center-value {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
     fill: #000000;
     pointer-events: none;
@@ -102,8 +103,20 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0;
-    /* Use fixed height items instead of gap for precise SVG alignment */
+    justify-content: center;
+    gap: 4px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.pie-legend-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.pie-legend-custom::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
 }
 
 .pie-legend-item {
@@ -112,10 +125,13 @@
     align-items: center;
     gap: 12px;
     padding: 0 12px;
-    height: 38px;
-    /* Fixed height for leader line alignment */
+    min-height: 38px;
+    flex: 1;
+    /* Stretch to fill space when items are few */
+    max-height: 46px;
+    /* But don't exceed preferred large spacing */
     border-radius: 8px;
-    transition: background 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: 1px solid transparent;
 }
@@ -124,6 +140,18 @@
 .pie-legend-item.active {
     background: var(--bg2);
     border-color: var(--border);
+}
+
+/* Selection state: Red Underline */
+.pie-legend-item.pinned .pie-legend-name {
+    border-bottom: 1px solid #ef4444;
+    /* 1px 幼紅線 */
+    padding-bottom: 2px;
+}
+
+.pie-legend-item.pinned .pie-legend-dot {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 1px white, 0 0 0 1.5px #ef4444;
 }
 
 .pie-legend-dot {
