@@ -246,36 +246,36 @@ const Dashboard: React.FC = () => {
                     <div className="chart-title-area">
                         <h2 className="card-title">月度採購金額趨勢</h2>
                         <div className="month-range-selector">
-                            <button className={monthRange === '1-6' ? 'active' : ''} onClick={() => setMonthRange('1-6')}>1-6月</button>
-                            <button className={monthRange === '7-12' ? 'active' : ''} onClick={() => setMonthRange('7-12')}>7-12月</button>
-                            <button className={monthRange === '1-12' ? 'active' : ''} onClick={() => setMonthRange('1-12')}>1-12月</button>
+                            <button className={monthRange === '1-6' ? 'active' : ''} onClick={() => setMonthRange('1-6')}>上半年</button>
+                            <button className={monthRange === '7-12' ? 'active' : ''} onClick={() => setMonthRange('7-12')}>下半年</button>
+                            <button className={monthRange === '1-12' ? 'active' : ''} onClick={() => setMonthRange('1-12')}>全年度</button>
                         </div>
                     </div>
-                    <div className="chart-legend">
-                        {compareYear && (
-                            <div className="legend-item compare">
-                                <span className="legend-dot bar-compare-color" />
-                                <span className="legend-text">{compareYear} 年度 (總額)</span>
-                            </div>
-                        )}
-                        {stats.allCategories.map(cat => (
-                            <div
-                                key={cat.name}
-                                className={`legend-item ${hiddenCategories.has(cat.name) ? 'hidden' : ''}`}
-                                onClick={() => {
-                                    setHiddenCategories(prev => {
-                                        const next = new Set(prev);
-                                        if (next.has(cat.name)) next.delete(cat.name);
-                                        else next.add(cat.name);
-                                        return next;
-                                    });
-                                }}
-                            >
-                                <span className={`legend-dot cat-color-${cat.colorIdx}`} />
-                                <span className="legend-text">{cat.name}</span>
-                            </div>
-                        ))}
-                    </div>
+                </div>
+                <div className="chart-legend">
+                    {compareYear && (
+                        <div className="legend-item compare">
+                            <span className="legend-dot bar-compare-color" />
+                            <span className="legend-text">{compareYear} 年度 (總額)</span>
+                        </div>
+                    )}
+                    {stats.allCategories.map(cat => (
+                        <div
+                            key={cat.name}
+                            className={`legend-item ${hiddenCategories.has(cat.name) ? 'hidden' : ''}`}
+                            onClick={() => {
+                                setHiddenCategories(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(cat.name)) next.delete(cat.name);
+                                    else next.add(cat.name);
+                                    return next;
+                                });
+                            }}
+                        >
+                            <span className={`legend-dot cat-color-${cat.colorIdx}`} />
+                            <span className="legend-text">{cat.name}</span>
+                        </div>
+                    ))}
                 </div>
                 <div className="bar-chart">
                     {visibleMonths.map(i => {

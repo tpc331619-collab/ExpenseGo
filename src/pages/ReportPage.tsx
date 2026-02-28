@@ -9,8 +9,12 @@ type Tab = 'account' | 'vendor' | 'requisition' | 'purchaseType';
 const ReportPage: React.FC = () => {
     const { purchases, ledgerAccounts, selectedYear: year } = useApp();
     const [tab, setTab] = useState<Tab>('account');
-    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
     const [exporting, setExporting] = useState(false);
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
+    };
     const [showAnalysis, setShowAnalysis] = useState(false);
 
     const yearPurchases = purchases; // purchases are already filtered by year in context
@@ -225,9 +229,9 @@ const ReportPage: React.FC = () => {
                         </div>
                     ) : byAccount.map((acc) => (
                         <div className="report-section" key={acc.ledgerAccountId}>
-                            <div className="report-section-header" onClick={() => setExpandedId(expandedId === acc.ledgerAccountId ? null : acc.ledgerAccountId)}>
+                            <div className="report-section-header" onClick={() => toggleExpand(acc.ledgerAccountId)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedId === acc.ledgerAccountId ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{expandedIds[acc.ledgerAccountId] ? '▾' : '▸'}</span>
                                     <span className="rs-name">{acc.ledgerAccountCode}</span>
                                     <span className="rs-count">{acc.count} 筆</span>
                                 </div>
@@ -256,7 +260,7 @@ const ReportPage: React.FC = () => {
                                     })()}
                                 </div>
                             </div>
-                            {expandedId === acc.ledgerAccountId && (
+                            {expandedIds[acc.ledgerAccountId] && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
@@ -302,9 +306,9 @@ const ReportPage: React.FC = () => {
                         </div>
                     ) : byVendor.map((v) => (
                         <div className="report-section" key={v.vendor}>
-                            <div className="report-section-header" onClick={() => setExpandedId(expandedId === v.vendor ? null : v.vendor)}>
+                            <div className="report-section-header" onClick={() => toggleExpand(v.vendor)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedId === v.vendor ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{expandedIds[v.vendor] ? '▾' : '▸'}</span>
                                     <span className="rs-name">{v.vendor}</span>
                                     <span className="rs-count">{v.count} 筆</span>
                                 </div>
@@ -316,7 +320,7 @@ const ReportPage: React.FC = () => {
                                     <span className="rs-amount">{fmt(v.total)}</span>
                                 </div>
                             </div>
-                            {expandedId === v.vendor && (
+                            {expandedIds[v.vendor] && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
@@ -361,9 +365,9 @@ const ReportPage: React.FC = () => {
                         </div>
                     ) : byRequisition.map((r) => (
                         <div className="report-section" key={r.type}>
-                            <div className="report-section-header" onClick={() => setExpandedId(expandedId === r.type ? null : r.type)}>
+                            <div className="report-section-header" onClick={() => toggleExpand(r.type)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedId === r.type ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{expandedIds[r.type] ? '▾' : '▸'}</span>
                                     <span className="rs-name">{r.type}</span>
                                     <span className="rs-count">{r.count} 筆</span>
                                 </div>
@@ -375,7 +379,7 @@ const ReportPage: React.FC = () => {
                                     <span className="rs-amount">{fmt(r.total)}</span>
                                 </div>
                             </div>
-                            {expandedId === r.type && (
+                            {expandedIds[r.type] && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
@@ -417,9 +421,9 @@ const ReportPage: React.FC = () => {
                         </div>
                     ) : byPurchaseType.map((rt) => (
                         <div className="report-section" key={rt.type}>
-                            <div className="report-section-header" onClick={() => setExpandedId(expandedId === rt.type ? null : rt.type)}>
+                            <div className="report-section-header" onClick={() => toggleExpand(rt.type)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedId === rt.type ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{expandedIds[rt.type] ? '▾' : '▸'}</span>
                                     <span className="rs-name">{rt.type}</span>
                                     <span className="rs-count">{rt.count} 筆</span>
                                 </div>
@@ -431,7 +435,7 @@ const ReportPage: React.FC = () => {
                                     <span className="rs-amount">{fmt(rt.total)}</span>
                                 </div>
                             </div>
-                            {expandedId === rt.type && (
+                            {expandedIds[rt.type] && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
