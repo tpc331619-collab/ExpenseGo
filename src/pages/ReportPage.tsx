@@ -37,7 +37,10 @@ const ReportPage: React.FC = () => {
             map[p.ledgerAccountId].count += 1;
             map[p.ledgerAccountId].items.push(p);
         });
-        return Object.values(map).sort((a, b) => b.total - a.total);
+        return Object.values(map).map(v => {
+            v.items.sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+            return v;
+        }).sort((a, b) => b.total - a.total);
     }, [yearPurchases, ledgerAccounts]);
 
     const byVendor: AnnualSummaryByVendor[] = useMemo(() => {
@@ -48,7 +51,10 @@ const ReportPage: React.FC = () => {
             map[p.vendor].count += 1;
             map[p.vendor].items.push(p);
         });
-        return Object.values(map).sort((a, b) => b.total - a.total);
+        return Object.values(map).map(v => {
+            v.items.sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+            return v;
+        }).sort((a, b) => b.total - a.total);
     }, [yearPurchases]);
 
     const byRequisition: AnnualSummaryByRequisition[] = useMemo(() => {
@@ -60,7 +66,10 @@ const ReportPage: React.FC = () => {
             map[type].count += 1;
             map[type].items.push(p);
         });
-        return Object.values(map).sort((a, b) => b.total - a.total);
+        return Object.values(map).map(v => {
+            v.items.sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+            return v;
+        }).sort((a, b) => b.total - a.total);
     }, [yearPurchases]);
 
     const byPurchaseType: AnnualSummaryByPurchaseType[] = useMemo(() => {
@@ -72,7 +81,10 @@ const ReportPage: React.FC = () => {
             map[type].count += 1;
             map[type].items.push(p);
         });
-        return Object.values(map).sort((a, b) => b.total - a.total);
+        return Object.values(map).map(v => {
+            v.items.sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+            return v;
+        }).sort((a, b) => b.total - a.total);
     }, [yearPurchases]);
 
     const grandTotal = yearPurchases.reduce((s, p) => s + p.amount, 0);
@@ -301,11 +313,10 @@ const ReportPage: React.FC = () => {
                                             <tr><th>序號</th><th>日期</th><th>品名</th><th>廠商</th><th>金額 (未稅)</th><th>文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
                                         </thead>
                                         <tbody>
-                                            {acc.items.map((item, idx) => (
+                                            {acc.items.map((item, index) => (
                                                 <tr key={item.id}>
-                                                    <td className="td-center" style={{ color: 'var(--text3)', fontSize: '11px' }}>{idx + 1}</td>
+                                                    <td className="td-center">{index + 1}</td>
                                                     <td>{fmtDate(item.purchaseDate)}</td>
-
                                                     <td>{item.title}</td>
                                                     <td>{item.vendor}</td>
                                                     <td>{fmt(item.amount)}</td>
@@ -358,11 +369,12 @@ const ReportPage: React.FC = () => {
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
-                                            <tr><th>日期</th><th>項次</th><th>品名</th><th>科目</th><th>金額 (未稅)</th><th>文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
+                                            <tr><th>序號</th><th>日期</th><th>項次</th><th>品名</th><th>科目</th><th>金額 (未稅)</th><th>文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
                                         </thead>
                                         <tbody>
-                                            {v.items.map((item) => (
+                                            {v.items.map((item, index) => (
                                                 <tr key={item.id}>
+                                                    <td className="td-center">{index + 1}</td>
                                                     <td>{fmtDate(item.purchaseDate)}</td>
                                                     <td className="td-center" style={{ color: 'var(--text3)', fontSize: '12px' }}>{item.itemNo}</td>
                                                     <td>{item.title}</td>
@@ -417,16 +429,20 @@ const ReportPage: React.FC = () => {
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
-                                            <tr><th>日期</th><th>品名</th><th>廠商</th><th>科目</th><th>金額 (未稅)</th><th>請購類型</th><th>採購類型</th></tr>
+                                            <tr><th>序號</th><th>日期</th><th>品名</th><th>廠商</th><th>科目</th><th>金額 (未稅)</th><th>文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
                                         </thead>
                                         <tbody>
-                                            {r.items.map((item) => (
+                                            {r.items.map((item, index) => (
                                                 <tr key={item.id}>
+                                                    <td className="td-center">{index + 1}</td>
                                                     <td>{fmtDate(item.purchaseDate)}</td>
                                                     <td>{item.title}</td>
                                                     <td>{item.vendor}</td>
                                                     <td>{item.ledgerAccountName}</td>
                                                     <td className="td-amount">{fmt(item.amount)}</td>
+                                                    <td className="td-center">
+                                                        {renderDocNumber(item.docNumber)}
+                                                    </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
                                                 </tr>
@@ -473,16 +489,21 @@ const ReportPage: React.FC = () => {
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
-                                            <tr><th>日期</th><th>品名</th><th>廠商</th><th>科目</th><th>金額 (未稅)</th><th>採購類型</th></tr>
+                                            <tr><th>序號</th><th>日期</th><th>品名</th><th>廠商</th><th>科目</th><th>金額 (未稅)</th><th>文件號碼</th><th>請購類型</th><th>採購類型</th></tr>
                                         </thead>
                                         <tbody>
-                                            {rt.items.map((item) => (
+                                            {rt.items.map((item, index) => (
                                                 <tr key={item.id}>
+                                                    <td className="td-index">{index + 1}</td>
                                                     <td>{fmtDate(item.purchaseDate)}</td>
                                                     <td>{item.title}</td>
                                                     <td>{item.vendor}</td>
                                                     <td>{item.ledgerAccountName}</td>
                                                     <td className="td-amount">{fmt(item.amount)}</td>
+                                                    <td className="td-center">
+                                                        {renderDocNumber(item.docNumber)}
+                                                    </td>
+                                                    <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
                                                 </tr>
                                             ))}

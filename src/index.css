@@ -164,6 +164,32 @@ select option {
   box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
 }
 
+.fab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), #818cf8);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fab-add:hover {
+  transform: scale(1.4);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, var(--primary-dark), #6366f1);
+}
+
+.fab-add:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
 .btn-primary:active {
   transform: translateY(0);
 }

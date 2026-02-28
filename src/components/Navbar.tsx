@@ -3,13 +3,13 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { getAllUsers } from '../lib/firestore';
-import { LayoutDashboard, FileText, BarChart3, Database } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, Database, RefreshCw } from 'lucide-react';
 import Logo from './Logo';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
     const { appUser, logout } = useAuth();
-    const { selectedYear, setSelectedYear, compareYear, setCompareYear } = useApp();
+    const { selectedYear, setSelectedYear, refreshPurchases, refreshLedgerAccounts, refreshVendors } = useApp();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
@@ -20,6 +20,20 @@ const Navbar: React.FC = () => {
             setPendingCount(users.filter((u) => u.role === 'pending').length);
         });
     }, [appUser]);
+
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await Promise.all([
+                refreshPurchases(),
+                refreshLedgerAccounts(),
+                refreshVendors()
+            ]);
+        } finally {
+            setTimeout(() => setIsRefreshing(false), 500); // give visual feedback
+        }
+    };
 
     const handleLogout = async () => {
         await logout();
@@ -76,23 +90,14 @@ const Navbar: React.FC = () => {
                         </NavLink>
                     ))}
 
-                    {/* Comparison Year Selector */}
-                    <div className="nav-selector-item compare">
-                        <span className="nav-selector-label">對比</span>
-                        <select
-                            className="year-select-premium compare"
-                            value={compareYear || ''}
-                            onChange={(e) => setCompareYear(e.target.value ? Number(e.target.value) : null)}
-                        >
-                            <option value="">(無)</option>
-                            {Array.from({ length: 5 }, (_, i) => 2024 + i)
-                                .filter(y => y !== selectedYear)
-                                .map(y => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))
-                            }
-                        </select>
-                    </div>
+
+                    <button
+                        className={`nav-refresh-btn ${isRefreshing ? 'refreshing' : ''}`}
+                        onClick={handleRefresh}
+                        title="重新載入資料"
+                    >
+                        <RefreshCw size={16} />
+                    </button>
                 </div>
 
                 <div className="nav-right-actions desktop-only">

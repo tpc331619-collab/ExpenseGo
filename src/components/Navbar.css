@@ -103,6 +103,40 @@
     color: #2563eb;
 }
 
+.nav-refresh-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 50%;
+    margin-left: 4px;
+    transition: all 0.2s ease;
+}
+
+.nav-refresh-btn:hover {
+    color: var(--purple);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.nav-refresh-btn.refreshing svg {
+    animation: spin 1s linear infinite;
+    color: var(--purple);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .year-select-premium:hover {
     color: #1e3a5f;
 }

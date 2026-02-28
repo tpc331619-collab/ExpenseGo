@@ -156,33 +156,52 @@
     background: #fff;
     color: #667085;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .action-btn-new:hover {
-    background: #f9fafb;
-    border-color: #d0d5dd;
-    color: #1d2939;
-    transform: translateY(-1px);
-    box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.action-btn-new.delete {
+    color: #d92d20;
+    border-color: #fecdca;
+    background: #fefcfc;
+    /* subtle tint */
 }
 
 .action-btn-new.delete:hover {
     background: #fef3f2;
     border-color: #fda29b;
     color: #b42318;
+    box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.15);
+}
+
+.action-btn-new.edit {
+    color: #4338ca;
+    border-color: #c7d2fe;
+    background: #fefeff;
 }
 
 .action-btn-new.edit:hover {
-    color: #444ce7;
-    border-color: #a4baf6;
-    background: #eef4ff;
+    background: #eef2ff;
+    border-color: #a5b4fc;
+    color: #3730a3;
+    box-shadow: 0 4px 6px -1px rgba(67, 56, 202, 0.15);
+}
+
+.action-btn-new.copy {
+    color: #059669;
+    border-color: #a7f3d0;
+    background: #fcfffd;
 }
 
 .action-btn-new.copy:hover {
-    color: #039855;
-    border-color: #6ce9a6;
-    background: #ecfdf3;
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: #047857;
+    box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.15);
 }
 
 /* Month Grouping */

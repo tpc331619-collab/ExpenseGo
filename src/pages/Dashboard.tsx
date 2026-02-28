@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import type { Purchase } from '../types';
-import { DollarSign, Hash } from 'lucide-react';
+import { DollarSign, Hash, ChevronDown } from 'lucide-react';
 import { getPurchases } from '../lib/firestore';
 import DashboardSkeleton from '../components/DashboardSkeleton';
 import VendorDetailCard from '../components/VendorDetailCard';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
-    const { purchases, ledgerAccounts, loadingData, selectedYear: currentYear, compareYear } = useApp();
+    const { purchases, ledgerAccounts, loadingData, selectedYear: currentYear, compareYear, setCompareYear } = useApp();
 
     const [drillDown, setDrillDown] = React.useState<{ month: number; year: number; type?: 'vendor' | 'account'; target?: string } | null>(null);
     const [hiddenCategories, setHiddenCategories] = React.useState<Set<string>>(new Set());
@@ -249,6 +249,26 @@ const Dashboard: React.FC = () => {
                             <button className={monthRange === '1-6' ? 'active' : ''} onClick={() => setMonthRange('1-6')}>上半年</button>
                             <button className={monthRange === '7-12' ? 'active' : ''} onClick={() => setMonthRange('7-12')}>下半年</button>
                             <button className={monthRange === '1-12' ? 'active' : ''} onClick={() => setMonthRange('1-12')}>全年度</button>
+                        </div>
+                        <div className="compare-selector" style={{ marginLeft: '16px' }}>
+                            <span className="compare-label">對比</span>
+                            <div className="select-wrapper">
+                                <select
+                                    className="year-dropdown"
+                                    style={{ color: '#2563eb' }}
+                                    value={compareYear || ''}
+                                    onChange={(e) => setCompareYear(e.target.value ? Number(e.target.value) : null)}
+                                >
+                                    <option value="">(無)</option>
+                                    {Array.from({ length: 5 }, (_, i) => 2024 + i)
+                                        .filter(y => y !== currentYear)
+                                        .map(y => (
+                                            <option key={y} value={y}>{y}</option>
+                                        ))
+                                    }
+                                </select>
+                                <ChevronDown className="select-icon" size={14} />
+                            </div>
                         </div>
                     </div>
                 </div>
