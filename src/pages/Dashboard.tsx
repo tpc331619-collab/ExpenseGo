@@ -385,6 +385,22 @@ const Dashboard: React.FC = () => {
                                         className="bar-container current"
                                         onClick={() => m.total > 0 && setDrillDown({ month: i, year: currentYear })}
                                     >
+                                        {/* MoM % badge — above the dollar amount */}
+                                        {(() => {
+                                            if (i === 0 || !visibleMonths.includes(i - 1)) return null;
+                                            const prevTotal = filteredMonthlyStacked[i - 1]?.total || 0;
+                                            const currTotal = m.total;
+                                            if (prevTotal === 0 || currTotal === 0) return null;
+                                            const pct = ((currTotal - prevTotal) / prevTotal * 100);
+                                            const isUp = pct >= 0;
+                                            return (
+                                                <div className="mom-trend">
+                                                    <span className={isUp ? 'mom-up' : 'mom-down'}>
+                                                        {isUp ? '↑' : '↓'}{Math.abs(pct).toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
                                         {m.total > 0 && <div className="bar-value">{fmt(m.total)}</div>}
                                         <div
                                             className="bar stacked"
@@ -402,22 +418,6 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                                {/* MoM Trend Arrow */}
-                                {(() => {
-                                    if (i === 0 || !visibleMonths.includes(i - 1)) return null;
-                                    const prevTotal = filteredMonthlyStacked[i - 1]?.total || 0;
-                                    const currTotal = m.total;
-                                    if (prevTotal === 0 || currTotal === 0) return null;
-                                    const pct = ((currTotal - prevTotal) / prevTotal * 100);
-                                    const isUp = pct >= 0;
-                                    return (
-                                        <div className="mom-trend">
-                                            <span className={isUp ? 'mom-up' : 'mom-down'}>
-                                                {isUp ? '↑' : '↓'}{Math.abs(pct).toFixed(0)}%
-                                            </span>
-                                        </div>
-                                    );
-                                })()}
                                 <div className="bar-label">{i + 1}月</div>
                             </div>
                         );
