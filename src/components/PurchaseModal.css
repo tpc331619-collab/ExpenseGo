@@ -29,19 +29,20 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 24px;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--blue) 100%);
+    border-bottom: none;
 }
 
 .modal-header h2 {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    color: var(--text);
+    color: #ffffff;
+    letter-spacing: 0.5px;
 }
 
 .modal-close {
-    color: var(--text3);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 18px;
     width: 32px;
     height: 32px;
@@ -54,8 +55,8 @@
 }
 
 .modal-close:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--red);
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 .modal-form {
@@ -131,21 +132,22 @@
 .form-group textarea {
     padding: 10px 14px;
     border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--card);
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
     color: var(--text);
     font-size: 14.5px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01) inset;
 }
 
 .form-group input:focus,
-.form-group select:focus {
-    border-color: var(--purple);
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--blue);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    background: white;
-    color: #000000;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    background: #ffffff;
+    color: #0f172a;
 }
 
 .form-group select option {
@@ -197,8 +199,8 @@
     content: "NT$";
     font-size: 1rem;
     margin-right: 8px;
-    color: var(--text3);
-    font-weight: 600;
+    color: var(--blue);
+    font-weight: 700;
 }
 
 .footer-actions {
@@ -208,9 +210,11 @@
 
 /* ── Items Section ───────────────────────────────────────────────────────────── */
 .items-section {
-    margin-top: 10px;
-    border-top: 1px solid var(--border);
-    padding-top: 24px;
+    margin-top: 12px;
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
 }
 
 .items-header {
@@ -297,19 +301,20 @@
     align-items: center;
     gap: 12px;
     padding: 16px;
-    background: var(--bg2);
+    background: #ffffff;
     border-radius: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid #e2e8f0;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .item-row:hover {
-    border-color: var(--purple);
-    background: white;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
-    transform: translateY(-1px);
+    border-color: #cbd5e1;
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
 }
 
 .item-no {

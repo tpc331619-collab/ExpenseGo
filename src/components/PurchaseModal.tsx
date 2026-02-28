@@ -231,7 +231,24 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                         </div>
                         <div className="form-group col-4">
                             <label>請購類型</label>
-                            <select value={form.requisitionType} onChange={(e) => set('requisitionType', e.target.value)}>
+                            <select
+                                value={form.requisitionType}
+                                onChange={(e) => {
+                                    const reqType = e.target.value;
+                                    let newDocNumber = form.docNumber;
+
+                                    if (reqType === '非經MM') {
+                                        // Auto-prefix FL and keep only numbers from existing input
+                                        const numsOnly = newDocNumber.replace(/\D/g, '');
+                                        newDocNumber = `FL${numsOnly}`;
+                                    } else if (form.requisitionType === '非經MM' && reqType !== '非經MM') {
+                                        // Remove FL prefix if switching away from 非經MM
+                                        newDocNumber = newDocNumber.replace(/^FL/, '');
+                                    }
+
+                                    setForm(f => ({ ...f, requisitionType: reqType, docNumber: newDocNumber }));
+                                }}
+                            >
                                 <option value="經MM">經MM</option>
                                 <option value="非經MM">非經MM</option>
                             </select>
@@ -253,11 +270,19 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                             </select>
                         </div>
                         <div className="form-group col-6">
-                            <label>{form.requisitionType === '非經MM' ? 'FI費用報核單號' : '文件號碼'} <span className="required">*</span></label>
+                            <label>{form.requisitionType === '非經MM' ? 'FL費用報核單號' : '發票文件號碼'} <span className="required">*</span></label>
                             <input
                                 value={form.docNumber}
-                                onChange={(e) => set('docNumber', e.target.value)}
-                                placeholder={`請輸入${form.requisitionType === '非經MM' ? 'FI單號' : '文件號碼'}`}
+                                onChange={(e) => {
+                                    let val = e.target.value;
+                                    if (form.requisitionType === '非經MM') {
+                                        // Always start with FL, and only allow numbers after FL
+                                        const numsOnly = val.replace(/^FL/i, '').replace(/\D/g, '');
+                                        val = `FL${numsOnly}`;
+                                    }
+                                    set('docNumber', val);
+                                }}
+                                placeholder={`請輸入${form.requisitionType === '非經MM' ? 'FL單號 (僅需輸入數字)' : '發票文件號碼'}`}
                                 required
                             />
                         </div>
