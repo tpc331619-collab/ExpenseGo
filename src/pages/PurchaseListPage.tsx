@@ -2,10 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { deletePurchaseGroup, getPaginatedPurchases, getAllUsers } from '../lib/firestore';
-import type { Purchase, AppUser } from '../types';
+import type { Purchase } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
-import { Upload, Download, Copy, Pencil, Trash2 } from 'lucide-react';
+import { Upload, Download, FileDown, XCircle, X } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
 import './PurchaseListPage.css';
@@ -33,6 +33,7 @@ const PurchaseListPage: React.FC = () => {
     const [filterReqType, setFilterReqType] = useState('');
     const [filterPurType, setFilterPurType] = useState('');
     const [vendorDetail, setVendorDetail] = useState<string | null>(null);
+    const [importResult, setImportResult] = useState<{ success: number; skipped: number; errors: string[] } | null>(null);
 
     const fetchPurchases = async (isLoadMore = false) => {
         if (!isLoadMore) setLoading(true);
@@ -143,10 +144,35 @@ const PurchaseListPage: React.FC = () => {
         if (refresh) fetchPurchases();
     };
 
+    const handleExportExcel = () => {
+        const rows = filtered.map(p => {
+            const d = p.purchaseDate.toDate();
+            const dateStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+            const acc = ledgerAccounts.find(a => a.id === p.ledgerAccountId);
+            return {
+                '日期': dateStr,
+                '廠商': p.vendor,
+                '品名': p.title,
+                '科目': acc ? `${acc.code} ${acc.name}` : p.ledgerAccountName,
+                '金額(未稅)': p.amount,
+                '金額(含稅)': Math.round(p.amount * 1.05),
+                '請購類型': p.requisitionType,
+                '採購性質': p.purchaseType,
+                '文件號碼': p.docNumber || '',
+                '備註': p.note || '',
+                '建立人': usersMap[p.createdBy] || p.createdBy,
+            };
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `${selectedYear}年採購記錄`);
+        XLSX.writeFile(wb, `採購記錄_${selectedYear}.xlsx`);
+    };
+
     const downloadTemplate = () => {
         const data = [
             {
-                '日期': '2026-01-01',
+                '日期': `${selectedYear}-01-01`,
                 '廠商名稱': '範例-國泰化工',
                 '品名': '範例-辦公用品費',
                 '科目代碼': 'M54000',
@@ -154,14 +180,29 @@ const PurchaseListPage: React.FC = () => {
                 '請購類型': '經MM',
                 '採購性質': '勞務',
                 '文件號碼': 'DOC12345',
-                '備註': '範例描述'
+                '備註': '範例描述（可空白）'
             }
         ];
-        // Create worksheet with specific column formatting if possible, 
-        // but for CSV/XLSX simple JSON is usually enough.
         const ws = XLSX.utils.json_to_sheet(data);
+
+        // 說明頁
+        const rules = [
+            { '欄位名稱': '日期', '必填': '✅ 必填', '格式說明': `完整年月日，例：${selectedYear}-03-15、${selectedYear}/3/15、3月15日` },
+            { '欄位名稱': '廠商名稱', '必填': '✅ 必填', '格式說明': '廠商全名，需與系統廠商名稱一致' },
+            { '欄位名稱': '品名', '必填': '✅ 必填', '格式說明': '採購品名或項目描述' },
+            { '欄位名稱': '科目代碼', '必填': '✅ 必填', '格式說明': '總帳科目代碼，例：M54000、P20000（需存在於系統中）' },
+            { '欄位名稱': '金額(未稅)', '必填': '✅ 必填', '格式說明': '純數字，未稅金額，必須大於 0' },
+            { '欄位名稱': '請購類型', '必填': '✅ 必填', '格式說明': '只接受：經MM 或 非經MM（兩者擇一）' },
+            { '欄位名稱': '採購性質', '必填': '✅ 必填', '格式說明': '只接受：勞務、財務、工程（三者擇一）' },
+            { '欄位名稱': '文件號碼', '必填': '✅ 必填', '格式說明': '發票或單據號碼，同一號碼只會導入一次（防重複）' },
+            { '欄位名稱': '備註', '必填': '⬜ 可空白', '格式說明': '額外說明，可留空' },
+        ];
+        const wsRules = XLSX.utils.json_to_sheet(rules);
+        wsRules['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 55 }];
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '採購導入範本');
+        XLSX.utils.book_append_sheet(wb, wsRules, '填寫說明');
         XLSX.writeFile(wb, `採購紀錄導入範本_${selectedYear}.xlsx`);
     };
 
@@ -188,9 +229,16 @@ const PurchaseListPage: React.FC = () => {
 
                 setLoading(true);
                 let success = 0;
+                let skipped = 0;
                 let errors: string[] = [];
 
-                const { addPurchase } = await import('../lib/firestore');
+                const { addPurchase, getPurchases } = await import('../lib/firestore');
+
+                // Build a set of existing docNumbers to prevent duplicate import
+                const existingPurchases = await getPurchases(selectedYear);
+                const existingDocNums = new Set(
+                    existingPurchases.map(p => p.docNumber?.trim()).filter(Boolean)
+                );
 
                 const parseLocalDateStr = (s: string): { date: Date; str: string } | null => {
                     // Try YYYY-MM-DD or YYYY/MM/DD directly
@@ -218,8 +266,8 @@ const PurchaseListPage: React.FC = () => {
                     const accCode = String(row['科目代碼'] || '').trim();
                     const amountRaw = row['金額(未稅)'];
                     const amount = parseFloat(amountRaw || '0');
-                    const reqType = String(row['請購類型'] || '經MM').trim();
-                    const purType = String(row['採購性質'] || '勞務').trim();
+                    const reqType = String(row['請購類型'] || '').trim();
+                    const purType = String(row['採購性質'] || '').trim();
                     const docNum = String(row['文件號碼'] || '').trim();
                     const note = String(row['備註'] || '').trim();
 
@@ -244,12 +292,16 @@ const PurchaseListPage: React.FC = () => {
                         return;
                     }
 
+                    if (!docNum) { errors.push(`${rowPrefix}「文件號碼」不可為空`); return; }
+
                     const validReqTypes = ['經MM', '非經MM'];
                     const validPurTypes = ['勞務', '財務', '工程'];
+                    if (!reqType) { errors.push(`${rowPrefix}「請購類型」不可為空 (應為：經MM 或 非經MM)`); return; }
                     if (!validReqTypes.includes(reqType)) {
                         errors.push(`${rowPrefix}「請購類型」錯誤 [${reqType}] (應為：經MM 或 非經MM)`);
                         return;
                     }
+                    if (!purType) { errors.push(`${rowPrefix}「採購性質」不可為空 (應為：勞務、財務 或 工程)`); return; }
                     if (!validPurTypes.includes(purType)) {
                         errors.push(`${rowPrefix}「採購性質」錯誤 [${purType}] (應為：勞務、財務 或 工程)`);
                         return;
@@ -284,20 +336,23 @@ const PurchaseListPage: React.FC = () => {
                 for (const row of json) {
                     if (!row._valid) continue;
                     const { data, rowNum } = row._processed;
+                    // Deduplication: skip if docNumber already exists in Firestore
+                    const docNum = data.docNumber?.trim();
+                    if (docNum && existingDocNums.has(docNum)) {
+                        skipped++;
+                        continue;
+                    }
                     try {
                         await addPurchase(data, appUser!.uid);
                         success++;
+                        // Add to set so the same file can't double-insert the same docNumber
+                        if (docNum) existingDocNums.add(docNum);
                     } catch (err: any) {
                         errors.push(`第 ${rowNum} 列：資料庫存入失敗 (${err.message})`);
                     }
                 }
 
-                let msg = `導入完成！成功：${success} 筆。`;
-                if (errors.length > 0) {
-                    msg += `\n\n發現以下錯誤：\n` + errors.slice(0, 10).join('\n');
-                    if (errors.length > 10) msg += `\n...以及其他 ${errors.length - 10} 筆錯誤`;
-                }
-                alert(msg);
+                setImportResult({ success, skipped, errors });
                 fetchPurchases();
             } catch (err) {
                 alert('處理失敗，請檢查 Excel 格式');
@@ -328,6 +383,9 @@ const PurchaseListPage: React.FC = () => {
                             </label>
                             <button className="btn-outline-text" onClick={downloadTemplate}>
                                 <Download size={14} /> 範本
+                            </button>
+                            <button className="btn-outline-text" onClick={handleExportExcel} title="匯出篩選後的資料">
+                                <FileDown size={14} /> 匯出 Excel
                             </button>
                             <button className="btn-primary" onClick={() => setShowModal(true)}>＋ 新增採購</button>
                         </>
@@ -531,6 +589,44 @@ const PurchaseListPage: React.FC = () => {
                     vendorName={vendorDetail}
                     onClose={() => setVendorDetail(null)}
                 />
+            )}
+            {importResult && (
+                <div className="modal-overlay" onClick={() => setImportResult(null)}>
+                    <div className="modal-box" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header" style={{ background: importResult.errors.length === 0 ? 'linear-gradient(135deg,#ecfdf5,#d1fae5)' : 'linear-gradient(135deg,#fff7ed,#fef3c7)' }}>
+                            <div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 4 }}>批次導入結果</div>
+                                <h2 style={{ margin: 0, fontSize: 22, color: importResult.errors.length === 0 ? '#065f46' : '#92400e' }}>
+                                    {importResult.errors.length === 0 ? '✅' : '⚠️'} 成功導入 {importResult.success} 筆
+                                    {importResult.skipped > 0 && <span style={{ fontSize: 14, marginLeft: 10, color: '#6b7280' }}>（跳過 {importResult.skipped} 筆重複）</span>}
+                                </h2>
+                            </div>
+                            <button className="modal-close" onClick={() => setImportResult(null)}><X size={16} /></button>
+                        </div>
+                        <div className="pop-body">
+                            {importResult.errors.length === 0 ? (
+                                <p style={{ color: '#065f46', margin: 0, fontSize: 15 }}>所有資料已成功匯入系統，無任何錯誤。</p>
+                            ) : (
+                                <>
+                                    <p style={{ color: '#92400e', marginBottom: 12, fontSize: 14 }}>
+                                        共發現 <strong>{importResult.errors.length}</strong> 筆錯誤，以下列表供您修正後重新上傳：
+                                    </p>
+                                    <div style={{ maxHeight: 320, overflowY: 'auto', background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 10, padding: '8px 12px' }}>
+                                        {importResult.errors.map((err, i) => (
+                                            <div key={i} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: i < importResult.errors.length - 1 ? '1px solid #f3f4f6' : 'none', fontSize: 13, color: '#374151' }}>
+                                                <XCircle size={14} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
+                                                <span>{err}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ padding: '12px 24px 20px', textAlign: 'right' }}>
+                            <button className="btn-primary" onClick={() => setImportResult(null)}>關閉</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div >
     );
