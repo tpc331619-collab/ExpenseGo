@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { exporttoExcel } from '../lib/excelExport';
 import type { AnnualSummaryByAccount, AnnualSummaryByVendor, AnnualSummaryByRequisition, AnnualSummaryByPurchaseType } from '../types';
-import { BarChartBig, FolderOpen, Building2, Tags, Layers } from 'lucide-react';
+import { BarChartBig, FolderOpen, Building2, Tags, Layers, Copy } from 'lucide-react';
+import { toBlob } from 'html-to-image';
 import './ReportPage.css';
 
 type Tab = 'account' | 'vendor' | 'requisition' | 'purchaseType';
@@ -151,54 +152,235 @@ const ReportPage: React.FC = () => {
         );
     };
 
-    const ReportChart = ({ data, total }: { data: { id: string, label: string, value: number }[], total: number }) => {
-        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b', '#14b8a6'];
+    const copyChart = async (containerElement: HTMLElement | null, fileName: string) => {
+        if (!containerElement) return;
+        try {
+            const blob = await toBlob(containerElement, {
+                backgroundColor: '#ffffff',
+                cacheBust: true,
+                pixelRatio: 2,
+                filter: (node) => {
+                    // Exclude the copy button from the snapshot
+                    if (node instanceof HTMLElement && node.classList.contains('btn-icon-sub')) {
+                        return false;
+                    }
+                    return true;
+                }
+            });
 
+            if (blob) {
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ [blob.type]: blob })
+                    ]);
+                    alert('全區快照已複製！可直接貼上至報告。');
+                } catch (err) {
+                    const link = document.createElement('a');
+                    link.download = `${fileName}.png`;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                    alert('已下載圖表全區圖片。');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            alert('複製失敗，建議使用系統內建截圖功能。');
+        }
+    };
+
+    const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b', '#14b8a6'];
+
+    const PieChart = ({ data, total, title }: { data: { id: string, label: string, value: number }[], total: number, title: string }) => {
+        const containerRef = React.useRef<HTMLDivElement>(null);
         const sorted = [...data].sort((a, b) => b.value - a.value);
         const top = sorted.slice(0, 8);
         const others = sorted.slice(8).reduce((sum, item) => sum + item.value, 0);
+        if (others > 0) top.push({ id: 'others', label: '其他', value: others });
 
-        if (others > 0) {
-            top.push({ id: 'others', label: '其他', value: others });
-        }
-
-        if (total === 0) return null;
+        let cumulativePercent = 0;
+        const radius = 70;
+        const centerX = 100;
+        const centerY = 100;
 
         return (
-            <div className="report-chart-container">
-                <h3 className="report-chart-title">費用分佈結構圖</h3>
-                <div className="stacked-bar-chart">
-                    {top.map((item, idx) => {
-                        const pct = (item.value / total) * 100;
-                        if (pct === 0) return null;
-                        return (
-                            <div
-                                key={item.id}
-                                className="stacked-bar-segment"
-                                style={{ width: `${pct}%`, backgroundColor: colors[idx % colors.length] }}
-                                title={`${item.label}: NT$ ${Math.round(item.value).toLocaleString()}`}
-                            >
-                                {pct > 10 && (
-                                    <span className="segment-label">
-                                        ${Math.round(item.value / 1000)}k
-                                    </span>
-                                )}
-                            </div>
-                        );
-                    })}
+            <div ref={containerRef} className="chart-wrapper pie-wrapper">
+                <div className="chart-header-row">
+                    <h4 className="chart-subtitle">{title}</h4>
+                    <button className="btn-icon-sub" onClick={() => copyChart(containerRef.current, title)} title="複製圖片">
+                        <Copy size={14} />
+                    </button>
                 </div>
-                <div className="chart-legend-grid">
-                    {top.map((item, idx) => {
-                        const pct = (item.value / total) * 100;
-                        if (pct === 0) return null;
-                        return (
-                            <div className="chart-legend-item" key={item.id}>
-                                <div className="chart-legend-color" style={{ backgroundColor: colors[idx % colors.length] }} />
-                                <span className="chart-legend-label" title={item.label}>{item.label}</span>
+                <div className="pie-container">
+                    <svg width="200" height="200" viewBox="0 0 200 200">
+                        {total > 0 && top.map((item, idx) => {
+                            const percent = item.value / total;
+                            if (percent <= 0) return null;
+
+                            const startX = centerX + radius * Math.cos(2 * Math.PI * cumulativePercent - Math.PI / 2);
+                            const startY = centerY + radius * Math.sin(2 * Math.PI * cumulativePercent - Math.PI / 2);
+                            cumulativePercent += percent;
+                            const endX = centerX + radius * Math.cos(2 * Math.PI * cumulativePercent - Math.PI / 2);
+                            const endY = centerY + radius * Math.sin(2 * Math.PI * cumulativePercent - Math.PI / 2);
+
+                            const largeArcFlag = percent > 0.5 ? 1 : 0;
+                            const d = `M ${centerX} ${centerY} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+
+                            return (
+                                <path
+                                    key={item.id}
+                                    d={d}
+                                    fill={item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length]}
+                                    stroke="white"
+                                    strokeWidth="1"
+                                >
+                                    <title>{item.label}: {Math.round(percent * 100)}%</title>
+                                </path>
+                            );
+                        })}
+                        <circle cx={centerX} cy={centerY} r={radius * 0.5} fill="white" />
+                    </svg>
+                    <div className="pie-legend">
+                        {top.map((item, idx) => (
+                            <div key={item.id} className="pie-legend-item">
+                                <span className="pie-legend-dot" style={{ backgroundColor: item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length] }} />
+                                <span className="pie-legend-label">{item.label}</span>
+                                <span className="pie-legend-val">{(item.value / total * 100).toFixed(0)}%</span>
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
                 </div>
+            </div>
+        );
+    };
+
+    const StackedBarChart = ({ datasets, title }: { datasets: { label: string, color: string, purchases: any[] }[], title: string }) => {
+        const containerRef = React.useRef<HTMLDivElement>(null);
+        const months = 12;
+        const seriesData = datasets.map(ds => {
+            const monthly = Array(months).fill(0);
+            ds.purchases.forEach(p => {
+                const m = p.purchaseDate.toDate().getMonth();
+                monthly[m] += p.amount;
+            });
+            return { ...ds, monthly };
+        });
+
+        const stackedMonthly = Array.from({ length: months }, (_, mIndex) => {
+            let currentStack = 0;
+            return seriesData.map(s => {
+                const start = currentStack;
+                currentStack += s.monthly[mIndex];
+                return { start, end: currentStack };
+            });
+        });
+
+        const maxTotal = Math.max(...stackedMonthly.map(m => m[m.length - 1]?.end || 0), 1) * 1.1;
+
+        const width = 400;
+        const height = 160; // Slightly taller for labels
+        const padding = 30;
+        const bottomPadding = 25; // Space for labels
+        const chartHeight = height - padding - bottomPadding;
+        const slotWidth = (width - 2 * padding) / months;
+        const barWidth = slotWidth * 0.7;
+
+        return (
+            <div ref={containerRef} className="chart-wrapper trend-wrapper">
+                <div className="chart-header-row">
+                    <h4 className="chart-subtitle">{title}</h4>
+                    <button className="btn-icon-sub" onClick={() => copyChart(containerRef.current, title)} title="複製圖片">
+                        <Copy size={14} />
+                    </button>
+                </div>
+                <div className="line-chart-svg-container">
+                    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+                        {/* Grid lines */}
+                        {[0, 0.5, 1].map(v => (
+                            <line
+                                key={v}
+                                x1={padding}
+                                y1={height - bottomPadding - v * chartHeight}
+                                x2={width - padding}
+                                y2={height - bottomPadding - v * chartHeight}
+                                stroke="#f1f5f9"
+                                strokeWidth="1"
+                            />
+                        ))}
+
+                        {stackedMonthly.map((monthData, mIdx) => {
+                            const xSlotStart = padding + mIdx * slotWidth;
+                            const xBar = xSlotStart + (slotWidth - barWidth) / 2;
+
+                            return (
+                                <g key={mIdx}>
+                                    {/* Month Label */}
+                                    <text
+                                        x={xSlotStart + slotWidth / 2}
+                                        y={height - 5}
+                                        textAnchor="middle"
+                                        fontSize="10"
+                                        fill="var(--text3)"
+                                        fontWeight="500"
+                                    >
+                                        {mIdx + 1}
+                                    </text>
+
+                                    {/* Stacked Bars */}
+                                    {monthData.map((s, sIdx) => {
+                                        const h = (s.end - s.start) / maxTotal * chartHeight;
+                                        const y = height - bottomPadding - (s.end / maxTotal * chartHeight);
+                                        if (h <= 0.5) return null;
+                                        return (
+                                            <rect
+                                                key={sIdx}
+                                                x={xBar}
+                                                y={y}
+                                                width={barWidth}
+                                                height={h}
+                                                fill={seriesData[sIdx].color}
+                                                rx="1"
+                                            >
+                                                <title>{seriesData[sIdx].label} - {mIdx + 1}月: NT$ {Math.round(s.end - s.start).toLocaleString()}</title>
+                                            </rect>
+                                        );
+                                    })}
+                                </g>
+                            );
+                        })}
+                    </svg>
+                </div>
+                {/* Legend for Trend Chart */}
+                <div className="pie-legend" style={{ marginTop: '16px', flexDirection: 'row', flexWrap: 'wrap', gap: '12px' }}>
+                    {datasets.map((ds, idx) => (
+                        <div key={idx} className="pie-legend-item">
+                            <span className="pie-legend-dot" style={{ backgroundColor: ds.color }} />
+                            <span className="pie-legend-label" style={{ fontSize: '11px' }}>{ds.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const VisualAnalysisBoard = ({ data, total, titlePrefix, pieTitle }: { data: any[], total: number, titlePrefix: string, pieTitle: string }) => {
+        if (total === 0) return null;
+
+        // Sync with PieChart's top categories
+        const sortedData = [...data].sort((a, b) => b.value - a.value);
+        const top5 = sortedData.slice(0, 5);
+
+        const datasets = top5.map((item, idx) => ({
+            label: item.label,
+            color: CHART_COLORS[idx % CHART_COLORS.length],
+            purchases: item.items
+        }));
+
+        const trendTitle = `${titlePrefix}堆疊趨勢圖`;
+
+        return (
+            <div className="visual-board">
+                <PieChart data={data.map(d => ({ id: d.id, label: d.label, value: d.value }))} total={total} title={pieTitle} />
+                <StackedBarChart datasets={datasets} title={trendTitle} />
             </div>
         );
     };
@@ -316,11 +498,31 @@ const ReportPage: React.FC = () => {
                 </button>
             </div>
 
-            {/* Render the selected tab's chart */}
-            {tab === 'account' && <ReportChart data={byAccount.map(a => ({ id: a.ledgerAccountId, label: a.ledgerAccountName, value: a.total }))} total={grandTotal} />}
-            {tab === 'vendor' && <ReportChart data={byVendor.map(v => ({ id: v.vendor, label: v.vendor, value: v.total }))} total={grandTotal} />}
-            {tab === 'requisition' && <ReportChart data={byRequisition.map(r => ({ id: r.type, label: r.type, value: r.total }))} total={grandTotal} />}
-            {tab === 'purchaseType' && <ReportChart data={byPurchaseType.map(p => ({ id: p.type, label: p.type, value: p.total }))} total={grandTotal} />}
+            {/* Visual Analysis Area */}
+            {tab === 'account' && <VisualAnalysisBoard
+                data={byAccount.map(a => ({ id: a.ledgerAccountId, label: a.ledgerAccountName, value: a.total, items: a.items }))}
+                total={grandTotal}
+                titlePrefix="總帳科目"
+                pieTitle="總帳科目金額比例"
+            />}
+            {tab === 'vendor' && <VisualAnalysisBoard
+                data={byVendor.map(v => ({ id: v.vendor, label: v.vendor, value: v.total, items: v.items }))}
+                total={grandTotal}
+                titlePrefix="廠商"
+                pieTitle="廠商金額比例"
+            />}
+            {tab === 'requisition' && <VisualAnalysisBoard
+                data={byRequisition.map(r => ({ id: r.type, label: r.type, value: r.total, items: r.items }))}
+                total={grandTotal}
+                titlePrefix="MM/非MM"
+                pieTitle="MM/非MM金額比例"
+            />}
+            {tab === 'purchaseType' && <VisualAnalysisBoard
+                data={byPurchaseType.map(p => ({ id: p.type, label: p.type, value: p.total, items: p.items }))}
+                total={grandTotal}
+                titlePrefix="勞務/財務/工程"
+                pieTitle="勞務/財務/工程金額比例"
+            />}
 
             {/* Account summary */}
             {tab === 'account' && (
