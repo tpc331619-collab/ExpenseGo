@@ -185,12 +185,14 @@ const ReportPage: React.FC = () => {
                 </div>
                 <div className="pie-content-layout">
                     <div className="pie-container">
-                        <svg width="200" height="200" viewBox="0 0 200 200">
+                        <svg width="200" height="200" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
                             {total > 0 && chartData.map((item, idx) => {
                                 const percent = item.value / total;
                                 if (percent <= 0) return null;
                                 const arcLength = percent * 2 * Math.PI;
+                                const midAngle = currentAngle + arcLength / 2;
 
+                                // Coordinates for the arc path
                                 const x1 = centerX + Math.cos(currentAngle) * radius;
                                 const y1 = centerY + Math.sin(currentAngle) * radius;
                                 const x2 = centerX + Math.cos(currentAngle + arcLength) * radius;
@@ -202,7 +204,6 @@ const ReportPage: React.FC = () => {
                                 const iy1 = centerY + Math.sin(currentAngle) * innerRadius;
 
                                 const largeArc = arcLength > Math.PI ? 1 : 0;
-
                                 const d = [
                                     `M ${x1} ${y1}`,
                                     `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
@@ -211,27 +212,71 @@ const ReportPage: React.FC = () => {
                                     'Z'
                                 ].join(' ');
 
-                                const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
-                                const isHovered = hoveredIdx === idx;
+                                // Leader line positions
+                                const lineStartRadius = radius + 2;
+                                const lx1 = centerX + Math.cos(midAngle) * lineStartRadius;
+                                const ly1 = centerY + Math.sin(midAngle) * lineStartRadius;
 
-                                const path = (
-                                    <path
-                                        key={item.id}
-                                        d={d}
-                                        fill={color}
-                                        style={{
-                                            opacity: hoveredIdx !== null && !isHovered ? 0.6 : 1,
-                                            transform: isHovered ? 'scale(1.02)' : 'scale(1)',
-                                            transformOrigin: 'center',
-                                            transition: 'all 0.2s ease-out',
-                                            cursor: 'pointer'
-                                        }}
-                                        onMouseEnter={() => setHoveredIdx(idx)}
-                                        onMouseLeave={() => setHoveredIdx(null)}
-                                    />
+                                // Target Y position synced with the 38px legend items
+                                const totalItems = chartData.length;
+                                // Calculate offset since pie is centered vertically relative to the legend
+                                const legendTotalHeight = totalItems * 38;
+                                const targetYRelativeToCenter = (idx * 38 + 19) - (legendTotalHeight / 2);
+                                const targetY = 100 + targetYRelativeToCenter;
+
+                                const isHovered = hoveredIdx === idx;
+                                const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
+
+                                // Wrap around logic for left-side segments
+                                const isLeft = Math.cos(midAngle) < -0.2;
+                                let pathD = "";
+
+                                if (isLeft) {
+                                    // Go out to the left, then move vertically outside the pie radius, then to the right edge
+                                    const outX = centerX - radius - 20;
+                                    const cornerY = midAngle < Math.PI ? centerY + radius + 12 : centerY - radius - 12;
+                                    pathD = `M ${lx1} ${ly1} L ${outX} ${ly1} L ${outX} ${cornerY} L 210 ${cornerY} L 210 ${targetY}`;
+                                } else {
+                                    // Right side: Simple elbow
+                                    const breakX = centerX + radius + 12;
+                                    pathD = `M ${lx1} ${ly1} L ${breakX} ${ly1} L ${breakX} ${targetY} L 210 ${targetY}`;
+                                }
+
+                                const segment = (
+                                    <g key={item.id}>
+                                        {/* Leader Line - Only show on hover for clarity */}
+                                        {isHovered && (
+                                            <g>
+                                                <path
+                                                    d={pathD}
+                                                    fill="none"
+                                                    stroke={color}
+                                                    strokeWidth="1"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    style={{ pointerEvents: 'none' }}
+                                                />
+                                                <circle cx="210" cy={targetY} r="1.5" fill={color} />
+                                            </g>
+                                        )}
+                                        <path
+                                            d={d}
+                                            fill={color}
+                                            onMouseEnter={() => setHoveredIdx(idx)}
+                                            onMouseLeave={() => setHoveredIdx(null)}
+                                            style={{
+                                                cursor: 'pointer',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+                                                transformOrigin: 'center',
+                                                filter: isHovered ? 'brightness(1.1) drop-shadow(0 4px 6px rgba(0,0,0,0.1))' : 'none',
+                                                opacity: hoveredIdx === null || isHovered ? 1 : 0.4
+                                            }}
+                                        />
+                                    </g>
                                 );
                                 currentAngle += arcLength;
-                                return path;
+                                return segment;
                             })}
 
                             {/* Center labels */}

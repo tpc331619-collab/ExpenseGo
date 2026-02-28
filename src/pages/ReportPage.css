@@ -102,7 +102,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0;
+    /* Use fixed height items instead of gap for precise SVG alignment */
 }
 
 .pie-legend-item {
@@ -110,9 +111,11 @@
     grid-template-columns: 10px 1fr auto;
     align-items: center;
     gap: 12px;
-    padding: 8px 12px;
+    padding: 0 12px;
+    height: 38px;
+    /* Fixed height for leader line alignment */
     border-radius: 8px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background 0.2s ease;
     cursor: pointer;
     border: 1px solid transparent;
 }
@@ -121,7 +124,6 @@
 .pie-legend-item.active {
     background: var(--bg2);
     border-color: var(--border);
-    transform: translateX(4px);
 }
 
 .pie-legend-dot {
