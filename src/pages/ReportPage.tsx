@@ -11,8 +11,15 @@ type Tab = 'account' | 'vendor' | 'requisition' | 'purchaseType';
 const ReportPage: React.FC = () => {
     const { purchases, ledgerAccounts, selectedYear: year } = useApp();
     const [tab, setTab] = useState<Tab>('account');
+    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
     const [exporting, setExporting] = useState(false);
+
+    const handleTabChange = (t: Tab) => {
+        setTab(t);
+        setSelectedId(null);
+        setExpandedIds({});
+    };
 
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -154,18 +161,16 @@ const ReportPage: React.FC = () => {
 
     const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b', '#14b8a6'];
 
-    const PieChart = ({ data, total, title }: { data: { id: string, label: string, value: number }[], total: number, title: string }) => {
+    const PieChart = ({ data, total, title, selectedId, onSelect }: { data: { id: string, label: string, value: number }[], total: number, title: string, selectedId: string | null, onSelect: (id: string | null) => void }) => {
         const containerRef = React.useRef<HTMLDivElement>(null);
         const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
-        const [selectedIndices, setSelectedIndices] = React.useState<Set<number>>(new Set());
 
-        const handleSegClick = (idx: number) => {
-            setSelectedIndices(prev => {
-                const next = new Set(prev);
-                if (next.has(idx)) next.delete(idx);
-                else next.add(idx);
-                return next;
-            });
+        const handleSegClick = (item: { id: string }) => {
+            if (selectedId === item.id) {
+                onSelect(null);
+            } else {
+                onSelect(item.id);
+            }
         };
 
         const sorted = [...data].sort((a, b) => b.value - a.value);
@@ -224,7 +229,7 @@ const ReportPage: React.FC = () => {
                                     ].join(' ');
 
                                     const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
-                                    const isFocused = hoveredIdx === idx || selectedIndices.has(idx);
+                                    const isFocused = hoveredIdx === idx || selectedId === item.id;
 
                                     // Smooth Curved Leader Line Logic
                                     const midAngle = currentAngle + arcLength / 2;
@@ -254,7 +259,7 @@ const ReportPage: React.FC = () => {
                                     }
 
                                     const path = (
-                                        <g key={item.id} onClick={(e) => { e.stopPropagation(); handleSegClick(idx); }}>
+                                        <g key={item.id} onClick={(e) => { e.stopPropagation(); handleSegClick(item); }}>
                                             {isFocused && (
                                                 <path
                                                     d={pathD}
@@ -270,7 +275,7 @@ const ReportPage: React.FC = () => {
                                                 d={d}
                                                 fill={color}
                                                 style={{
-                                                    opacity: (hoveredIdx === null && selectedIndices.size === 0) || isFocused ? 1 : 0.5,
+                                                    opacity: (hoveredIdx === null && !selectedId) || isFocused ? 1 : 0.5,
                                                     transform: isFocused ? 'scale(1.04)' : 'scale(1)',
                                                     transformOrigin: 'center',
                                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -294,8 +299,8 @@ const ReportPage: React.FC = () => {
                                     y="-5"
                                     className="pie-center-label"
                                 >
-                                    {hoveredIdx !== null || selectedIndices.size > 0
-                                        ? chartData[hoveredIdx ?? Array.from(selectedIndices)[0]].label
+                                    {hoveredIdx !== null || selectedId
+                                        ? chartData[hoveredIdx ?? chartData.findIndex(d => d.id === selectedId)].label
                                         : '總計金額'}
                                 </text>
                                 <text
@@ -303,8 +308,8 @@ const ReportPage: React.FC = () => {
                                     y="18"
                                     className="pie-center-value"
                                 >
-                                    {hoveredIdx !== null || selectedIndices.size > 0
-                                        ? fmt(chartData[hoveredIdx ?? Array.from(selectedIndices)[0]].value)
+                                    {hoveredIdx !== null || selectedId
+                                        ? fmt(chartData[hoveredIdx ?? chartData.findIndex(d => d.id === selectedId)].value)
                                         : fmt(total)}
                                 </text>
                             </g>
@@ -314,10 +319,10 @@ const ReportPage: React.FC = () => {
                         {chartData.map((item, idx) => (
                             <div
                                 key={item.id}
-                                className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''} ${selectedIndices.has(idx) ? 'pinned' : ''}`}
+                                className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''} ${selectedId === item.id ? 'pinned' : ''}`}
                                 onMouseEnter={() => setHoveredIdx(idx)}
                                 onMouseLeave={() => setHoveredIdx(null)}
-                                onClick={(e) => { e.stopPropagation(); handleSegClick(idx); }}
+                                onClick={(e) => { e.stopPropagation(); handleSegClick(item); }}
                             >
                                 <span className="pie-legend-dot" style={{ backgroundColor: item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length] }} />
                                 <span className="pie-legend-name">{item.label}</span>
@@ -475,24 +480,50 @@ const ReportPage: React.FC = () => {
         );
     };
 
-    const VisualAnalysisBoard = ({ data, total, titlePrefix, pieTitle }: { data: any[], total: number, titlePrefix: string, pieTitle: string }) => {
+    const VisualAnalysisBoard = ({ data, total, titlePrefix, pieTitle, selectedId, onSelect }: { data: any[], total: number, titlePrefix: string, pieTitle: string, selectedId: string | null, onSelect: (id: string | null) => void }) => {
         if (total === 0) return null;
 
         // Sync with PieChart's top categories
         const sortedData = [...data].sort((a, b) => b.value - a.value);
-        const top5 = sortedData.slice(0, 5);
+        const top8 = sortedData.slice(0, 8); // Showing top 8 in pie as per current logic
 
-        const datasets = top5.map((item, idx) => ({
+        let datasets = top8.map((item, idx) => ({
             label: item.label,
             color: CHART_COLORS[idx % CHART_COLORS.length],
             purchases: item.items
         }));
 
-        const trendTitle = `${titlePrefix}堆疊趨勢圖`;
+        // Filter datasets for StackedBarChart if something is selected
+        if (selectedId) {
+            datasets = datasets.filter(d => {
+                const item = top8.find(t => t.id === selectedId);
+                return d.label === item?.label;
+            });
+            // If the selected item is NOT in top 8 (e.g. in others), we might need to handle it.
+            // But usually users click what they see.
+            if (datasets.length === 0) {
+                const item = data.find(t => t.id === selectedId);
+                if (item) {
+                    datasets = [{
+                        label: item.label,
+                        color: '#94a3b8',
+                        purchases: item.items
+                    }];
+                }
+            }
+        }
+
+        const trendTitle = `${titlePrefix}${selectedId ? `：${datasets[0]?.label} ` : ''}堆疊趨勢圖`;
 
         return (
             <div className="visual-board">
-                <PieChart data={data.map(d => ({ id: d.id, label: d.label, value: d.value }))} total={total} title={pieTitle} />
+                <PieChart
+                    data={data.map(d => ({ id: d.id, label: d.label, value: d.value }))}
+                    total={total}
+                    title={pieTitle}
+                    selectedId={selectedId}
+                    onSelect={onSelect}
+                />
                 <StackedBarChart datasets={datasets} title={trendTitle} />
             </div>
         );
@@ -597,16 +628,16 @@ const ReportPage: React.FC = () => {
 
             {/* Tabs */}
             <div className="report-tabs">
-                <button className={`tab-btn ${tab === 'account' ? 'active' : ''}`} onClick={() => setTab('account')}>
+                <button className={`tab-btn ${tab === 'account' ? 'active' : ''}`} onClick={() => handleTabChange('account')}>
                     <FolderOpen size={16} /> 依總帳科目
                 </button>
-                <button className={`tab-btn ${tab === 'vendor' ? 'active' : ''}`} onClick={() => setTab('vendor')}>
+                <button className={`tab-btn ${tab === 'vendor' ? 'active' : ''}`} onClick={() => handleTabChange('vendor')}>
                     <Building2 size={16} /> 依廠商
                 </button>
-                <button className={`tab-btn ${tab === 'requisition' ? 'active' : ''}`} onClick={() => setTab('requisition')}>
+                <button className={`tab-btn ${tab === 'requisition' ? 'active' : ''}`} onClick={() => handleTabChange('requisition')}>
                     <Tags size={16} /> 依請購類型
                 </button>
-                <button className={`tab-btn ${tab === 'purchaseType' ? 'active' : ''}`} onClick={() => setTab('purchaseType')}>
+                <button className={`tab-btn ${tab === 'purchaseType' ? 'active' : ''}`} onClick={() => handleTabChange('purchaseType')}>
                     <Layers size={16} /> 依採購類型
                 </button>
             </div>
@@ -617,24 +648,32 @@ const ReportPage: React.FC = () => {
                 total={grandTotal}
                 titlePrefix="總帳科目"
                 pieTitle="總帳科目金額比例"
+                selectedId={selectedId}
+                onSelect={setSelectedId}
             />}
             {tab === 'vendor' && <VisualAnalysisBoard
                 data={byVendor.map(v => ({ id: v.vendor, label: v.vendor, value: v.total, items: v.items }))}
                 total={grandTotal}
                 titlePrefix="廠商"
                 pieTitle="廠商金額比例"
+                selectedId={selectedId}
+                onSelect={setSelectedId}
             />}
             {tab === 'requisition' && <VisualAnalysisBoard
                 data={byRequisition.map(r => ({ id: r.type, label: r.type, value: r.total, items: r.items }))}
                 total={grandTotal}
                 titlePrefix="MM/非MM"
                 pieTitle="MM/非MM金額比例"
+                selectedId={selectedId}
+                onSelect={setSelectedId}
             />}
             {tab === 'purchaseType' && <VisualAnalysisBoard
                 data={byPurchaseType.map(p => ({ id: p.type, label: p.type, value: p.total, items: p.items }))}
                 total={grandTotal}
                 titlePrefix="勞務/財務/工程"
                 pieTitle="勞務/財務/工程金額比例"
+                selectedId={selectedId}
+                onSelect={setSelectedId}
             />}
 
             {/* Account summary */}
@@ -650,11 +689,11 @@ const ReportPage: React.FC = () => {
                             </svg>
                             <p>此年度無採購紀錄</p>
                         </div>
-                    ) : byAccount.map((acc) => (
+                    ) : byAccount.filter(acc => !selectedId || acc.ledgerAccountId === selectedId).map((acc) => (
                         <div className="report-section" key={acc.ledgerAccountId}>
                             <div className="report-section-header" onClick={() => toggleExpand(acc.ledgerAccountId)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedIds[acc.ledgerAccountId] ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{(expandedIds[acc.ledgerAccountId] || selectedId === acc.ledgerAccountId) ? '▾' : '▸'}</span>
                                     <span className="rs-name">{acc.ledgerAccountCode}</span>
                                     <span className="rs-count">{acc.count} 筆</span>
                                 </div>
@@ -683,7 +722,7 @@ const ReportPage: React.FC = () => {
                                     })()}
                                 </div>
                             </div>
-                            {expandedIds[acc.ledgerAccountId] && (
+                            {(expandedIds[acc.ledgerAccountId] || selectedId === acc.ledgerAccountId) && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
@@ -726,11 +765,11 @@ const ReportPage: React.FC = () => {
                             </svg>
                             <p>此年度無採購紀錄</p>
                         </div>
-                    ) : byVendor.map((v) => (
+                    ) : byVendor.filter(v => !selectedId || v.vendor === selectedId).map((v) => (
                         <div className="report-section" key={v.vendor}>
                             <div className="report-section-header" onClick={() => toggleExpand(v.vendor)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedIds[v.vendor] ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{(expandedIds[v.vendor] || selectedId === v.vendor) ? '▾' : '▸'}</span>
                                     <span className="rs-name">{v.vendor}</span>
                                     <span className="rs-count">{v.count} 筆</span>
                                 </div>
@@ -742,7 +781,7 @@ const ReportPage: React.FC = () => {
                                     <span className="rs-amount">{fmt(v.total)}</span>
                                 </div>
                             </div>
-                            {expandedIds[v.vendor] && (
+                            {(expandedIds[v.vendor] || selectedId === v.vendor) && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
@@ -786,11 +825,11 @@ const ReportPage: React.FC = () => {
                             </svg>
                             <p>此年度無採購紀錄</p>
                         </div>
-                    ) : byRequisition.map((r) => (
+                    ) : byRequisition.filter(r => !selectedId || r.type === selectedId).map((r) => (
                         <div className="report-section" key={r.type}>
                             <div className="report-section-header" onClick={() => toggleExpand(r.type)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedIds[r.type] ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{(expandedIds[r.type] || selectedId === r.type) ? '▾' : '▸'}</span>
                                     <span className="rs-name">{r.type}</span>
                                     <span className="rs-count">{r.count} 筆</span>
                                 </div>
@@ -802,7 +841,7 @@ const ReportPage: React.FC = () => {
                                     <span className="rs-amount">{fmt(r.total)}</span>
                                 </div>
                             </div>
-                            {expandedIds[r.type] && (
+                            {(expandedIds[r.type] || selectedId === r.type) && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>
@@ -846,11 +885,11 @@ const ReportPage: React.FC = () => {
                             </svg>
                             <p>此年度無採購紀錄</p>
                         </div>
-                    ) : byPurchaseType.map((rt) => (
+                    ) : byPurchaseType.filter(rt => !selectedId || rt.type === selectedId).map((rt) => (
                         <div className="report-section" key={rt.type}>
                             <div className="report-section-header" onClick={() => toggleExpand(rt.type)}>
                                 <div className="rs-left">
-                                    <span className="rs-expand">{expandedIds[rt.type] ? '▾' : '▸'}</span>
+                                    <span className="rs-expand">{(expandedIds[rt.type] || selectedId === rt.type) ? '▾' : '▸'}</span>
                                     <span className="rs-name">{rt.type}</span>
                                     <span className="rs-count">{rt.count} 筆</span>
                                 </div>
@@ -862,7 +901,7 @@ const ReportPage: React.FC = () => {
                                     <span className="rs-amount">{fmt(rt.total)}</span>
                                 </div>
                             </div>
-                            {expandedIds[rt.type] && (
+                            {(expandedIds[rt.type] || selectedId === rt.type) && (
                                 <div className="detail-table-wrap">
                                     <table className="detail-table">
                                         <thead>

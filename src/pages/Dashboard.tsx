@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import type { Purchase } from '../types';
-import { DollarSign, Hash, ChevronDown, Copy } from 'lucide-react';
+import { DollarSign, Hash, ChevronDown, Copy, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { copyChart } from '../lib/chartUtils';
 import { getPurchases } from '../lib/firestore';
 import DashboardSkeleton from '../components/DashboardSkeleton';
@@ -18,6 +18,7 @@ const Dashboard: React.FC = () => {
     const [monthRange, setMonthRange] = React.useState<'1-6' | '7-12' | '1-12'>('1-12');
     const [openPanels, setOpenPanels] = React.useState<Set<string>>(new Set());
     const chartContainerRef = React.useRef<HTMLDivElement>(null);
+    const [showYoYDetail, setShowYoYDetail] = React.useState<{ title: string; current: number; compare: number; percent: number; isAmount: boolean } | null>(null);
     const togglePanel = (key: string) =>
         setOpenPanels(prev => {
             const next = new Set(prev);
@@ -158,7 +159,10 @@ const Dashboard: React.FC = () => {
             compareMonthlyItems[m].sort((a: Purchase, b: Purchase) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
         });
 
-        return { total, count, topAccounts, topVendors, budgetStatus, monthly, monthlyItems, monthlyStacked, allCategories, compareMonthly, compareMonthlyItems };
+        const compareTotal = comparePurchases.reduce((s, p) => s + p.amount, 0);
+        const compareCount = comparePurchases.length;
+
+        return { total, count, topAccounts, topVendors, budgetStatus, monthly, monthlyItems, monthlyStacked, allCategories, compareMonthly, compareMonthlyItems, compareTotal, compareCount };
     }, [purchases, ledgerAccounts, currentYear, comparePurchases]);
 
     const filteredMonthlyStacked = useMemo(() => {
@@ -228,7 +232,30 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="kpi-content">
                         <div className="kpi-label">累積採購金額 (未稅)</div>
-                        <div className="kpi-value">{fmt(stats.total)}</div>
+                        <div className="kpi-value-row">
+                            <div className="kpi-value">{fmt(stats.total)}</div>
+                            {compareYear && (
+                                <div
+                                    className={`yoy-badge ${stats.total >= stats.compareTotal ? 'up' : 'down'}`}
+                                    title="點擊查看計算詳情"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowYoYDetail({
+                                            title: 'YoY 年度成長率 (金額)',
+                                            current: stats.total,
+                                            compare: stats.compareTotal,
+                                            percent: ((stats.total - stats.compareTotal) / (stats.compareTotal || 1) * 100),
+                                            isAmount: true
+                                        });
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    {stats.total >= stats.compareTotal ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                                    {Math.abs(((stats.total - stats.compareTotal) / (stats.compareTotal || 1) * 100)).toFixed(1)}%
+                                    <Info size={12} style={{ marginLeft: '4px', opacity: 0.6 }} />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="kpi-card accent-indigo">
@@ -237,7 +264,30 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="kpi-content">
                         <div className="kpi-label">累積採購筆數</div>
-                        <div className="kpi-value">{stats.count} 筆</div>
+                        <div className="kpi-value-row">
+                            <div className="kpi-value">{stats.count} 筆</div>
+                            {compareYear && (
+                                <div
+                                    className={`yoy-badge ${stats.count >= stats.compareCount ? 'up' : 'down'}`}
+                                    title="點擊查看計算詳情"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowYoYDetail({
+                                            title: 'YoY 年度成長率 (筆數)',
+                                            current: stats.count,
+                                            compare: stats.compareCount,
+                                            percent: ((stats.count - stats.compareCount) / (stats.compareCount || 1) * 100),
+                                            isAmount: false
+                                        });
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    {stats.count >= stats.compareCount ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                                    {Math.abs(((stats.count - stats.compareCount) / (stats.compareCount || 1) * 100)).toFixed(1)}%
+                                    <Info size={12} style={{ marginLeft: '4px', opacity: 0.6 }} />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -321,10 +371,12 @@ const Dashboard: React.FC = () => {
                                         >
                                             <div className="bar-value">{fmt(compareTotal)}</div>
                                             <div
-                                                className="bar compare-bar"
+                                                className="bar compare-bar ghost-bar"
                                                 style={{ height: `${(compareTotal / maxVal) * 100}%` }}
                                                 title={`${i + 1}月總計 (${compareYear}): ${fmt(compareTotal)}`}
-                                            />
+                                            >
+                                                <div className="ghost-fill" />
+                                            </div>
                                         </div>
                                     )}
 
@@ -519,6 +571,54 @@ const Dashboard: React.FC = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showYoYDetail && (
+                <div className="modal-overlay" onClick={() => setShowYoYDetail(null)}>
+                    <div className="modal-box yoy-detail-pop" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>{showYoYDetail.title}</h2>
+                            <button className="modal-close" onClick={() => setShowYoYDetail(null)}>×</button>
+                        </div>
+                        <div className="pop-body">
+                            <div className="yoy-calc-wrap">
+                                <div className="yoy-calc-formula">
+                                    計算公式：<span>(今年 - 去年) / 去年 * 100%</span>
+                                </div>
+                                <div className="yoy-calc-grid">
+                                    <div className="yoy-calc-item">
+                                        <label>{currentYear} 年度</label>
+                                        <div className="val">{showYoYDetail.isAmount ? fmt(showYoYDetail.current) : `${showYoYDetail.current} 筆`}</div>
+                                    </div>
+                                    <div className="yoy-calc-op">-</div>
+                                    <div className="yoy-calc-item">
+                                        <label>{compareYear} 年度</label>
+                                        <div className="val">{showYoYDetail.isAmount ? fmt(showYoYDetail.compare) : `${showYoYDetail.compare} 筆`}</div>
+                                    </div>
+                                    <div className="yoy-calc-op">/</div>
+                                    <div className="yoy-calc-item">
+                                        <label>對比基準</label>
+                                        <div className="val">{showYoYDetail.isAmount ? fmt(showYoYDetail.compare) : `${showYoYDetail.compare} 筆`}</div>
+                                    </div>
+                                </div>
+                                <div className="yoy-calc-result">
+                                    <div className="res-label">最終成長率 (YoY)</div>
+                                    <div className={`res-val ${showYoYDetail.percent >= 0 ? 'text-green' : 'text-red'}`}>
+                                        {showYoYDetail.percent >= 0 ? '↑' : '↓'} {Math.abs(showYoYDetail.percent).toFixed(2)}%
+                                    </div>
+                                </div>
+                                <div className="yoy-explanation">
+                                    <p><strong>YoY (Year-over-Year)</strong>：用來比較今年當期與去年同期數據變動的指標。</p>
+                                    <ul>
+                                        <li><strong>排除季節差異</strong>：採購行為常有週期性，與去年同期比能排除月份間的波動。</li>
+                                        <li><strong>觀察預算趨勢</strong>：快速判斷目前的開支規模相比去年是在擴張、持平或緊縮。</li>
+                                        <li><strong>評估採購效率</strong>：若金額增幅遠大於筆數增幅，可能意味著通貨膨脹或採購單價顯著上漲。</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
