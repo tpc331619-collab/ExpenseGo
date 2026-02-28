@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { getAllUsers } from '../lib/firestore';
 import { LayoutDashboard, FileText, BarChart3, Database } from 'lucide-react';
+import Logo from './Logo';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
@@ -36,7 +37,8 @@ const Navbar: React.FC = () => {
         <>
             <nav className="navbar">
                 <div className="nav-brand">
-                    <div className="nav-logo-text">
+                    <Logo className="brand-svg" width={32} height={32} />
+                    <div className="nav-logo-text" style={{ marginLeft: '8px' }}>
                         <span className="logo-main">Purchase</span>
                         <span className="logo-sub">Go</span>
                     </div>

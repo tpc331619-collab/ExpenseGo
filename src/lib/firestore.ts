@@ -27,15 +27,20 @@ export const createOrGetUser = async (uid: string, email: string, displayName: s
     if (snap.exists()) return snap.data() as AppUser;
 
     const ADMIN_EMAIL = 'B28803078@gmail.com';
-    const role = email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'pending';
+    let role: AppUser['role'] = 'pending';
+    if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        role = 'admin';
+    } else if (email === '') {
+        role = 'guest'; // Anonymous user starts as 'guest' to preview the app read-only
+    }
 
     const user: Omit<AppUser, 'id'> = {
         uid,
-        email,
-        displayName,
-        photoURL,
+        email: email || `guest-${uid.substring(0, 5)}@anonymous.local`,
+        displayName: displayName || '訪客',
+        photoURL: photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
         role,
-        approvedAt: role === 'admin' ? Timestamp.now() : null,
+        approvedAt: ['admin', 'user', 'guest'].includes(role) ? Timestamp.now() : null,
         createdAt: Timestamp.now(),
     };
     await setDoc(ref, user);

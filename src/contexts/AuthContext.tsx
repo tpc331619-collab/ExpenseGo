@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { createOrGetUser, getUser } from '../lib/firestore';
+import { createOrGetUser, getUser, deleteUser } from '../lib/firestore';
 import type { AppUser } from '../types';
 
 interface AuthContextValue {
@@ -9,6 +9,7 @@ interface AuthContextValue {
     appUser: AppUser | null;
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
+    signInAsGuest: () => Promise<void>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
 }
@@ -56,13 +57,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await signInWithPopup(auth, provider);
     };
 
+    const signInAsGuest = async () => {
+        await signInAnonymously(auth);
+    };
+
     const logout = async () => {
+        if (appUser?.role === 'guest' && firebaseUser) {
+            try {
+                // Delete user info from Firestore first
+                await deleteUser(firebaseUser.uid);
+                // Try to delete anonymous user from Firebase Auth
+                await firebaseUser.delete();
+            } catch (err) {
+                console.error("Failed to delete guest account upon logout:", err);
+            }
+        }
         await signOut(auth);
         setAppUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ firebaseUser, appUser, loading, signInWithGoogle, logout, refreshUser }}>
+        <AuthContext.Provider value={{ firebaseUser, appUser, loading, signInWithGoogle, signInAsGuest, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

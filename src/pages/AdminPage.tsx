@@ -14,13 +14,14 @@ import './AdminPage.css';
 type AdminTab = 'users' | 'accounts' | 'vendors';
 
 const ROLE_LABEL: Record<string, string> = {
-    admin: '管理員', user: '一般使用者', pending: '待審核', rejected: '已拒絕',
+    admin: '管理員', user: '使用者', pending: '待審核', rejected: '已拒絕', guest: '訪客'
 };
 
 const AdminPage: React.FC = () => {
     const { appUser } = useAuth();
     const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors } = useApp();
     const isAdmin = appUser?.role === 'admin';
+    const isGuest = appUser?.role === 'guest';
     const [tab, setTab] = useState<AdminTab>(isAdmin ? 'users' : 'accounts');
     const [users, setUsers] = useState<AppUser[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
@@ -448,54 +449,56 @@ const AdminPage: React.FC = () => {
             {/* Ledger accounts tab */}
             {tab === 'accounts' && (
                 <div className="accounts-panel">
-                    <form className="acc-form" onSubmit={handleAddAccount}>
-                        <input
-                            placeholder="科目代碼，如 M54000"
-                            value={accCode}
-                            onChange={(e) => setAccCode(e.target.value)}
-                            required
-                        />
-                        <input
-                            placeholder="科目名稱，如 差旅費"
-                            value={accName}
-                            onChange={(e) => setAccName(e.target.value)}
-                            required
-                        />
-                        <input
-                            placeholder="計畫成本 (新台幣)"
-                            type="number"
-                            value={accBudget}
-                            onChange={(e) => setAccBudget(e.target.value)}
-                        />
-                        <button type="submit" className="btn-primary" disabled={accSaving}>
-                            {accSaving ? '儲存中⋯' : editingAcc ? '更新' : '新增'}
-                        </button>
-                        {editingAcc && (
-                            <button type="button" className="btn-outline" onClick={cancelEdit}>取消</button>
-                        )}
-                        <button
-                            type="button"
-                            className={`btn-import-toggle ${showAccImport ? 'active' : ''}`}
-                            onClick={() => setShowAccImport(!showAccImport)}
-                            title="批次導入選項"
-                        >
-                            <Plus size={20} />
-                        </button>
+                    {!isGuest && (
+                        <form className="acc-form" onSubmit={handleAddAccount}>
+                            <input
+                                placeholder="科目代碼，如 M54000"
+                                value={accCode}
+                                onChange={(e) => setAccCode(e.target.value)}
+                                required
+                            />
+                            <input
+                                placeholder="科目名稱，如 差旅費"
+                                value={accName}
+                                onChange={(e) => setAccName(e.target.value)}
+                                required
+                            />
+                            <input
+                                placeholder="計畫成本 (新台幣)"
+                                type="number"
+                                value={accBudget}
+                                onChange={(e) => setAccBudget(e.target.value)}
+                            />
+                            <button type="submit" className="btn-primary" disabled={accSaving}>
+                                {accSaving ? '儲存中⋯' : editingAcc ? '更新' : '新增'}
+                            </button>
+                            {editingAcc && (
+                                <button type="button" className="btn-outline" onClick={cancelEdit}>取消</button>
+                            )}
+                            <button
+                                type="button"
+                                className={`btn-import-toggle ${showAccImport ? 'active' : ''}`}
+                                onClick={() => setShowAccImport(!showAccImport)}
+                                title="批次導入選項"
+                            >
+                                <Plus size={20} />
+                            </button>
 
-                        {showAccImport && (
-                            <div className="batch-import-box">
-                                <label className="btn-batch-import">
-                                    <Upload size={16} />
-                                    批次導入 Excel
-                                    <input type="file" accept=".xlsx, .xls" onChange={handleAccountImport} hidden />
-                                </label>
-                                <button type="button" className="btn-text-link" onClick={downloadAccountTemplate}>
-                                    📥 下載科目範本
-                                </button>
-                                <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
-                            </div>
-                        )}
-                    </form>
+                            {showAccImport && (
+                                <div className="batch-import-box">
+                                    <label className="btn-batch-import">
+                                        <Upload size={16} />
+                                        批次導入 Excel
+                                        <input type="file" accept=".xlsx, .xls" onChange={handleAccountImport} hidden />
+                                    </label>
+                                    <button type="button" className="btn-text-link" onClick={downloadAccountTemplate}>
+                                        📥 下載科目範本
+                                    </button>
+                                    <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
+                                </div>
+                            )}
+                        </form>
+                    )}
 
                     <div className="table-wrapper">
                         {ledgerAccounts.length === 0 ? (
@@ -503,7 +506,7 @@ const AdminPage: React.FC = () => {
                         ) : (
                             <table className="admin-table">
                                 <thead>
-                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>科目代碼</th><th>科目名稱</th><th>計畫成本</th><th>操作</th></tr>
+                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>科目代碼</th><th>科目名稱</th><th>計畫成本</th>{!isGuest && <th>操作</th>}</tr>
                                 </thead>
                                 <tbody>
                                     {ledgerAccounts.map((acc, idx) => (
@@ -512,12 +515,14 @@ const AdminPage: React.FC = () => {
                                             <td><code>{acc.code}</code></td>
                                             <td>{acc.name}</td>
                                             <td>{acc.budget ? `NT$ ${acc.budget.toLocaleString()}` : '-'}</td>
-                                            <td>
-                                                <div className="role-actions">
-                                                    <button className="role-btn user" onClick={() => startEdit(acc)}>編輯</button>
-                                                    <button className="role-btn reject" onClick={() => handleDeleteAccount(acc.id, acc.name)}>刪除</button>
-                                                </div>
-                                            </td>
+                                            {!isGuest && (
+                                                <td>
+                                                    <div className="role-actions">
+                                                        <button className="role-btn user" onClick={() => startEdit(acc)}>編輯</button>
+                                                        <button className="role-btn reject" onClick={() => handleDeleteAccount(acc.id, acc.name)}>刪除</button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -530,72 +535,74 @@ const AdminPage: React.FC = () => {
             {/* Vendors tab */}
             {tab === 'vendors' && (
                 <div className="accounts-panel">
-                    <form className="vendor-form-premium" onSubmit={handleAddVendor}>
-                        <div className="v-form-grid">
-                            <div className="f-group">
-                                <label>廠商名稱 <span className="required">*</span></label>
-                                <input
-                                    placeholder="如：國泰化工"
-                                    value={vendorName}
-                                    onChange={(e) => setVendorName(e.target.value)}
-                                    required
-                                />
+                    {!isGuest && (
+                        <form className="vendor-form-premium" onSubmit={handleAddVendor}>
+                            <div className="v-form-grid">
+                                <div className="f-group">
+                                    <label>廠商名稱 <span className="required">*</span></label>
+                                    <input
+                                        placeholder="如：國泰化工"
+                                        value={vendorName}
+                                        onChange={(e) => setVendorName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="f-group">
+                                    <label>統一編號</label>
+                                    <input
+                                        placeholder="8位數字"
+                                        value={vendorTaxId}
+                                        onChange={(e) => setVendorTaxId(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                                    />
+                                </div>
+                                <div className="f-group">
+                                    <label>聯絡人</label>
+                                    <input
+                                        placeholder="聯絡姓名"
+                                        value={vendorContact}
+                                        onChange={(e) => setVendorContact(e.target.value)}
+                                    />
+                                </div>
+                                <div className="f-group">
+                                    <label>聯絡電話</label>
+                                    <input
+                                        placeholder="電話或分機"
+                                        value={vendorPhone}
+                                        onChange={(e) => setVendorPhone(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                            <div className="f-group">
-                                <label>統一編號</label>
-                                <input
-                                    placeholder="8位數字"
-                                    value={vendorTaxId}
-                                    onChange={(e) => setVendorTaxId(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                                />
-                            </div>
-                            <div className="f-group">
-                                <label>聯絡人</label>
-                                <input
-                                    placeholder="聯絡姓名"
-                                    value={vendorContact}
-                                    onChange={(e) => setVendorContact(e.target.value)}
-                                />
-                            </div>
-                            <div className="f-group">
-                                <label>聯絡電話</label>
-                                <input
-                                    placeholder="電話或分機"
-                                    value={vendorPhone}
-                                    onChange={(e) => setVendorPhone(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <div className="v-form-actions">
-                            <button type="submit" className="btn-primary" disabled={vendorSaving}>
-                                {vendorSaving ? '儲存中⋯' : editingVendor ? '更新廠商資料' : '新增廠商'}
-                            </button>
-                            {editingVendor && (
-                                <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
-                            )}
-                            <button
-                                type="button"
-                                className={`btn-import-toggle ${showVendorImport ? 'active' : ''}`}
-                                onClick={() => setShowVendorImport(!showVendorImport)}
-                                title="批次導入選項"
-                            >
-                                <Plus size={20} />
-                            </button>
-                        </div>
-                        {showVendorImport && (
-                            <div className="batch-import-box v-batch">
-                                <label className="btn-batch-import">
-                                    <Upload size={16} />
-                                    批次導入 Excel
-                                    <input type="file" accept=".xlsx, .xls" onChange={handleVendorImport} hidden />
-                                </label>
-                                <button type="button" className="btn-text-link" onClick={downloadVendorTemplate}>
-                                    📥 下載廠商範本
+                            <div className="v-form-actions">
+                                <button type="submit" className="btn-primary" disabled={vendorSaving}>
+                                    {vendorSaving ? '儲存中⋯' : editingVendor ? '更新廠商資料' : '新增廠商'}
                                 </button>
-                                <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
+                                {editingVendor && (
+                                    <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
+                                )}
+                                <button
+                                    type="button"
+                                    className={`btn-import-toggle ${showVendorImport ? 'active' : ''}`}
+                                    onClick={() => setShowVendorImport(!showVendorImport)}
+                                    title="批次導入選項"
+                                >
+                                    <Plus size={20} />
+                                </button>
                             </div>
-                        )}
-                    </form>
+                            {showVendorImport && (
+                                <div className="batch-import-box v-batch">
+                                    <label className="btn-batch-import">
+                                        <Upload size={16} />
+                                        批次導入 Excel
+                                        <input type="file" accept=".xlsx, .xls" onChange={handleVendorImport} hidden />
+                                    </label>
+                                    <button type="button" className="btn-text-link" onClick={downloadVendorTemplate}>
+                                        📥 下載廠商範本
+                                    </button>
+                                    <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
+                                </div>
+                            )}
+                        </form>
+                    )}
 
                     <div className="table-wrapper">
                         {vendors.length === 0 ? (
@@ -603,7 +610,7 @@ const AdminPage: React.FC = () => {
                         ) : (
                             <table className="admin-table">
                                 <thead>
-                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>統編</th><th>廠商名稱</th><th>聯絡人</th><th>電話</th><th>操作</th></tr>
+                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>統編</th><th>廠商名稱</th><th>聯絡人</th><th>電話</th>{!isGuest && <th>操作</th>}</tr>
                                 </thead>
                                 <tbody>
                                     {vendors.map((v, idx) => (
@@ -613,12 +620,14 @@ const AdminPage: React.FC = () => {
                                             <td>{v.name}</td>
                                             <td>{v.contact || '-'}</td>
                                             <td>{v.phone || '-'}</td>
-                                            <td>
-                                                <div className="role-actions">
-                                                    <button className="role-btn user" onClick={() => startEditVendor(v)}>編輯</button>
-                                                    <button className="role-btn reject" onClick={() => handleDeleteVendor(v.id, v.name)}>刪除</button>
-                                                </div>
-                                            </td>
+                                            {!isGuest && (
+                                                <td>
+                                                    <div className="role-actions">
+                                                        <button className="role-btn user" onClick={() => startEditVendor(v)}>編輯</button>
+                                                        <button className="role-btn reject" onClick={() => handleDeleteVendor(v.id, v.name)}>刪除</button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>

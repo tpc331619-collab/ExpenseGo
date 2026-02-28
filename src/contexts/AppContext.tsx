@@ -42,7 +42,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const refreshPurchases = async (year: number = selectedYear) => {
         if (!appUser) return;
-        const filterUid = appUser.role === 'admin' ? undefined : appUser.uid;
+        const filterUid = ['admin', 'guest'].includes(appUser.role) ? undefined : appUser.uid;
         const data = await getPurchases(year, filterUid);
         setPurchases(data);
     };
@@ -64,7 +64,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [selectedYear, compareYear]);
 
     useEffect(() => {
-        if (appUser && (appUser.role === 'admin' || appUser.role === 'user')) {
+        if (appUser && ['admin', 'user', 'guest'].includes(appUser.role)) {
             setLoadingData(true);
 
             // 執行一次性遷移 + 載入初始數據

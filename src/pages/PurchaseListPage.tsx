@@ -13,6 +13,7 @@ import './PurchaseListPage.css';
 const PurchaseListPage: React.FC = () => {
     const { ledgerAccounts, selectedYear } = useApp();
     const { appUser } = useAuth();
+    const isGuest = appUser?.role === 'guest';
 
     const [localPurchases, setLocalPurchases] = useState<Purchase[]>([]);
     const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -34,13 +35,12 @@ const PurchaseListPage: React.FC = () => {
         else setLoadingMore(true);
 
         try {
-            const uid = appUser?.role === 'admin' ? undefined : appUser?.uid;
             const res = await getPaginatedPurchases(
                 selectedYear,
                 20,
                 isLoadMore ? lastDoc : null,
                 {
-                    uid,
+                    uid: appUser?.role === 'admin' || appUser?.role === 'guest' ? undefined : appUser?.uid,
                     ledgerAccountId: filterAccount || undefined,
                     vendor: filterVendor || undefined,
                 }
@@ -311,14 +311,18 @@ const PurchaseListPage: React.FC = () => {
             <div className="page-header">
                 <h1 className="page-title">{selectedYear} 年採購紀錄</h1>
                 <div className="header-actions">
-                    <label className="btn-outline btn-import-records">
-                        <Upload size={16} /> 批次導入
-                        <input type="file" accept=".xlsx, .xls" onChange={handleImport} hidden />
-                    </label>
-                    <button className="btn-outline-text" onClick={downloadTemplate}>
-                        <Download size={14} /> 範本
-                    </button>
-                    <button className="btn-primary" onClick={() => setShowModal(true)}>＋ 新增採購</button>
+                    {!isGuest && (
+                        <>
+                            <label className="btn-outline btn-import-records">
+                                <Upload size={16} /> 批次導入
+                                <input type="file" accept=".xlsx, .xls" onChange={handleImport} hidden />
+                            </label>
+                            <button className="btn-outline-text" onClick={downloadTemplate}>
+                                <Download size={14} /> 範本
+                            </button>
+                            <button className="btn-primary" onClick={() => setShowModal(true)}>＋ 新增採購</button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -371,7 +375,7 @@ const PurchaseListPage: React.FC = () => {
                                 <th>總帳科目</th>
                                 <th>金額 (未稅 / 含稅)</th>
                                 <th>類型</th>
-                                <th>操作</th>
+                                {!isGuest && <th>操作</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -433,26 +437,28 @@ const PurchaseListPage: React.FC = () => {
                                                             <div className="type-text purchase">{p.purchaseType}</div>
                                                         </div>
                                                     </td>
-                                                    <td className="td-actions">
-                                                        <div className="action-group">
-                                                            <button className="action-btn-new copy" onClick={() => handleCopy(p)} title="複製">
-                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                                            </button>
-                                                            <button className="action-btn-new edit" onClick={() => handleEdit(p)} title="編輯">
-                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                                            </button>
-                                                            <button
-                                                                className="action-btn-new delete"
-                                                                onClick={() => handleDelete(p)}
-                                                                disabled={deleting === p.id}
-                                                                title="刪除"
-                                                            >
-                                                                {deleting === p.id ? '…' : (
-                                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                                    {!isGuest && (
+                                                        <td className="td-actions">
+                                                            <div className="action-group">
+                                                                <button className="action-btn-new copy" onClick={() => handleCopy(p)} title="複製">
+                                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                                                </button>
+                                                                <button className="action-btn-new edit" onClick={() => handleEdit(p)} title="編輯">
+                                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                                                </button>
+                                                                <button
+                                                                    className="action-btn-new delete"
+                                                                    onClick={() => handleDelete(p)}
+                                                                    disabled={deleting === p.id}
+                                                                    title="刪除"
+                                                                >
+                                                                    {deleting === p.id ? '…' : (
+                                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             );
                                         })}
