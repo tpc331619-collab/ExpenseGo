@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import type { Purchase } from '../types';
-import { DollarSign, Hash, ChevronDown } from 'lucide-react';
+import { DollarSign, Hash, ChevronDown, Copy } from 'lucide-react';
+import { copyChart } from '../lib/chartUtils';
 import { getPurchases } from '../lib/firestore';
 import DashboardSkeleton from '../components/DashboardSkeleton';
 import VendorDetailCard from '../components/VendorDetailCard';
@@ -16,6 +17,7 @@ const Dashboard: React.FC = () => {
     const [vendorDetail, setVendorDetail] = React.useState<string | null>(null);
     const [monthRange, setMonthRange] = React.useState<'1-6' | '7-12' | '1-12'>('1-12');
     const [openPanels, setOpenPanels] = React.useState<Set<string>>(new Set());
+    const chartContainerRef = React.useRef<HTMLDivElement>(null);
     const togglePanel = (key: string) =>
         setOpenPanels(prev => {
             const next = new Set(prev);
@@ -241,8 +243,8 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Monthly bar chart */}
-            <div className="card bar-chart-card">
-                <div className="card-header-flex">
+            <div ref={chartContainerRef} className="card bar-chart-card">
+                <div className="card-header-flex chart-header-row">
                     <div className="chart-title-area">
                         <h2 className="card-title">月度採購金額趨勢</h2>
                         <div className="month-range-selector">
@@ -271,6 +273,9 @@ const Dashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                    <button className="btn-icon-sub" onClick={() => copyChart(chartContainerRef.current, '月度採購金額趨勢')} title="複製圖片">
+                        <Copy size={14} />
+                    </button>
                 </div>
                 <div className="chart-legend">
                     {compareYear && (

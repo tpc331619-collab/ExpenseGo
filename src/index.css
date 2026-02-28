@@ -96,6 +96,33 @@ select option {
 }
 
 /* ── Shared Utilities ───────────────────────────────────────────────────────── */
+.chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.btn-icon-sub {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-icon-sub:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
 .full-loading {
   display: flex;
   align-items: center;
