@@ -253,7 +253,7 @@ const Dashboard: React.FC = () => {
                             <button className={monthRange === '1-12' ? 'active' : ''} onClick={() => setMonthRange('1-12')}>全年度</button>
                         </div>
                         <div className="compare-selector" style={{ marginLeft: '16px' }}>
-                            <span className="compare-label">對比</span>
+                            <span className="compare-label">選擇對比年分</span>
                             <div className="select-wrapper">
                                 <select
                                     className="year-dropdown"
