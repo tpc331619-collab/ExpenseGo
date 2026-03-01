@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import PurchaseListPage from './pages/PurchaseListPage';
 import ReportPage from './pages/ReportPage';
 import AdminPage from './pages/AdminPage';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import QuickAddFAB from './components/QuickAddFAB';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -20,26 +21,50 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </>
 );
 
-const App: React.FC = () => (
-  <BrowserRouter>
-    <AuthProvider>
-      <AppProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/pending" element={<PendingPage />} />
+const App: React.FC = () => {
+  const {
+    needRefresh: [needRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r: ServiceWorkerRegistration | undefined) {
+      if (r) {
+        // 每小時檢查一次更新
+        setInterval(() => {
+          r.update();
+        }, 60 * 60 * 1000);
+      }
+    },
+  });
 
-          <Route element={<PrivateRoute />}>
-            <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-            <Route path="/purchases" element={<AppLayout><PurchaseListPage /></AppLayout>} />
-            <Route path="/report" element={<AppLayout><ReportPage /></AppLayout>} />
-            <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
-          </Route>
+  React.useEffect(() => {
+    if (needRefresh) {
+      if (confirm('發現新的版本，是否立即更新以獲取最新功能？')) {
+        updateServiceWorker(true);
+      }
+    }
+  }, [needRefresh, updateServiceWorker]);
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AppProvider>
-    </AuthProvider>
-  </BrowserRouter>
-);
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/pending" element={<PendingPage />} />
+
+            <Route element={<PrivateRoute />}>
+              <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+              <Route path="/purchases" element={<AppLayout><PurchaseListPage /></AppLayout>} />
+              <Route path="/report" element={<AppLayout><ReportPage /></AppLayout>} />
+              <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AppProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+};
 
 export default App;
