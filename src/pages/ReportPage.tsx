@@ -598,6 +598,20 @@ const ReportPage: React.FC = () => {
                             {sortedData.map(acc => {
                                 return (
                                     <div key={acc.ledgerAccountId} className="analysis-item">
+                                        <div className="ai-item-actions">
+                                            <button
+                                                className="btn-copy-item"
+                                                title="複製此項"
+                                                onClick={() => {
+                                                    const titles = acc.items.map(it => it.title);
+                                                    const summary = summarizeTitles(titles);
+                                                    const text = `${acc.ledgerAccountCode}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
+                                                    navigator.clipboard.writeText(text);
+                                                }}
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                        </div>
                                         <div className="ai-header">
                                             <span className="ai-code">{acc.ledgerAccountCode}</span>
                                             <span className="ai-name">{acc.ledgerAccountName}</span>

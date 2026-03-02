@@ -407,6 +407,40 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     transition: all .2s;
+    position: relative;
+}
+
+.ai-item-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-copy-item {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-copy-item:hover {
+    background: #f1f5f9;
+    color: var(--purple);
+    border-color: var(--purple-light);
+    transform: translateY(-1px);
+}
+
+.btn-copy-item:active {
+    transform: translateY(0);
 }
 
 .analysis-item:hover {
@@ -607,8 +641,24 @@
         flex-direction: column;
     }
 }
+
 /* Final Nuke: Ensure no ghost circles or decorators can EVER overlap the chart/legend area */
-.pie-wrapper, .pie-wrapper *, .pie-wrapper *::before, .pie-wrapper *::after { box-shadow: none !important; text-shadow: none !important; }
-.pie-legend-item { z-index: 101; }
-.pie-legend-dot { box-shadow: none !important; }
-.pie-legend-item.pinned .pie-legend-dot { box-shadow: 0 0 0 1px white, 0 0 0 1.5px #ef4444 !important; }
+.pie-wrapper,
+.pie-wrapper *,
+.pie-wrapper *::before,
+.pie-wrapper *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+.pie-legend-item {
+    z-index: 101;
+}
+
+.pie-legend-dot {
+    box-shadow: none !important;
+}
+
+.pie-legend-item.pinned .pie-legend-dot {
+    box-shadow: 0 0 0 1px white, 0 0 0 1.5px #ef4444 !important;
+}
