@@ -3,6 +3,7 @@ import {
     getAllUsers, updateUserRole, deleteUser,
     addLedgerAccount, deleteLedgerAccount, updateLedgerAccount,
     addVendor, deleteVendor, updateVendor,
+    cleanupDuplicatePurchases,
 } from '../lib/firestore';
 import * as XLSX from 'xlsx';
 import { Upload, Plus } from 'lucide-react';
@@ -11,7 +12,7 @@ import type { AppUser, LedgerAccount, Vendor } from '../types';
 import { useApp } from '../contexts/AppContext';
 import './AdminPage.css';
 
-type AdminTab = 'users' | 'accounts' | 'vendors';
+type AdminTab = 'users' | 'accounts' | 'vendors' | 'maintenance';
 
 const ROLE_LABEL: Record<string, string> = {
     admin: '管理員', user: '使用者', pending: '待審核', rejected: '已拒絕', guest: '訪客'
@@ -42,6 +43,7 @@ const AdminPage: React.FC = () => {
     const [vendorSaving, setVendorSaving] = useState(false);
     const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
     const [adminError, setAdminError] = useState('');
+    const [cleaningData, setCleaningData] = useState(false);
 
     const [showAccImport, setShowAccImport] = useState(false);
     const [showVendorImport, setShowVendorImport] = useState(false);
@@ -278,6 +280,20 @@ const AdminPage: React.FC = () => {
         setVendorPhone('');
     };
 
+    const handleCleanupDuplicates = async () => {
+        if (!confirm(`確定要永久刪除 ${selectedYear} 年度中重複的採購紀錄？\n系統會自動保留資訊較完整的紀錄，此操作不可撤銷。`)) return;
+        setCleaningData(true);
+        try {
+            const count = await cleanupDuplicatePurchases(selectedYear, ledgerAccounts.map(a => a.id));
+            alert(`清理完成！共刪除了 ${count} 筆重複資料。`);
+            window.location.reload(); // Refresh to ensure AppContext and other parts see the change
+        } catch (err: any) {
+            alert('清理失敗：' + err.message);
+        } finally {
+            setCleaningData(false);
+        }
+    };
+
     const handleVendorImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -397,9 +413,60 @@ const AdminPage: React.FC = () => {
                 <button className={`tab-btn ${tab === 'vendors' ? 'active' : ''}`} onClick={() => setTab('vendors')}>
                     廠商管理
                 </button>
+                <button className={`tab-btn ${tab === 'maintenance' ? 'active' : ''}`} onClick={() => setTab('maintenance')}>
+                    🍂 資料維護
+                </button>
             </div>
 
             {adminError && <div className="form-error" style={{ marginBottom: 20 }}>{adminError}</div>}
+
+            {/* Maintenance tab content */}
+            {tab === 'maintenance' && (
+                <div className="maintenance-panel" style={{ animation: 'fadeIn 0.4s ease' }}>
+                    <div className="admin-maintenance-card" style={{ padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
+                            <div style={{ fontSize: 32 }}>🍂</div>
+                            <div style={{ flex: 1 }}>
+                                <h3 style={{ margin: '0 0 12px', fontSize: 20, color: 'var(--text1)', fontWeight: 800 }}>採購紀錄去重清理 ({selectedYear} 年度)</h3>
+
+                                <div className="maintenance-info" style={{ background: '#f8fafc', padding: 20, borderRadius: 12, marginBottom: 24 }}>
+                                    <h4 style={{ margin: '0 0 8px', fontSize: 15, color: 'var(--primary)' }}>使用時機：</h4>
+                                    <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--text2)', fontSize: 14, lineHeight: 1.6 }}>
+                                        <li><strong>Excel 導入後</strong>：批次導入資料後，若擔心有重複上傳，可執行清理。</li>
+                                        <li><strong>數據不一致時</strong>：當發現採購清單出現兩筆金額日期相同，但一筆有科目代碼一筆沒有時。</li>
+                                        <li><strong>系統維護</strong>：定期執行可縮小資料庫體積，提升系統讀取效能。</li>
+                                    </ul>
+
+                                    <h4 style={{ margin: '16px 0 8px', fontSize: 15, color: 'var(--primary)' }}>執行說明：</h4>
+                                    <p style={{ margin: 0, color: 'var(--text2)', fontSize: 14, lineHeight: 1.6 }}>
+                                        系統會比對該年度所有紀錄的 <strong>「日期、廠商、單號、品名、金額」</strong>。<br />
+                                        若判定為重複，會自動保留「資訊最完整（已連結正式總帳科目編號）」的那一筆，永久移除其他冗餘紀錄。
+                                    </p>
+                                </div>
+
+                                <button
+                                    className="btn-primary"
+                                    style={{
+                                        padding: '12px 32px',
+                                        fontSize: 16,
+                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                        boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
+                                        borderRadius: 12
+                                    }}
+                                    onClick={handleCleanupDuplicates}
+                                    disabled={cleaningData}
+                                >
+                                    {cleaningData ? '深度掃描並清理中...' : `立即清理 ${selectedYear} 年度重複項`}
+                                </button>
+
+                                <p style={{ marginTop: 16, fontSize: 12, color: '#ef4444', fontWeight: 500 }}>
+                                    ※ 注意：此操作將永久從資料庫移除冗餘數據，執行前請確認已選擇正確年度。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Users tab */}
             {tab === 'users' && (

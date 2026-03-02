@@ -84,8 +84,36 @@ const PurchaseListPage: React.FC = () => {
     }, [appUser]);
 
     const filtered = useMemo(() => {
-        return localPurchases;
-    }, [localPurchases]);
+        // 1. 基本過濾 (目前由 Firestore 完成，這裡僅作保險或未來擴充)
+        let list = localPurchases;
+
+        // 2. 自動去重 (Deduplication)
+        // 判斷依據：日期、廠商、單號、品名、金額 全部相同則視為重複
+        const seen = new Map<string, Purchase>();
+
+        list.forEach(p => {
+            const d = p.purchaseDate.toDate();
+            const dateStr = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+            // 唯一鍵值：日期 + 廠商 + 單號 + 品名 + 金額
+            const key = `${dateStr}|${p.vendor}|${p.docNumber || 'no-doc'}|${p.title}|${p.amount}`;
+
+            const existing = seen.get(key);
+            if (!existing) {
+                seen.set(key, p);
+            } else {
+                // 如果已經存在，比較哪一個「品質」更好
+                // 優先保留：有正確 ledgerAccountId (在 ledgerAccounts 列表中能找到) 的那筆
+                const existingAcc = ledgerAccounts.find(a => a.id === existing.ledgerAccountId);
+                const currentAcc = ledgerAccounts.find(a => a.id === p.ledgerAccountId);
+
+                if (!existingAcc && currentAcc) {
+                    seen.set(key, p); // 替換為品質更好的
+                }
+            }
+        });
+
+        return Array.from(seen.values());
+    }, [localPurchases, ledgerAccounts]);
 
     const grouped = useMemo(() => {
         const groups: Record<string, Purchase[]> = {};

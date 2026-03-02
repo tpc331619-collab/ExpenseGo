@@ -108,6 +108,8 @@
     max-height: 250px;
     overflow-y: auto;
     padding-right: 4px;
+    position: relative;
+    z-index: 5;
 }
 
 .pie-legend-custom::-webkit-scrollbar {
@@ -505,6 +507,8 @@
     flex: 1;
     min-width: 0;
     box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
 }
 
 .chart-subtitle {

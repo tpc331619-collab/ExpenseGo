@@ -332,6 +332,58 @@ export const deletePurchasesBatch = async (groupIds: string[], year: number) => 
     }
 };
 
+/**
+ * 自動去重清理：尋找並刪除完全重複且資訊較差（無預算科目ID）的採購紀錄
+ */
+export const cleanupDuplicatePurchases = async (year: number, validLedgerAccountIds: string[]) => {
+    const purchaseRef = getPurchaseRef(year);
+    const snap = await getDocs(query(purchaseRef));
+    const all = snap.docs.map(d => ({ ...(d.data() as Purchase), id: d.id, ref: d.ref }));
+
+    const seen = new Map<string, typeof all[0]>();
+    const toDelete: typeof all[0][] = [];
+
+    all.forEach(p => {
+        const d = p.purchaseDate.toDate();
+        const dateStr = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        // 唯一鍵值：日期 + 廠商 + 單號 + 品名 + 金額
+        const key = `${dateStr}|${p.vendor}|${p.docNumber || 'no-doc'}|${p.title}|${p.amount}`;
+
+        const existing = seen.get(key);
+        if (!existing) {
+            seen.set(key, p);
+        } else {
+            // 比對品質
+            const existingIsGood = validLedgerAccountIds.includes(existing.ledgerAccountId);
+            const currentIsGood = validLedgerAccountIds.includes(p.ledgerAccountId);
+
+            if (!existingIsGood && currentIsGood) {
+                // 之前的不好，現在的好 -> 標記之前的刪除，保留現在的
+                toDelete.push(existing);
+                seen.set(key, p);
+            } else {
+                // 如果現在的不好，或者是兩個都好/兩個都不好（取先看到的），則刪除現在的
+                toDelete.push(p);
+            }
+        }
+    });
+
+    if (toDelete.length === 0) return 0;
+
+    let batch = writeBatch(db);
+    let count = 0;
+    for (const item of toDelete) {
+        batch.delete(item.ref);
+        count++;
+        if (count % 450 === 0) {
+            await batch.commit();
+            batch = writeBatch(db);
+        }
+    }
+    await batch.commit();
+    return toDelete.length;
+};
+
 // ─── Migration Utility ────────────────────────────────────────────────────────
 
 export const migrateToYearlyStructure = async () => {
