@@ -398,7 +398,7 @@ const AdminPage: React.FC = () => {
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1 className="page-title">{isAdmin ? '系統管理' : '管理'}</h1>
+                <h1 className="page-title">系統管理</h1>
             </div>
 
             <div className="admin-tabs">

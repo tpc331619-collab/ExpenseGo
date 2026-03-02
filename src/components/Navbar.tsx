@@ -44,7 +44,7 @@ const Navbar: React.FC = () => {
         { to: '/', label: '總覽', icon: <LayoutDashboard size={18} />, exact: true, badge: 0 },
         { to: '/purchases', label: '採購紀錄', icon: <FileText size={18} />, exact: false, badge: 0 },
         { to: '/report', label: '年度報表', icon: <BarChart3 size={18} />, exact: false, badge: 0 },
-        { to: '/admin', label: '管理', icon: <Database size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0 },
+        { to: '/admin', label: '系統管理', icon: <Database size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0 },
     ];
 
     return (

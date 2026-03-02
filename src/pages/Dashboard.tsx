@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
                 remaining,
                 percent
             };
-        }).filter(b => b.spent > 0).sort((a, b) => b.percent - a.percent);
+        }).filter(b => b.budget > 0 && b.spent > 0).sort((a, b) => b.percent - a.percent);
 
         // Monthly stacked data
         const accountColors: Record<string, number> = {};
