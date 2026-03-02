@@ -19,7 +19,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 const AdminPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors } = useApp();
+    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear } = useApp();
     const isAdmin = appUser?.role === 'admin';
     const isGuest = appUser?.role === 'guest';
     const [tab, setTab] = useState<AdminTab>(isAdmin ? 'users' : 'accounts');
@@ -87,10 +87,10 @@ const AdminPage: React.FC = () => {
         setAccSaving(true);
         try {
             if (editingAcc) {
-                await updateLedgerAccount(editingAcc.id, accCode.trim(), accName.trim(), budgetNum);
+                await updateLedgerAccount(editingAcc.id, selectedYear, accCode.trim(), accName.trim(), budgetNum);
                 setEditingAcc(null);
             } else {
-                await addLedgerAccount(accCode.trim(), accName.trim(), budgetNum);
+                await addLedgerAccount(selectedYear, accCode.trim(), accName.trim(), budgetNum);
             }
             console.log('Account saved successfully');
             setAccCode('');
@@ -110,7 +110,7 @@ const AdminPage: React.FC = () => {
 
     const handleDeleteAccount = async (id: string, name: string) => {
         if (!confirm(`確定刪除科目「${name}」？`)) return;
-        await deleteLedgerAccount(id);
+        await deleteLedgerAccount(id, selectedYear);
         await refreshLedgerAccounts();
     };
 
@@ -171,7 +171,7 @@ const AdminPage: React.FC = () => {
                     if (!row._valid) continue;
                     const { code, name, budget, rowNum } = row._processed;
                     try {
-                        await addLedgerAccount(code, name, budget);
+                        await addLedgerAccount(selectedYear, code, name, budget);
                         successCount++;
                     } catch (err: any) {
                         errors.push(`第 ${rowNum} 列：儲存失敗 (${err.message || '權限問題'})`);
@@ -470,7 +470,7 @@ const AdminPage: React.FC = () => {
                                 onChange={(e) => setAccBudget(e.target.value)}
                             />
                             <button type="submit" className="btn-primary" disabled={accSaving}>
-                                {accSaving ? '儲存中⋯' : editingAcc ? '更新' : '新增'}
+                                {accSaving ? '儲存中⋯' : editingAcc ? `更新 (${selectedYear})` : `新增 (${selectedYear})`}
                             </button>
                             {editingAcc && (
                                 <button type="button" className="btn-outline" onClick={cancelEdit}>取消</button>

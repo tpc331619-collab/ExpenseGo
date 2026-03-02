@@ -78,14 +78,17 @@ export const deleteUser = async (uid: string) => {
 
 // ─── Ledger Accounts ─────────────────────────────────────────────────────────
 
-export const getLedgerAccounts = async (): Promise<LedgerAccount[]> => {
-    const q = query(collection(db, 'ledgerAccounts'), orderBy('code', 'asc'));
+const getLedgerAccountRef = (year: number) => collection(db, 'years', String(year), 'ledgerAccounts');
+
+export const getLedgerAccounts = async (year: number): Promise<LedgerAccount[]> => {
+    const q = query(getLedgerAccountRef(year));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LedgerAccount);
+    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LedgerAccount);
+    return data.sort((a, b) => a.code.localeCompare(b.code));
 };
 
-export const addLedgerAccount = async (code: string, name: string, budget: number) => {
-    await addDoc(collection(db, 'ledgerAccounts'), {
+export const addLedgerAccount = async (year: number, code: string, name: string, budget: number) => {
+    await addDoc(getLedgerAccountRef(year), {
         code,
         name,
         budget,
@@ -93,12 +96,12 @@ export const addLedgerAccount = async (code: string, name: string, budget: numbe
     });
 };
 
-export const deleteLedgerAccount = async (id: string) => {
-    await deleteDoc(doc(db, 'ledgerAccounts', id));
+export const deleteLedgerAccount = async (id: string, year: number) => {
+    await deleteDoc(doc(db, 'years', String(year), 'ledgerAccounts', id));
 };
 
-export const updateLedgerAccount = async (id: string, code: string, name: string, budget: number) => {
-    await updateDoc(doc(db, 'ledgerAccounts', id), { code, name, budget });
+export const updateLedgerAccount = async (id: string, year: number, code: string, name: string, budget: number) => {
+    await updateDoc(doc(db, 'years', String(year), 'ledgerAccounts', id), { code, name, budget });
 };
 
 // ─── Vendors ──────────────────────────────────────────────────────────────────

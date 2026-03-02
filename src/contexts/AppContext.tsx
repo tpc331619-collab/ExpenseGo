@@ -48,7 +48,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const refreshLedgerAccounts = async () => {
-        const data = await getLedgerAccounts();
+        const data = await getLedgerAccounts(selectedYear);
         setLedgerAccounts(data);
     };
 

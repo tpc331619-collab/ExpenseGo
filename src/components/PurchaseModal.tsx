@@ -30,8 +30,21 @@ const emptyForm = (): PurchaseFormData => ({
 
 const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
     const { appUser } = useAuth();
-    const { purchases, ledgerAccounts, vendors, refreshPurchases } = useApp();
-    const [form, setForm] = useState<PurchaseFormData>(emptyForm());
+    const { purchases, ledgerAccounts, vendors, selectedYear, refreshPurchases } = useApp();
+    const [form, setForm] = useState<PurchaseFormData>(() => {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        let defaultDate = today.toLocaleDateString('en-CA');
+
+        if (selectedYear !== currentYear) {
+            defaultDate = `${selectedYear}-01-01`;
+        }
+
+        return {
+            ...emptyForm(),
+            purchaseDate: defaultDate
+        };
+    });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [isGrossMode, setIsGrossMode] = useState(false);
@@ -264,7 +277,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                 <option value="">選擇廠商</option>
                                 {sortedVendors.map((v: Vendor) => (
                                     <option key={v.id} value={v.name}>
-                                        {v.taxId ? `[${v.taxId}] ` : ''}{v.name}
+                                        {v.name}
                                     </option>
                                 ))}
                             </select>
