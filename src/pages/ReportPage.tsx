@@ -201,7 +201,7 @@ const ReportPage: React.FC = () => {
                 <div className="pie-content-layout">
                     <div className="pie-container">
                         {/* Enlarged SVG for better balance, width covers legend for copy fix */}
-                        <svg width="500" height="250" viewBox="0 0 500 250" style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible' }}>
+                        <svg width="500" height="250" viewBox="0 0 500 250" style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible', zIndex: 1 }}>
                             <g style={{ pointerEvents: 'auto' }}>
                                 {total > 0 && chartData.map((item, idx) => {
                                     const percent = item.value / total;
@@ -254,12 +254,15 @@ const ReportPage: React.FC = () => {
                                     const lx1 = centerX + Math.cos(midAngle) * radius;
                                     const ly1 = centerY + Math.sin(midAngle) * radius;
 
-                                    const targetX = 304;
+                                    const targetX = 304; // Points to the left edge of the legend text area
                                     const totalItems = chartData.length;
                                     const lgGap = 4;
-                                    const itemH = Math.min(46, (250 - (totalItems - 1) * lgGap) / totalItems);
+                                    // Match CSS min-height/max-height flexible logic
+                                    const itemH = Math.min(42, Math.max(28, (250 - (totalItems - 1) * lgGap) / totalItems));
                                     const totalLgH = (totalItems * itemH) + ((totalItems - 1) * lgGap);
-                                    const targetY = centerY + (idx * (itemH + lgGap) + itemH / 2 - totalLgH / 2);
+                                    // Safe centering: offset can't be negative (starting from top if overflow)
+                                    const centeringOffset = Math.max(0, (250 - totalLgH) / 2);
+                                    const targetY = centeringOffset + (idx * (itemH + lgGap)) + itemH / 2;
 
                                     const isLeft = Math.cos(midAngle) < 0;
                                     let pathD = "";

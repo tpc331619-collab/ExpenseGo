@@ -103,13 +103,22 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    /* justify-content: center; <-- Removed to prevent overflow clipping */
     gap: 4px;
     max-height: 250px;
     overflow-y: auto;
     padding-right: 4px;
     position: relative;
-    z-index: 5;
+    z-index: 100;
+    /* Increased to 100 to win against any other element cases */
+    background: transparent;
+}
+
+/* Safe centering: only centers if content is smaller than container */
+.pie-legend-custom::before,
+.pie-legend-custom::after {
+    content: '';
+    flex: 1;
 }
 
 .pie-legend-custom::-webkit-scrollbar {
@@ -127,10 +136,11 @@
     align-items: center;
     gap: 12px;
     padding: 0 12px;
-    min-height: 38px;
+    min-height: 28px;
+    /* Reduced from 38px to fit more items */
     flex: 1;
     /* Stretch to fill space when items are few */
-    max-height: 46px;
+    max-height: 42px;
     /* But don't exceed preferred large spacing */
     border-radius: 8px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -511,6 +521,12 @@
     overflow: hidden;
 }
 
+/* Ensure nothing in chart-wrapper can block the legend via pseudo-elements */
+.chart-wrapper::before,
+.chart-wrapper::after {
+    display: none !important;
+}
+
 .chart-subtitle {
     margin: 0;
     font-size: 14px;
@@ -591,3 +607,8 @@
         flex-direction: column;
     }
 }
+/* Final Nuke: Ensure no ghost circles or decorators can EVER overlap the chart/legend area */
+.pie-wrapper, .pie-wrapper *, .pie-wrapper *::before, .pie-wrapper *::after { box-shadow: none !important; text-shadow: none !important; }
+.pie-legend-item { z-index: 101; }
+.pie-legend-dot { box-shadow: none !important; }
+.pie-legend-item.pinned .pie-legend-dot { box-shadow: 0 0 0 1px white, 0 0 0 1.5px #ef4444 !important; }
