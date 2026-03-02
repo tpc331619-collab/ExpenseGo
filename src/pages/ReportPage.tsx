@@ -560,13 +560,23 @@ const ReportPage: React.FC = () => {
                 .trim();
         };
 
+        const summarizeTitles = (titles: string[]) => {
+            const unique = [...new Set(titles.map(cleanTitle))].filter(t => t.length > 0);
+            if (unique.length === 0) return '無明確品名';
+
+            const limit = 3;
+            const display = unique.slice(0, limit);
+            if (unique.length > limit) {
+                return `${display.join('、')}等費用支出`;
+            }
+            return display.join('、');
+        };
+
         const copyToClipboard = () => {
             const text = sortedData.map(acc => {
-                const cleanedTitles = [...new Set(acc.items.map(it => cleanTitle(it.title)))]
-                    .filter(t => t.length > 0)
-                    .slice(0, 3);
-                const titlesStr = cleanedTitles.length > 0 ? `，${cleanedTitles.join('、')}` : '';
-                return `${acc.ledgerAccountCode}，採購 ${acc.total.toLocaleString()} NTD${titlesStr}`;
+                const titles = acc.items.map(it => it.title);
+                const summary = summarizeTitles(titles);
+                return `${acc.ledgerAccountCode}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
             }).join('；\n');
 
             navigator.clipboard.writeText(text);
@@ -586,9 +596,6 @@ const ReportPage: React.FC = () => {
                         </div>
                         <div className="analysis-content">
                             {sortedData.map(acc => {
-                                const cleanedTitles = [...new Set(acc.items.map(it => cleanTitle(it.title)))]
-                                    .filter(t => t.length > 0)
-                                    .slice(0, 5);
                                 return (
                                     <div key={acc.ledgerAccountId} className="analysis-item">
                                         <div className="ai-header">
@@ -600,7 +607,7 @@ const ReportPage: React.FC = () => {
                                             <span className="ai-count">({acc.count} 筆)</span>
                                         </div>
                                         <div className="ai-description">
-                                            主要項目：{cleanedTitles.join('、') || '無明確品名'}
+                                            包含：{summarizeTitles(acc.items.map(it => it.title))}
                                         </div>
                                     </div>
                                 );
