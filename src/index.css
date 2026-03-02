@@ -248,6 +248,39 @@ select option {
   font-size: 14px;
   padding: 8px 16px;
   border-radius: var(--radius-sm);
+  transition: all .2s;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  /* Teal/Green gradient as requested */
+  color: #fff !important;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.btn-export:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+  opacity: 1;
+}
+
+.btn-export:active {
+  transform: translateY(0);
+}
+
+.btn-export:disabled {
+  opacity: .6;
+  cursor: not-allowed;
 }
 
 .btn-ghost:hover {

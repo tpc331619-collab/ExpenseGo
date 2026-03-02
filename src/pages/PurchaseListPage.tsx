@@ -5,7 +5,7 @@ import { deletePurchaseGroup, deletePurchasesBatch, getPaginatedPurchases, getAl
 import type { Purchase } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
-import { Upload, Download, FileDown, XCircle, X, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Upload, Download, XCircle, X, Trash2, CheckSquare, Square } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
 import './PurchaseListPage.css';
@@ -460,8 +460,8 @@ const PurchaseListPage: React.FC = () => {
                             <button className="btn-outline-text" onClick={downloadTemplate}>
                                 <Download size={14} /> 範本
                             </button>
-                            <button className="btn-outline-text" onClick={handleExportExcel} title="匯出篩選後的資料">
-                                <FileDown size={14} /> 匯出 Excel
+                            <button className="btn-export" onClick={handleExportExcel} title="匯出篩選後的資料">
+                                📥 匯出 Excel
                             </button>
                             <button className="btn-primary" onClick={() => setShowModal(true)}>＋ 新增採購</button>
                         </>
