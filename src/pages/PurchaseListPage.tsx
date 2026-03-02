@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import { deletePurchaseGroup, getPaginatedPurchases, getAllUsers } from '../lib/firestore';
+import { deletePurchaseGroup, deletePurchasesBatch, getPaginatedPurchases, getAllUsers } from '../lib/firestore';
 import type { Purchase } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
-import { Upload, Download, FileDown, XCircle, X } from 'lucide-react';
+import { Upload, Download, FileDown, XCircle, X, Trash2, CheckSquare, Square } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
 import './PurchaseListPage.css';
@@ -34,6 +34,7 @@ const PurchaseListPage: React.FC = () => {
     const [filterPurType, setFilterPurType] = useState('');
     const [vendorDetail, setVendorDetail] = useState<string | null>(null);
     const [importResult, setImportResult] = useState<{ success: number; skipped: number; errors: string[] } | null>(null);
+    const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
 
     const fetchPurchases = async (isLoadMore = false) => {
         if (!isLoadMore) setLoading(true);
@@ -68,6 +69,7 @@ const PurchaseListPage: React.FC = () => {
     };
 
     useEffect(() => {
+        setSelectedGroups(new Set());
         fetchPurchases();
     }, [selectedYear, filterAccount, filterCreator, filterReqType, filterPurType, appUser]);
 
@@ -142,6 +144,52 @@ const PurchaseListPage: React.FC = () => {
         setEditTarget(null);
         setIsCopy(false);
         if (refresh) fetchPurchases();
+    };
+
+    const toggleSelectGroup = (groupId: string) => {
+        setSelectedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(groupId)) next.delete(groupId);
+            else next.add(groupId);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        const visibleGroupIds = new Set(filtered.map(p => p.groupId));
+        const allVisibleSelected = Array.from(visibleGroupIds).every(id => selectedGroups.has(id));
+
+        if (allVisibleSelected) {
+            setSelectedGroups(prev => {
+                const next = new Set(prev);
+                visibleGroupIds.forEach(id => next.delete(id));
+                return next;
+            });
+        } else {
+            setSelectedGroups(prev => {
+                const next = new Set(prev);
+                visibleGroupIds.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
+    const handleBatchDelete = async () => {
+        const count = selectedGroups.size;
+        if (!confirm(`確定要刪除所選的 ${count} 筆採購紀錄（包含其明細）？`)) return;
+
+        setLoading(true);
+        try {
+            await deletePurchasesBatch(Array.from(selectedGroups), selectedYear);
+            setSelectedGroups(new Set());
+            fetchPurchases();
+            alert(`已成功刪除 ${count} 份單據`);
+        } catch (err: any) {
+            console.error('Batch delete failed:', err);
+            alert('批次刪除失敗：' + err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleExportExcel = () => {
@@ -454,6 +502,14 @@ const PurchaseListPage: React.FC = () => {
                     <table className="purchase-table">
                         <thead>
                             <tr>
+                                <th style={{ width: 40 }}>
+                                    <div
+                                        className={`checkbox-custom ${Array.from(new Set(filtered.map(p => p.groupId))).every(id => selectedGroups.has(id)) && filtered.length > 0 ? 'checked' : ''}`}
+                                        onClick={toggleSelectAll}
+                                    >
+                                        {Array.from(new Set(filtered.map(p => p.groupId))).every(id => selectedGroups.has(id)) && filtered.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}
+                                    </div>
+                                </th>
                                 <th>序號</th>
                                 <th>日期</th>
                                 <th>廠商/品名</th>
@@ -471,7 +527,7 @@ const PurchaseListPage: React.FC = () => {
                                 return (
                                     <React.Fragment key={monthKey}>
                                         <tr className="month-group-header" onClick={() => toggleMonth(monthKey)}>
-                                            <td colSpan={7}>
+                                            <td colSpan={8}>
                                                 <div className="month-header-content">
                                                     <span className={`arrow ${isExpanded ? 'open' : ''}`}>
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -484,7 +540,18 @@ const PurchaseListPage: React.FC = () => {
                                         {isExpanded && items.map((p) => {
                                             const globalIdx = filtered.findIndex(f => f.id === p.id);
                                             return (
-                                                <tr key={p.id}>
+                                                <tr key={p.id} className={selectedGroups.has(p.groupId) ? 'row-selected' : ''}>
+                                                    <td className="td-checkbox">
+                                                        <div
+                                                            className={`checkbox-custom ${selectedGroups.has(p.groupId) ? 'checked' : ''}`}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleSelectGroup(p.groupId);
+                                                            }}
+                                                        >
+                                                            {selectedGroups.has(p.groupId) ? <CheckSquare size={18} /> : <Square size={18} />}
+                                                        </div>
+                                                    </td>
                                                     <td data-label="序號" className="td-index">{globalIdx + 1}</td>
                                                     <td data-label="日期" className="td-date">
                                                         <div className="text-bold">{fmtDate(p)}</div>
@@ -625,6 +692,23 @@ const PurchaseListPage: React.FC = () => {
                         <div style={{ padding: '12px 24px 20px', textAlign: 'right' }}>
                             <button className="btn-primary" onClick={() => setImportResult(null)}>關閉</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Batch Action Bar */}
+            {selectedGroups.size > 0 && (
+                <div className="batch-action-bar">
+                    <div className="batch-info">
+                        已選擇 <strong>{selectedGroups.size}</strong> 份採購單據
+                    </div>
+                    <div className="batch-actions">
+                        <button className="btn-batch-delete" onClick={handleBatchDelete}>
+                            <Trash2 size={16} /> 批次刪除
+                        </button>
+                        <button className="btn-batch-cancel" onClick={() => setSelectedGroups(new Set())}>
+                            取消
+                        </button>
                     </div>
                 </div>
             )}

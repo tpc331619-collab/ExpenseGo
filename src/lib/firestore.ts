@@ -306,6 +306,32 @@ export const deletePurchaseGroup = async (groupId: string, year: number) => {
     await batch.commit();
 };
 
+export const deletePurchasesBatch = async (groupIds: string[], year: number) => {
+    const purchaseRef = getPurchaseRef(year);
+    let batch = writeBatch(db);
+    let opCount = 0;
+
+    for (const groupId of groupIds) {
+        const q = query(purchaseRef, where('groupId', '==', groupId));
+        const snap = await getDocs(q);
+
+        for (const d of snap.docs) {
+            batch.delete(d.ref);
+            opCount++;
+
+            if (opCount >= 450) {
+                await batch.commit();
+                batch = writeBatch(db);
+                opCount = 0;
+            }
+        }
+    }
+
+    if (opCount > 0) {
+        await batch.commit();
+    }
+};
+
 // ─── Migration Utility ────────────────────────────────────────────────────────
 
 export const migrateToYearlyStructure = async () => {

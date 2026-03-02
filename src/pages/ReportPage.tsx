@@ -563,13 +563,10 @@ const ReportPage: React.FC = () => {
         const summarizeTitles = (titles: string[]) => {
             const unique = [...new Set(titles.map(cleanTitle))].filter(t => t.length > 0);
             if (unique.length === 0) return '無明確品名';
-
-            const limit = 3;
-            const display = unique.slice(0, limit);
-            if (unique.length > limit) {
-                return `${display.join('、')}等費用支出`;
-            }
-            return display.join('、');
+            if (unique.length === 1) return unique[0];
+            // 取第一個項目的前幾個字作為代表，避免太長
+            const representative = unique[0].length > 10 ? unique[0].substring(0, 10) : unique[0];
+            return `${representative}等費用支出`;
         };
 
         const copyToClipboard = () => {
