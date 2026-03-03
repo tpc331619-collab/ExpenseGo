@@ -6,11 +6,204 @@ import {
     cleanupDuplicatePurchases,
 } from '../lib/firestore';
 import * as XLSX from 'xlsx';
-import { Upload, Plus } from 'lucide-react';
+import { Upload, Plus, Database, Wrench } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { AppUser, LedgerAccount, Vendor } from '../types';
 import { useApp } from '../contexts/AppContext';
 import './AdminPage.css';
+import '../components/PurchaseModal.css'; // Reuse modal styles
+
+interface LedgerAccountModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (code: string, name: string, budget: string) => Promise<void>;
+    editingAccount: LedgerAccount | null;
+    selectedYear: number;
+    saving: boolean;
+}
+
+const LedgerAccountModal: React.FC<LedgerAccountModalProps> = ({
+    isOpen, onClose, onSave, editingAccount, selectedYear, saving
+}) => {
+    const [code, setCode] = useState('');
+    const [name, setName] = useState('');
+    const [budget, setBudget] = useState('');
+
+    useEffect(() => {
+        if (editingAccount) {
+            setCode(editingAccount.code);
+            setName(editingAccount.name);
+            setBudget(String(editingAccount.budget || ''));
+        } else {
+            setCode('');
+            setName('');
+            setBudget('');
+        }
+    }, [editingAccount, isOpen]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-box admin-modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2>{editingAccount ? `編輯科目 (${selectedYear})` : `新增科目 (${selectedYear})`}</h2>
+                    <button className="modal-close" onClick={onClose}>✕</button>
+                </div>
+                <form className="modal-form" onSubmit={(e) => {
+                    e.preventDefault();
+                    onSave(code, name, budget);
+                }}>
+                    <div className="form-group">
+                        <label>科目代碼 <span className="required">*</span></label>
+                        <input value={code} onChange={e => setCode(e.target.value)} placeholder="如 M54000" required />
+                    </div>
+                    <div className="form-group">
+                        <label>科目名稱 <span className="required">*</span></label>
+                        <input value={name} onChange={e => setName(e.target.value)} placeholder="如 差旅費" required />
+                    </div>
+                    <div className="form-group">
+                        <label>計畫成本 (新台幣)</label>
+                        <input type="number" value={budget} onChange={e => setBudget(e.target.value)} placeholder="0" />
+                    </div>
+                    <div className="modal-footer-combined">
+                        <div className="footer-actions" style={{ marginLeft: 'auto' }}>
+                            <button type="button" className="btn-outline" onClick={onClose}>取消</button>
+                            <button type="submit" className="btn-primary" disabled={saving}>
+                                {saving ? '儲存中...' : '確認儲存'}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+interface VendorModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (data: Partial<Vendor>) => Promise<void>;
+    editingVendor: Vendor | null;
+    saving: boolean;
+}
+
+const VendorModal: React.FC<VendorModalProps> = ({
+    isOpen, onClose, onSave, editingVendor, saving
+}) => {
+    const [code, setCode] = useState('');
+    const [name, setName] = useState('');
+    const [taxId, setTaxId] = useState('');
+    const [contact, setContact] = useState('');
+    const [phone, setPhone] = useState('');
+
+    useEffect(() => {
+        if (editingVendor) {
+            setCode(editingVendor.code || '');
+            setName(editingVendor.name);
+            setTaxId(editingVendor.taxId || '');
+            setContact(editingVendor.contact || '');
+            setPhone(editingVendor.phone || '');
+        } else {
+            setCode('');
+            setName('');
+            setTaxId('');
+            setContact('');
+            setPhone('');
+        }
+    }, [editingVendor, isOpen]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-box admin-modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2>{editingVendor ? '編輯廠商' : '新增廠商'}</h2>
+                    <button className="modal-close" onClick={onClose}>✕</button>
+                </div>
+                <form className="modal-form" onSubmit={(e) => {
+                    e.preventDefault();
+                    onSave({ code, name, taxId, contact, phone });
+                }}>
+                    <div className="form-grid">
+                        <div className="form-group col-12">
+                            <label>廠商名稱 <span className="required">*</span></label>
+                            <input value={name} onChange={e => setName(e.target.value)} placeholder="如 國泰化工" required />
+                        </div>
+                        <div className="form-group col-6">
+                            <label>統一編號</label>
+                            <input value={taxId} onChange={e => setTaxId(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="8位數字" />
+                        </div>
+                        <div className="form-group col-6">
+                            <label>廠商代碼</label>
+                            <input value={code} onChange={e => setCode(e.target.value)} placeholder="選填" />
+                        </div>
+                        <div className="form-group col-6">
+                            <label>聯絡人</label>
+                            <input value={contact} onChange={e => setContact(e.target.value)} placeholder="聯絡姓名" />
+                        </div>
+                        <div className="form-group col-6">
+                            <label>聯絡電話</label>
+                            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="電話或分機" />
+                        </div>
+                    </div>
+                    <div className="modal-footer-combined">
+                        <div className="footer-actions" style={{ marginLeft: 'auto' }}>
+                            <button type="button" className="btn-outline" onClick={onClose}>取消</button>
+                            <button type="submit" className="btn-primary" disabled={saving}>
+                                {saving ? '儲存中...' : '確認儲存'}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+interface ConfirmModalProps {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    confirmText?: string;
+    type?: 'danger' | 'warning' | 'info';
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+    isOpen, title, message, onConfirm, onCancel, confirmText = '確定', type = 'info'
+}) => {
+    if (!isOpen) return null;
+
+    const getIcon = () => {
+        if (type === 'danger') return '⚠️';
+        if (type === 'warning') return '💡';
+        return 'ℹ️';
+    };
+
+    const getBtnClass = () => {
+        if (type === 'danger') return 'btn-danger-confirm';
+        return 'btn-primary';
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onCancel}>
+            <div className="modal-box confirm-modal" onClick={e => e.stopPropagation()}>
+                <div className="confirm-content">
+                    <div className={`confirm-icon icon-${type}`}>{getIcon()}</div>
+                    <h3>{title}</h3>
+                    <p dangerouslySetInnerHTML={{ __html: message.replace(/\n/g, '<br/>') }}></p>
+                </div>
+                <div className="confirm-footer">
+                    <button className="btn-outline" onClick={onCancel}>取消</button>
+                    <button className={getBtnClass()} onClick={onConfirm}>{confirmText}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 type AdminTab = 'users' | 'accounts' | 'vendors' | 'maintenance';
 
@@ -28,22 +221,30 @@ const AdminPage: React.FC = () => {
     const [loadingUsers, setLoadingUsers] = useState(false);
 
     // Ledger account form
-    const [accCode, setAccCode] = useState('');
-    const [accName, setAccName] = useState('');
-    const [accBudget, setAccBudget] = useState('');
     const [accSaving, setAccSaving] = useState(false);
     const [editingAcc, setEditingAcc] = useState<LedgerAccount | null>(null);
 
     // Vendor form
-    const [vendorCode, setVendorCode] = useState('');
-    const [vendorName, setVendorName] = useState('');
-    const [vendorTaxId, setVendorTaxId] = useState('');
-    const [vendorContact, setVendorContact] = useState('');
-    const [vendorPhone, setVendorPhone] = useState('');
     const [vendorSaving, setVendorSaving] = useState(false);
     const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
-    const [adminError, setAdminError] = useState('');
     const [cleaningData, setCleaningData] = useState(false);
+
+    // Modals visibility
+    const [showAccModal, setShowAccModal] = useState(false);
+    const [showVendorModal, setShowVendorModal] = useState(false);
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'danger' | 'warning' | 'info';
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onConfirm: () => { }
+    });
 
     const [showAccImport, setShowAccImport] = useState(false);
     const [showVendorImport, setShowVendorImport] = useState(false);
@@ -69,65 +270,80 @@ const AdminPage: React.FC = () => {
             alert('不可刪除自己的帳號！');
             return;
         }
-        if (!confirm(`確定要刪除使用者「${name}」？此操作僅會移除系統權限設定，不會影響 Firebase Auth 帳號。`)) return;
-        try {
-            await deleteUser(uid);
-            await fetchUsers();
-        } catch (err: any) {
-            alert('刪除失敗：' + err.message);
-        }
+
+        setConfirmState({
+            isOpen: true,
+            title: '刪除使用者',
+            message: `確定要刪除使用者「${name}」？\n此操作僅會移除系統權限設定，不會影響 Firebase Auth 帳號。`,
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await deleteUser(uid);
+                    await fetchUsers();
+                    setConfirmState(prev => ({ ...prev, isOpen: false }));
+                } catch (err: any) {
+                    alert('刪除失敗：' + err.message);
+                }
+            }
+        });
     };
 
-    const handleAddAccount = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const budgetNum = parseFloat(accBudget) || 0;
-        console.log('Adding/Updating account:', { code: accCode, name: accName, budget: budgetNum, editingAcc });
-        if (!accCode.trim() || !accName.trim()) {
-            console.warn('Validation failed: Code and Name are required');
+    const handleSaveAccount = async (code: string, name: string, budget: string) => {
+        const budgetNum = parseFloat(budget) || 0;
+        const trimmedCode = code.trim();
+        const trimmedName = name.trim();
+        if (!trimmedCode || !trimmedName) return;
+
+        // Duplicate Check
+        const isDuplicate = ledgerAccounts.some(acc =>
+            acc.code.toLowerCase() === trimmedCode.toLowerCase() &&
+            acc.id !== editingAcc?.id
+        );
+
+        if (isDuplicate) {
+            alert(`代碼 ${trimmedCode} 已存在，請使用其他代碼。`);
             return;
         }
+
         setAccSaving(true);
         try {
             if (editingAcc) {
-                await updateLedgerAccount(editingAcc.id, selectedYear, accCode.trim(), accName.trim(), budgetNum);
+                await updateLedgerAccount(editingAcc.id, selectedYear, trimmedCode, trimmedName, budgetNum);
                 setEditingAcc(null);
             } else {
-                await addLedgerAccount(selectedYear, accCode.trim(), accName.trim(), budgetNum);
+                await addLedgerAccount(selectedYear, trimmedCode, trimmedName, budgetNum);
             }
-            console.log('Account saved successfully');
-            setAccCode('');
-            setAccName('');
-            setAccBudget('');
             await refreshLedgerAccounts();
-            setAdminError('');
+            setShowAccModal(false);
         } catch (err: any) {
-            console.error('Account save error:', err);
-            const msg = `科目儲存失敗: ${err.message || '請檢查 Firebase 權限（Rules）'}`;
-            setAdminError(msg);
-            alert(msg);
+            alert(`科目儲存失敗: ${err.message}`);
         } finally {
             setAccSaving(false);
         }
     };
 
     const handleDeleteAccount = async (id: string, name: string) => {
-        if (!confirm(`確定刪除科目「${name}」？`)) return;
-        await deleteLedgerAccount(id, selectedYear);
-        await refreshLedgerAccounts();
+        setConfirmState({
+            isOpen: true,
+            title: '刪除科目',
+            message: `確定要刪除科目「${name}」？\n這將會移除該科目在 ${selectedYear} 年度的預算設定。`,
+            type: 'danger',
+            onConfirm: async () => {
+                await deleteLedgerAccount(id, selectedYear);
+                await refreshLedgerAccounts();
+                setConfirmState(prev => ({ ...prev, isOpen: false }));
+            }
+        });
     };
 
     const startEdit = (acc: LedgerAccount) => {
         setEditingAcc(acc);
-        setAccCode(acc.code);
-        setAccName(acc.name);
-        setAccBudget(String(acc.budget || ''));
+        setShowAccModal(true);
     };
 
-    const cancelEdit = () => {
+    const startAddAccount = () => {
         setEditingAcc(null);
-        setAccCode('');
-        setAccName('');
-        setAccBudget('');
+        setShowAccModal(true);
     };
 
     const handleAccountImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,6 +368,7 @@ const AdminPage: React.FC = () => {
                 let successCount = 0;
                 let errors: string[] = [];
 
+                const seenCodes = new Set();
                 json.forEach((row, index) => {
                     const rowNum = index + 2; // Data starts on line 2
                     const code = String(row['科目代碼'] || row['代碼'] || '').trim();
@@ -162,6 +379,20 @@ const AdminPage: React.FC = () => {
 
                     if (!code || !name) {
                         errors.push(`第 ${rowNum} 列：代碼或名稱缺失`);
+                        return;
+                    }
+
+                    // Internal Excel Duplicate Check
+                    if (seenCodes.has(code.toLowerCase())) {
+                        errors.push(`第 ${rowNum} 列：Excel 內重複代碼 ${code}`);
+                        return;
+                    }
+                    seenCodes.add(code.toLowerCase());
+
+                    // Duplicate Check against existing accounts
+                    const isDuplicate = ledgerAccounts.some(acc => acc.code.toLowerCase() === code.toLowerCase());
+                    if (isDuplicate) {
+                        errors.push(`第 ${rowNum} 列：代碼 ${code} 已與現有科目重複`);
                         return;
                     }
 
@@ -204,94 +435,83 @@ const AdminPage: React.FC = () => {
             .replace(/[\(\)（）\s]/g, ''); // 移除空格與括弧
     };
 
-    const handleAddVendor = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!vendorName.trim()) return;
+    const handleSaveVendor = async (data: Partial<Vendor>) => {
+        if (!data.name?.trim()) return;
         setVendorSaving(true);
-
-        const vendorData: Partial<Vendor> = {
-            code: vendorCode.trim(),
-            name: vendorName.trim(),
-            taxId: vendorTaxId.trim(),
-            contact: vendorContact.trim(),
-            phone: vendorPhone.trim()
-        };
 
         try {
             if (editingVendor) {
-                await updateVendor(editingVendor.id, vendorData);
+                await updateVendor(editingVendor.id, data);
                 setEditingVendor(null);
             } else {
                 // Duplicate Check
-                const normName = normalizeName(vendorName);
+                const normName = normalizeName(data.name);
                 const nameDup = vendors.find(v => normalizeName(v.name) === normName);
-                const taxDup = vendorTaxId.trim() ? vendors.find(v => v.taxId === vendorTaxId.trim()) : null;
+                const taxDup = data.taxId?.trim() ? vendors.find(v => v.taxId === data.taxId?.trim()) : null;
 
                 if (taxDup) {
-                    throw new Error(`統編 ${vendorTaxId} 已由「${taxDup.name}」使用，請勿重複建立。`);
+                    throw new Error(`統編 ${data.taxId} 已由「${taxDup.name}」使用，請勿重複建立。`);
                 }
                 if (nameDup) {
                     throw new Error(`偵測到相似廠商：「${nameDup.name}」。\n系統已自動比對並排除「股份有限公司/有限公司」等字眼，請確認是否為同一家廠商。`);
                 }
 
-                await addVendor(vendorData);
+                await addVendor(data);
             }
 
-            // Clean up
-            setVendorCode('');
-            setVendorName('');
-            setVendorTaxId('');
-            setVendorContact('');
-            setVendorPhone('');
-
             await refreshVendors();
-            setAdminError('');
+            setShowVendorModal(false);
         } catch (err: any) {
-            console.error('Vendor save error:', err);
-            const msg = `廠商儲存失敗: ${err.message}`;
-            setAdminError(msg);
-            alert(msg);
+            alert(`廠商儲存失敗: ${err.message}`);
         } finally {
             setVendorSaving(false);
         }
     };
 
     const handleDeleteVendor = async (id: string, name: string) => {
-        if (!confirm(`確定刪除廠商「${name}」？`)) return;
-        await deleteVendor(id);
-        await refreshVendors();
+        setConfirmState({
+            isOpen: true,
+            title: '刪除廠商',
+            message: `確定要刪除廠商「${name}」？\n此動作將使該廠商從列表中移除。`,
+            type: 'danger',
+            onConfirm: async () => {
+                await deleteVendor(id);
+                await refreshVendors();
+                setConfirmState(prev => ({ ...prev, isOpen: false }));
+            }
+        });
     };
 
     const startEditVendor = (v: Vendor) => {
         setEditingVendor(v);
-        setVendorCode(v.code || '');
-        setVendorName(v.name);
-        setVendorTaxId(v.taxId || '');
-        setVendorContact(v.contact || '');
-        setVendorPhone(v.phone || '');
+        setShowVendorModal(true);
     };
 
-    const cancelEditVendor = () => {
+    const startAddVendor = () => {
         setEditingVendor(null);
-        setVendorCode('');
-        setVendorName('');
-        setVendorTaxId('');
-        setVendorContact('');
-        setVendorPhone('');
+        setShowVendorModal(true);
     };
 
     const handleCleanupDuplicates = async () => {
-        if (!confirm(`確定要永久刪除 ${selectedYear} 年度中重複的採購紀錄？\n系統會自動保留資訊較完整的紀錄，此操作不可撤銷。`)) return;
-        setCleaningData(true);
-        try {
-            const count = await cleanupDuplicatePurchases(selectedYear, ledgerAccounts.map(a => a.id));
-            alert(`清理完成！共刪除了 ${count} 筆重複資料。`);
-            window.location.reload(); // Refresh to ensure AppContext and other parts see the change
-        } catch (err: any) {
-            alert('清理失敗：' + err.message);
-        } finally {
-            setCleaningData(false);
-        }
+        setConfirmState({
+            isOpen: true,
+            title: '採購紀錄清理',
+            message: `確定要永久刪除 ${selectedYear} 年度中重複的採購紀錄？\n系統會自動保留資訊較完整的紀錄，此操作不可撤銷。`,
+            type: 'warning',
+            onConfirm: async () => {
+                setCleaningData(true);
+                try {
+                    const count = await cleanupDuplicatePurchases(selectedYear, ledgerAccounts.map(a => a.id));
+                    alert(`清理完成！共刪除了 ${count} 筆重複資料。`);
+                    window.location.reload();
+                } catch (err: any) {
+                    alert('清理失敗：' + err.message);
+                } finally {
+                    setCleaningData(false);
+                    setConfirmState(prev => ({ ...prev, isOpen: false }));
+                }
+            }
+        });
     };
 
     const handleVendorImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -413,19 +633,28 @@ const AdminPage: React.FC = () => {
                 <button className={`tab-btn ${tab === 'vendors' ? 'active' : ''}`} onClick={() => setTab('vendors')}>
                     廠商管理
                 </button>
-                <button className={`tab-btn ${tab === 'maintenance' ? 'active' : ''}`} onClick={() => setTab('maintenance')}>
-                    🍂 資料維護
+                <button className={`tab-btn ${tab === 'maintenance' ? 'active' : ''}`} onClick={() => setTab('maintenance')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Database size={16} /> 資料維護
                 </button>
             </div>
 
-            {adminError && <div className="form-error" style={{ marginBottom: 20 }}>{adminError}</div>}
 
             {/* Maintenance tab content */}
             {tab === 'maintenance' && (
                 <div className="maintenance-panel" style={{ animation: 'fadeIn 0.4s ease' }}>
                     <div className="admin-maintenance-card" style={{ padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-                            <div style={{ fontSize: 32 }}>🍂</div>
+                            <div className="maintenance-icon-wrapper" style={{
+                                background: 'rgba(59, 130, 246, 0.1)',
+                                color: 'var(--primary)',
+                                padding: 16,
+                                borderRadius: 16,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <Wrench size={32} />
+                            </div>
                             <div style={{ flex: 1 }}>
                                 <h3 style={{ margin: '0 0 12px', fontSize: 20, color: 'var(--text1)', fontWeight: 800 }}>採購紀錄去重清理 ({selectedYear} 年度)</h3>
 
@@ -446,13 +675,6 @@ const AdminPage: React.FC = () => {
 
                                 <button
                                     className="btn-primary"
-                                    style={{
-                                        padding: '12px 32px',
-                                        fontSize: 16,
-                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                                        boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
-                                        borderRadius: 12
-                                    }}
                                     onClick={handleCleanupDuplicates}
                                     disabled={cleaningData}
                                 >
@@ -517,42 +739,22 @@ const AdminPage: React.FC = () => {
             {tab === 'accounts' && (
                 <div className="accounts-panel">
                     {!isGuest && (
-                        <form className="acc-form" onSubmit={handleAddAccount}>
-                            <input
-                                placeholder="科目代碼，如 M54000"
-                                value={accCode}
-                                onChange={(e) => setAccCode(e.target.value)}
-                                required
-                            />
-                            <input
-                                placeholder="科目名稱，如 差旅費"
-                                value={accName}
-                                onChange={(e) => setAccName(e.target.value)}
-                                required
-                            />
-                            <input
-                                placeholder="計畫成本 (新台幣)"
-                                type="number"
-                                value={accBudget}
-                                onChange={(e) => setAccBudget(e.target.value)}
-                            />
-                            <button type="submit" className="btn-primary" disabled={accSaving}>
-                                {accSaving ? '儲存中⋯' : editingAcc ? `更新 (${selectedYear})` : `新增 (${selectedYear})`}
+                        <div className="admin-action-bar">
+                            <button className="btn-primary" onClick={startAddAccount}>
+                                <Plus size={18} /> 新增 ({selectedYear})
                             </button>
-                            {editingAcc && (
-                                <button type="button" className="btn-outline" onClick={cancelEdit}>取消</button>
-                            )}
+
                             <button
                                 type="button"
-                                className={`btn-import-toggle ${showAccImport ? 'active' : ''}`}
+                                className={`btn-outline ${showAccImport ? 'active' : ''}`}
                                 onClick={() => setShowAccImport(!showAccImport)}
-                                title="批次導入選項"
+                                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
                             >
-                                <Plus size={20} />
+                                <Upload size={18} /> 批次導入
                             </button>
 
                             {showAccImport && (
-                                <div className="batch-import-box">
+                                <div className="batch-import-box" style={{ width: '100%' }}>
                                     <label className="btn-batch-import">
                                         <Upload size={16} />
                                         批次導入 Excel
@@ -564,7 +766,7 @@ const AdminPage: React.FC = () => {
                                     <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
                                 </div>
                             )}
-                        </form>
+                        </div>
                     )}
 
                     <div className="table-wrapper">
@@ -603,60 +805,22 @@ const AdminPage: React.FC = () => {
             {tab === 'vendors' && (
                 <div className="accounts-panel">
                     {!isGuest && (
-                        <form className="vendor-form-premium" onSubmit={handleAddVendor}>
-                            <div className="v-form-grid">
-                                <div className="f-group">
-                                    <label>廠商名稱 <span className="required">*</span></label>
-                                    <input
-                                        placeholder="如：國泰化工"
-                                        value={vendorName}
-                                        onChange={(e) => setVendorName(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="f-group">
-                                    <label>統一編號</label>
-                                    <input
-                                        placeholder="8位數字"
-                                        value={vendorTaxId}
-                                        onChange={(e) => setVendorTaxId(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                                    />
-                                </div>
-                                <div className="f-group">
-                                    <label>聯絡人</label>
-                                    <input
-                                        placeholder="聯絡姓名"
-                                        value={vendorContact}
-                                        onChange={(e) => setVendorContact(e.target.value)}
-                                    />
-                                </div>
-                                <div className="f-group">
-                                    <label>聯絡電話</label>
-                                    <input
-                                        placeholder="電話或分機"
-                                        value={vendorPhone}
-                                        onChange={(e) => setVendorPhone(e.target.value)}
-                                    />
-                                </div>
-                                <div className="v-inline-actions">
-                                    <button type="submit" className="btn-primary" disabled={vendorSaving}>
-                                        {vendorSaving ? '儲存中⋯' : editingVendor ? '更新' : '新增廠商'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`btn-import-toggle ${showVendorImport ? 'active' : ''}`}
-                                        onClick={() => setShowVendorImport(!showVendorImport)}
-                                        title="批次導入選項"
-                                    >
-                                        <Plus size={20} />
-                                    </button>
-                                    {editingVendor && (
-                                        <button type="button" className="btn-outline" onClick={cancelEditVendor}>取消</button>
-                                    )}
-                                </div>
-                            </div>
+                        <div className="admin-action-bar">
+                            <button className="btn-primary" onClick={startAddVendor}>
+                                <Plus size={18} /> 新增廠商
+                            </button>
+
+                            <button
+                                type="button"
+                                className={`btn-outline ${showVendorImport ? 'active' : ''}`}
+                                onClick={() => setShowVendorImport(!showVendorImport)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                            >
+                                <Upload size={18} /> 批次導入
+                            </button>
+
                             {showVendorImport && (
-                                <div className="batch-import-box v-batch">
+                                <div className="batch-import-box v-batch" style={{ width: '100%' }}>
                                     <label className="btn-batch-import">
                                         <Upload size={16} />
                                         批次導入 Excel
@@ -668,7 +832,7 @@ const AdminPage: React.FC = () => {
                                     <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
                                 </div>
                             )}
-                        </form>
+                        </div>
                     )}
 
                     <div className="table-wrapper">
@@ -703,6 +867,31 @@ const AdminPage: React.FC = () => {
                     </div>
                 </div>
             )}
+            <LedgerAccountModal
+                isOpen={showAccModal}
+                onClose={() => setShowAccModal(false)}
+                onSave={handleSaveAccount}
+                editingAccount={editingAcc}
+                selectedYear={selectedYear}
+                saving={accSaving}
+            />
+
+            <VendorModal
+                isOpen={showVendorModal}
+                onClose={() => setShowVendorModal(false)}
+                onSave={handleSaveVendor}
+                editingVendor={editingVendor}
+                saving={vendorSaving}
+            />
+
+            <ConfirmModal
+                isOpen={confirmState.isOpen}
+                title={confirmState.title}
+                message={confirmState.message}
+                type={confirmState.type}
+                onConfirm={confirmState.onConfirm}
+                onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };
