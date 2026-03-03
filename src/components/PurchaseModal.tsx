@@ -97,7 +97,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
 
         if (k === 'ledgerAccountId') {
             const acc = ledgerAccounts.find(a => a.id === v);
-            newItems[idx].ledgerAccountName = acc ? `${acc.code} ${acc.name}` : '';
+            newItems[idx].ledgerAccountName = acc ? acc.name : '';
         }
 
         set('items', newItems);
@@ -137,7 +137,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                     // 自動切換科目
                     if (acc && (!it.ledgerAccountId || (isSingleItem && isNewOrCopy))) {
                         it.ledgerAccountId = acc.id;
-                        it.ledgerAccountName = `${acc.code} ${acc.name}`;
+                        it.ledgerAccountName = acc.name;
                     }
 
                     newItems[idx] = { ...it };

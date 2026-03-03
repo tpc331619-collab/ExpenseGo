@@ -8,6 +8,8 @@ import DashboardSkeleton from '../components/DashboardSkeleton';
 import VendorDetailCard from '../components/VendorDetailCard';
 import './Dashboard.css';
 
+const cleanAccName = (name: string) => name.replace(/^[A-Z]\d{5}\s+/, '');
+
 const Dashboard: React.FC = () => {
     const { purchases, ledgerAccounts, loadingData, selectedYear: currentYear, compareYear, setCompareYear } = useApp();
 
@@ -46,8 +48,9 @@ const Dashboard: React.FC = () => {
         // By account
         const byAccount: Record<string, { name: string; total: number; count: number }> = {};
         yearPurchases.forEach((p) => {
+            const cleanName = cleanAccName(p.ledgerAccountName);
             if (!byAccount[p.ledgerAccountId]) {
-                byAccount[p.ledgerAccountId] = { name: p.ledgerAccountName, total: 0, count: 0 };
+                byAccount[p.ledgerAccountId] = { name: cleanName, total: 0, count: 0 };
             }
             byAccount[p.ledgerAccountId].total += p.amount;
             byAccount[p.ledgerAccountId].count += 1;
@@ -80,7 +83,7 @@ const Dashboard: React.FC = () => {
             return {
                 id: acc.id,
                 code: acc.code,
-                name: acc.name,
+                name: cleanAccName(acc.name),
                 budget,
                 spent,
                 remaining,
@@ -109,8 +112,9 @@ const Dashboard: React.FC = () => {
             }
 
             if (!monthlyStacked[m].categories[accId]) {
+                const cleanName = cleanAccName(p.ledgerAccountName);
                 monthlyStacked[m].categories[accId] = {
-                    name: p.ledgerAccountName,
+                    name: cleanName,
                     amount: 0,
                     colorIdx: accountColors[accId]
                 };
@@ -133,10 +137,11 @@ const Dashboard: React.FC = () => {
         const allCategories: { name: string; colorIdx: number }[] = [];
         const seenCats = new Set();
         yearPurchases.forEach(p => {
-            if (!seenCats.has(p.ledgerAccountName)) {
-                seenCats.add(p.ledgerAccountName);
+            const cleanName = cleanAccName(p.ledgerAccountName);
+            if (!seenCats.has(cleanName)) {
+                seenCats.add(cleanName);
                 allCategories.push({
-                    name: p.ledgerAccountName,
+                    name: cleanName,
                     colorIdx: accountColors[p.ledgerAccountId]
                 });
             }
