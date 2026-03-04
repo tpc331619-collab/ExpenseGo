@@ -30,7 +30,7 @@ const emptyForm = (): PurchaseFormData => ({
 
 const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
     const { appUser } = useAuth();
-    const { purchases, ledgerAccounts, vendors, selectedYear, refreshPurchases } = useApp();
+    const { purchases, ledgerAccounts, vendors, selectedYear } = useApp();
     const [form, setForm] = useState<PurchaseFormData>(() => {
         const today = new Date();
         const currentYear = today.getFullYear();
@@ -205,7 +205,6 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
             } else {
                 await addPurchase(finalForm, appUser!.uid);
             }
-            await refreshPurchases();
             onClose(true);
         } catch (err: any) {
             const msg = err.message || '儲存失敗，請再試一次';

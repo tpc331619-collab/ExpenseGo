@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import PurchaseListPage from './pages/PurchaseListPage';
 import ReportPage from './pages/ReportPage';
 import AdminPage from './pages/AdminPage';
+import ContractHistoryPage from './pages/ContractHistoryPage';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import QuickAddFAB from './components/QuickAddFAB';
 
@@ -57,6 +58,7 @@ const App: React.FC = () => {
               <Route path="/purchases" element={<AppLayout><PurchaseListPage /></AppLayout>} />
               <Route path="/report" element={<AppLayout><ReportPage /></AppLayout>} />
               <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
+              <Route path="/contracts" element={<AppLayout><ContractHistoryPage /></AppLayout>} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

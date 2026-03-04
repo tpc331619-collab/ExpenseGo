@@ -15,6 +15,8 @@ interface AppContextValue {
     refreshPurchases: (year?: number) => Promise<void>;
     refreshLedgerAccounts: () => Promise<void>;
     refreshVendors: () => Promise<void>;
+    purchaseListRefreshKey: number;
+    incrementPurchaseListRefresh: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -26,6 +28,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loadingData, setLoadingData] = useState(false);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [purchaseListRefreshKey, setPurchaseListRefreshKey] = useState(0);
+    const incrementPurchaseListRefresh = () => setPurchaseListRefreshKey(k => k + 1);
     const [compareYear, setCompareYearState] = useState<number | null>(() => {
         const saved = localStorage.getItem('compareYear');
         return saved ? Number(saved) : null;
@@ -93,7 +97,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             purchases, ledgerAccounts, vendors, loadingData,
             selectedYear, setSelectedYear,
             compareYear, setCompareYear,
-            refreshPurchases, refreshLedgerAccounts, refreshVendors
+            refreshPurchases, refreshLedgerAccounts, refreshVendors,
+            purchaseListRefreshKey, incrementPurchaseListRefresh
         }}>
             {children}
         </AppContext.Provider>

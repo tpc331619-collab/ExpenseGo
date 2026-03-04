@@ -11,7 +11,7 @@ import VendorDetailCard from '../components/VendorDetailCard';
 import './PurchaseListPage.css';
 
 const PurchaseListPage: React.FC = () => {
-    const { ledgerAccounts, selectedYear } = useApp();
+    const { ledgerAccounts, selectedYear, purchaseListRefreshKey } = useApp();
     const { appUser } = useAuth();
     const isGuest = appUser?.role === 'guest';
 
@@ -71,7 +71,7 @@ const PurchaseListPage: React.FC = () => {
     useEffect(() => {
         setSelectedGroups(new Set());
         fetchPurchases();
-    }, [selectedYear, filterAccount, filterCreator, filterReqType, filterPurType, appUser]);
+    }, [selectedYear, filterAccount, filterCreator, filterReqType, filterPurType, appUser, purchaseListRefreshKey]);
 
     useEffect(() => {
         if (appUser?.role === 'admin') {
@@ -130,8 +130,12 @@ const PurchaseListPage: React.FC = () => {
     const [expandedMonths, setExpandedMonths] = useState<string[]>([]);
 
     useEffect(() => {
-        if (sortedMonthKeys.length > 0 && expandedMonths.length === 0) {
-            setExpandedMonths([sortedMonthKeys[0]]);
+        if (sortedMonthKeys.length > 0) {
+            // Always keep the latest month expanded after any data change
+            setExpandedMonths(prev => {
+                if (prev.includes(sortedMonthKeys[0])) return prev;
+                return [sortedMonthKeys[0], ...prev];
+            });
         }
     }, [sortedMonthKeys]);
 

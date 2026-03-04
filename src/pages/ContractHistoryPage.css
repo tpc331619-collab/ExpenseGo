@@ -1,0 +1,26 @@
+.ch-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.ch-copy-btn:hover {
+    background: #eff6ff;
+    border-color: var(--blue);
+    color: var(--blue);
+}
+
+.ch-copy-btn.copied {
+    background: #f0fdf4;
+    border-color: #22c55e;
+    color: #22c55e;
+}

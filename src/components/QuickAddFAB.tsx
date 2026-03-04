@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import PurchaseModal from './PurchaseModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useApp } from '../contexts/AppContext';
 import './QuickAddFAB.css';
 
 const QuickAddFAB: React.FC = () => {
     const { appUser } = useAuth();
+    const { incrementPurchaseListRefresh } = useApp();
     const [isOpen, setIsOpen] = useState(false);
 
     if (appUser?.role === 'guest') return null;
@@ -20,7 +22,10 @@ const QuickAddFAB: React.FC = () => {
             </button>
 
             {isOpen && (
-                <PurchaseModal onClose={() => setIsOpen(false)} />
+                <PurchaseModal onClose={(refresh) => {
+                    setIsOpen(false);
+                    if (refresh) incrementPurchaseListRefresh();
+                }} />
             )}
         </>
     );
