@@ -98,3 +98,14 @@ export interface AnnualSummaryByPurchaseType {
     count: number;
     items: Purchase[];
 }
+
+export interface NotebookEntry {
+    id: string;
+    caseName: string;   // 案名
+    procNumber: string; // 採購編號
+    startDate: string;  // 契約起
+    endDate: string;    // 契約訖
+    createdBy: string;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}

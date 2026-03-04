@@ -17,7 +17,7 @@ import {
     QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor } from '../types';
+import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor, NotebookEntry } from '../types';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -416,4 +416,36 @@ export const migrateToYearlyStructure = async () => {
 
     await batch.commit();
     console.log(`Migration complete. Moved ${count} documents.`);
+};
+
+// ─── Notebooks ───────────────────────────────────────────────────────────────
+
+export const getNotebookEntries = async (uid: string): Promise<NotebookEntry[]> => {
+    const q = query(
+        collection(db, 'notebooks'),
+        where('createdBy', '==', uid)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as NotebookEntry);
+};
+
+export const addNotebookEntry = async (data: Omit<NotebookEntry, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>, uid: string) => {
+    await addDoc(collection(db, 'notebooks'), {
+        ...data,
+        createdBy: uid,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+    });
+};
+
+export const updateNotebookEntry = async (id: string, data: Partial<Omit<NotebookEntry, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>>) => {
+    const ref = doc(db, 'notebooks', id);
+    await updateDoc(ref, {
+        ...data,
+        updatedAt: Timestamp.now(),
+    });
+};
+
+export const deleteNotebookEntry = async (id: string) => {
+    await deleteDoc(doc(db, 'notebooks', id));
 };

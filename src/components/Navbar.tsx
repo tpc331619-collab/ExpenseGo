@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { getAllUsers } from '../lib/firestore';
-import { LayoutDashboard, FileText, BarChart3, Database, RefreshCw } from 'lucide-react';
+import { getAllUsers, updateNotebookEntry, deleteNotebookEntry } from '../lib/firestore';
+import { LayoutDashboard, FileText, BarChart3, Database, RefreshCw, NotebookPen, X, Trash2 } from 'lucide-react';
+import type { NotebookEntry } from '../types';
+import NotebookModal from './NotebookModal';
 import Logo from './Logo';
 import './Navbar.css';
 
@@ -13,6 +15,11 @@ const Navbar: React.FC = () => {
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
+    const [notebookOpen, setNotebookOpen] = useState(false);
+    const [editEntry, setEditEntry] = useState<NotebookEntry | null>(null);
+    const [editForm, setEditForm] = useState({ caseName: '', procNumber: '', startDate: '', endDate: '' });
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [notebookRefreshKey, setNotebookRefreshKey] = useState(0);
 
     useEffect(() => {
         if (appUser?.role !== 'admin') return;
@@ -46,6 +53,30 @@ const Navbar: React.FC = () => {
         { to: '/report', label: '年度報表', icon: <BarChart3 size={18} />, exact: false, badge: 0 },
         { to: '/admin', label: '系統管理', icon: <Database size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0 },
     ];
+
+    const handleEditEntry = (entry: NotebookEntry) => {
+        setEditEntry(entry);
+        setEditForm({ caseName: entry.caseName, procNumber: entry.procNumber, startDate: entry.startDate, endDate: entry.endDate });
+    };
+
+    const handleUpdateEntry = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editEntry) return;
+        try {
+            await updateNotebookEntry(editEntry.id, editForm);
+            setEditEntry(null);
+            setNotebookRefreshKey(k => k + 1);
+        } catch (err) { alert('修改失敗'); }
+    };
+
+    const handleDeleteEntry = async () => {
+        if (!confirmDeleteId) return;
+        try {
+            await deleteNotebookEntry(confirmDeleteId);
+            setConfirmDeleteId(null);
+            setNotebookRefreshKey(k => k + 1);
+        } catch (err) { alert('刪除失敗'); }
+    };
 
     return (
         <>
@@ -89,6 +120,11 @@ const Navbar: React.FC = () => {
                             )}
                         </NavLink>
                     ))}
+
+                    <button className="nav-link" onClick={() => setNotebookOpen(true)}>
+                        <span className="nav-icon"><NotebookPen size={18} /></span>
+                        契約履歷
+                    </button>
 
 
                     <button
@@ -138,6 +174,10 @@ const Navbar: React.FC = () => {
                                 {item.label}
                             </NavLink>
                         ))}
+                        <button className="mobile-nav-link" onClick={() => { setNotebookOpen(true); setMenuOpen(false); }}>
+                            <span><NotebookPen size={18} /></span>
+                            契約履歷
+                        </button>
                         <button className="btn-outline mobile-logout" onClick={handleLogout}>登出</button>
                     </div>
                 </div>
@@ -156,7 +196,78 @@ const Navbar: React.FC = () => {
                         <span className="bottom-label">{item.label}</span>
                     </NavLink>
                 ))}
+                <button className="bottom-nav-item" onClick={() => setNotebookOpen(true)}>
+                    <span className="bottom-icon"><NotebookPen size={18} /></span>
+                    <span className="bottom-label">契約履歷</span>
+                </button>
             </div>
+
+            {notebookOpen && <NotebookModal
+                onClose={() => setNotebookOpen(false)}
+                onEdit={handleEditEntry}
+                onDelete={(id) => setConfirmDeleteId(id)}
+                refreshKey={notebookRefreshKey}
+            />}
+
+            {/* Edit notebook entry modal */}
+            {editEntry && (
+                <div className="modal-overlay" onClick={() => setEditEntry(null)}>
+                    <div className="modal-box admin-modal" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>編輯紀錄</h2>
+                            <button className="modal-close" onClick={() => setEditEntry(null)}><X size={20} /></button>
+                        </div>
+                        <form onSubmit={handleUpdateEntry}>
+                            <div className="modal-form">
+                                <div className="form-group">
+                                    <label>案名</label>
+                                    <input value={editForm.caseName} onChange={e => setEditForm({ ...editForm, caseName: e.target.value })} required />
+                                </div>
+                                <div className="form-group">
+                                    <label>採購編號</label>
+                                    <input value={editForm.procNumber} onChange={e => setEditForm({ ...editForm, procNumber: e.target.value })} required />
+                                </div>
+                                <div className="form-group">
+                                    <label>契約起訖</label>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <input type="date" value={editForm.startDate} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} required style={{ flex: 1 }} />
+                                        <span style={{ color: 'var(--text3)' }}>~</span>
+                                        <input type="date" value={editForm.endDate} onChange={e => setEditForm({ ...editForm, endDate: e.target.value })} required style={{ flex: 1 }} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer-combined">
+                                <div className="footer-actions" style={{ marginLeft: 'auto' }}>
+                                    <button type="button" className="btn-outline" onClick={() => setEditEntry(null)}>取消</button>
+                                    <button type="submit" className="btn-primary">確認儲存</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete confirmation modal */}
+            {confirmDeleteId && (
+                <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
+                    <div className="modal-box admin-modal" style={{ maxWidth: '400px', textAlign: 'center', padding: 0 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #991b1b, #ef4444)' }}>
+                            <h2>確定要刪除嗎？</h2>
+                            <button className="modal-close" style={{ color: 'white' }} onClick={() => setConfirmDeleteId(null)}><X size={20} /></button>
+                        </div>
+                        <div style={{ padding: '32px 24px' }}>
+                            <Trash2 size={48} color="#ef4444" style={{ opacity: 0.8 }} />
+                            <p style={{ marginTop: '16px', color: 'var(--text2)' }}>此動作無法復原，您確定要刪除此筆紀錄嗎？</p>
+                        </div>
+                        <div className="modal-footer-combined">
+                            <div className="footer-actions" style={{ marginLeft: 'auto' }}>
+                                <button className="btn-outline" onClick={() => setConfirmDeleteId(null)}>取消</button>
+                                <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #991b1b, #ef4444)', boxShadow: 'none' }} onClick={handleDeleteEntry}>確定刪除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
