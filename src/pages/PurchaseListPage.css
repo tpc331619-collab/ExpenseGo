@@ -17,10 +17,18 @@
 }
 
 .purchase-table th:first-child,
+.td-index {
+    text-align: center !important;
+}
+
 .purchase-table th:last-child,
-.td-index,
 .td-actions {
     text-align: center !important;
+    background: #fcfcfd !important;
+    border-left: 1px solid #eaecf0 !important;
+    position: sticky;
+    right: 0;
+    z-index: 5;
 }
 
 .purchase-table td {
@@ -141,8 +149,9 @@
 /* Actions */
 .action-group {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     justify-content: center;
+    padding: 0 4px;
 }
 
 .action-btn-new {
