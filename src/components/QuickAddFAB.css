@@ -1,7 +1,7 @@
 .quick-add-fab {
     position: fixed;
     right: 32px;
-    bottom: 32px;
+    bottom: 48px;
     width: 60px;
     height: 60px;
     border-radius: 30px;
@@ -37,7 +37,7 @@
 @media (max-width: 600px) {
     .quick-add-fab {
         right: 20px;
-        bottom: 90px;
+        bottom: 110px;
         /* Above the bottom nav */
         width: 56px;
         height: 56px;
