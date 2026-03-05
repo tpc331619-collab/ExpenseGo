@@ -13,14 +13,34 @@ import AdminPage from './pages/AdminPage';
 import ContractHistoryPage from './pages/ContractHistoryPage';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import QuickAddFAB from './components/QuickAddFAB';
+import SpotlightSearch from './components/SpotlightSearch';
 
-const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <>
-    <Navbar />
-    <main className="main-content">{children}</main>
-    <QuickAddFAB />
-  </>
-);
+const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isSpotlightOpen, setIsSpotlightOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSpotlightOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  return (
+    <>
+      <Navbar />
+      <main className="main-content">{children}</main>
+      <QuickAddFAB />
+      <SpotlightSearch
+        isOpen={isSpotlightOpen}
+        onClose={() => setIsSpotlightOpen(false)}
+      />
+    </>
+  );
+};
 
 const App: React.FC = () => {
   const {
