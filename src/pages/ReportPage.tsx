@@ -13,6 +13,8 @@ const cleanAccName = (name: string) => name.replace(/^[A-Z]\d{5}\s+/, '');
 const ReportPage: React.FC = () => {
     const { purchases, ledgerAccounts, selectedYear: year } = useApp();
     const [tab, setTab] = useState<Tab>('account');
+    const [showAnalysis, setShowAnalysis] = useState(false);
+    const [showBudgetPlanning, setShowBudgetPlanning] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
     const [exporting, setExporting] = useState(false);
@@ -26,7 +28,6 @@ const ReportPage: React.FC = () => {
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
     };
-    const [showAnalysis, setShowAnalysis] = useState(false);
 
     const yearPurchases = purchases; // purchases are already filtered by year in context
 
@@ -637,6 +638,89 @@ const ReportPage: React.FC = () => {
         );
     };
 
+    const BudgetPlanningModal = () => {
+        const [growthFactor, setGrowthFactor] = useState(5); // 預設 5% 增幅
+        const sortedData = [...byAccount].sort((a, b) => b.total - a.total);
+
+        // 計算目前月份（1-12）
+        const currentMonth = new Date().getFullYear() === year ? new Date().getMonth() + 1 : 12;
+
+        const calculateProjection = (actual: number) => {
+            if (currentMonth === 0) return actual;
+            return (actual / currentMonth) * 12;
+        };
+
+        return (
+            <div className="modal-overlay" onClick={() => setShowBudgetPlanning(false)}>
+                <div className="modal-box budget-planning-modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h2>📊 明年預算編列助手 ({year + 1}年度)</h2>
+                        <button className="modal-close" onClick={() => setShowBudgetPlanning(false)}>✕</button>
+                    </div>
+                    <div className="pop-body">
+                        <div className="planning-controls">
+                            <div className="control-item">
+                                <label>預期編列增幅 (Inflation/Growth): <strong>{growthFactor}%</strong></label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="50"
+                                    step="1"
+                                    value={growthFactor}
+                                    onChange={(e) => setGrowthFactor(parseInt(e.target.value))}
+                                    className="growth-slider"
+                                />
+                            </div>
+                            <div className="planning-hint">
+                                根據今年目前的月份，推算平均每月支出後乘以 12（例如目前的總支出 ÷ {currentMonth} 個月 × 12 個月）。
+                            </div>
+                        </div>
+
+                        <div className="planning-table-wrap">
+                            <table className="planning-table">
+                                <thead>
+                                    <tr>
+                                        <th>科目</th>
+                                        <th className="text-right">{year} 實支</th>
+                                        <th className="text-right">年底預估</th>
+                                        <th className="text-right accent-cell">{year + 1} 建議預算</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sortedData.map(acc => {
+                                        const projection = calculateProjection(acc.total);
+                                        const suggested = projection * (1 + growthFactor / 100);
+                                        return (
+                                            <tr key={acc.ledgerAccountId}>
+                                                <td>
+                                                    <div className="p-acc-code">{acc.ledgerAccountCode}</div>
+                                                    <div className="p-acc-name">{acc.ledgerAccountName}</div>
+                                                </td>
+                                                <td className="text-right">{acc.total.toLocaleString()}</td>
+                                                <td className="text-right text-muted">{Math.round(projection).toLocaleString()}</td>
+                                                <td className="text-right accent-cell">
+                                                    <div className="suggested-val">{Math.round(suggested).toLocaleString()}</div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td>合計</td>
+                                        <td className="text-right">{grandTotal.toLocaleString()}</td>
+                                        <td className="text-right">{Math.round(calculateProjection(grandTotal)).toLocaleString()}</td>
+                                        <td className="text-right accent-cell">{Math.round(calculateProjection(grandTotal) * (1 + growthFactor / 100)).toLocaleString()}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
@@ -645,6 +729,9 @@ const ReportPage: React.FC = () => {
                     年度採購報表
                 </h1>
                 <div className="report-actions">
+                    <button className="btn-planning" onClick={() => setShowBudgetPlanning(true)}>
+                        📊 明年預算試算
+                    </button>
                     <button className="btn-analysis" onClick={() => setShowAnalysis(true)}>
                         ✨ AI 分析列表
                     </button>
@@ -973,6 +1060,7 @@ const ReportPage: React.FC = () => {
             )}
 
             {showAnalysis && <SubjectSummaryModal />}
+            {showBudgetPlanning && <BudgetPlanningModal />}
         </div>
     );
 };
