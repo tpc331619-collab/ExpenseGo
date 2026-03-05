@@ -3,6 +3,7 @@ import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { addPurchase, updatePurchase } from '../lib/firestore';
 import type { Purchase, PurchaseFormData, PurchaseItem, Vendor } from '../types';
+import { Sparkles } from 'lucide-react';
 import './PurchaseModal.css';
 
 interface Props {
@@ -16,6 +17,7 @@ const emptyItem = () => ({
     ledgerAccountId: '',
     ledgerAccountName: '',
     amount: '',
+    _isManual: false,
 });
 
 const emptyForm = (): PurchaseFormData => ({
@@ -62,19 +64,14 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                 requisitionType: editPurchase.requisitionType || '非經MM',
                 docNumber: isCopy ? '' : (editPurchase.docNumber || ''),
                 note: editPurchase.note,
-                items: groupItems.length > 0 ? groupItems.map(p => ({
+                items: (groupItems.length > 0 ? groupItems : [editPurchase]).map(p => ({
                     id: isCopy ? undefined : p.id,
                     title: p.title,
                     ledgerAccountId: p.ledgerAccountId,
                     ledgerAccountName: p.ledgerAccountName,
-                    amount: String(p.amount)
-                })) : [{
-                    id: isCopy ? undefined : editPurchase.id,
-                    title: editPurchase.title,
-                    ledgerAccountId: editPurchase.ledgerAccountId,
-                    ledgerAccountName: editPurchase.ledgerAccountName,
-                    amount: String(editPurchase.amount)
-                }]
+                    amount: String(p.amount),
+                    _isManual: true // Existing items are treated as manually set
+                }))
             });
         }
     }, [editPurchase, purchases, isCopy]);
@@ -91,15 +88,47 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         set('items', form.items.filter((_, i) => i !== idx));
     };
 
-    const setItem = (idx: number, k: keyof PurchaseItem, v: string) => {
-        const newItems = [...form.items];
+    const setItem = (idx: number, k: keyof PurchaseItem | '_isManual', v: any) => {
+        const newItems = [...form.items] as any[];
         newItems[idx] = { ...newItems[idx], [k]: v };
 
         if (k === 'ledgerAccountId') {
             const acc = ledgerAccounts.find(a => a.id === v);
             newItems[idx].ledgerAccountName = acc ? acc.name : '';
+            // If user selects an account, mark as manual. If they clear it, reset to auto-fill mode.
+            newItems[idx]._isManual = !!v;
         }
 
+        set('items', newItems);
+    };
+
+    const handleTitleChange = (idx: number, title: string) => {
+        const newItems = [...form.items] as any[];
+        newItems[idx] = { ...newItems[idx], title };
+
+        const q = title.trim().toLowerCase();
+        // Only suggest if the user has typed at least 2 chars AND hasn't manually picked an account for this row
+        if (q.length >= 2 && !newItems[idx]._isManual) {
+            // Fuzzy search: include any previous title that contains the current input
+            const matches = purchases.filter(p => p.title.toLowerCase().includes(q));
+
+            if (matches.length > 0) {
+                const accountCounts: Record<string, number> = {};
+                matches.forEach(p => {
+                    accountCounts[p.ledgerAccountId] = (accountCounts[p.ledgerAccountId] || 0) + 1;
+                });
+
+                // Get the most frequent account associated with this keyword
+                const sortedAccounts = Object.entries(accountCounts).sort((a, b) => b[1] - a[1]);
+                const topAccountId = sortedAccounts[0][0];
+                const acc = ledgerAccounts.find(a => a.id === topAccountId);
+
+                if (acc) {
+                    newItems[idx].ledgerAccountId = acc.id;
+                    newItems[idx].ledgerAccountName = acc.name;
+                }
+            }
+        }
         set('items', newItems);
     };
 
@@ -317,13 +346,18 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                 <button type="button" className="btn-add-item" onClick={addItem}>＋ 新增品項</button>
                             </div>
 
+                            <div className="smart-tip">
+                                <Sparkles size={14} className="sparkle-icon" />
+                                <span><b>智能聯想：</b>輸入兩字以上品名或選擇廠商，系統將自動推薦最可能的總帳科目。</span>
+                            </div>
+
                             <div className="items-list">
                                 {form.items.map((item, idx) => (
                                     <div key={idx} className="item-row">
                                         <div className="item-no">{(idx + 1) * 10}</div>
                                         <div className="item-fields">
                                             <div className="f-group">
-                                                <input placeholder="採購品名" value={item.title} onChange={(e) => setItem(idx, 'title', e.target.value)} required />
+                                                <input placeholder="採購品名" value={item.title} onChange={(e) => handleTitleChange(idx, e.target.value)} required />
                                             </div>
                                             <div className="f-group">
                                                 <select value={item.ledgerAccountId} onChange={(e) => setItem(idx, 'ledgerAccountId', e.target.value)} required>

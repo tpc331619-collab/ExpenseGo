@@ -24,11 +24,9 @@
 .purchase-table th:last-child,
 .td-actions {
     text-align: center !important;
-    background: #fcfcfd !important;
-    border-left: 1px solid #eaecf0 !important;
-    position: sticky;
-    right: 0;
-    z-index: 5;
+    padding: 0 10px !important;
+    width: 50px;
+    min-width: 50px;
 }
 
 .purchase-table td {
@@ -146,71 +144,110 @@
     color: #98a2b3;
 }
 
-/* Actions */
-.action-group {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    padding: 0 4px;
+/* New Action Menu */
+.action-menu-container {
+    position: relative;
+    display: inline-flex;
 }
 
-.action-btn-new {
+.action-menu-trigger {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
-    border-radius: 8px;
-    border: 1px solid #eaecf0;
-    background: #fff;
-    color: #667085;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #475467;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s;
+    opacity: 0.15;
+    /* Subtle hint */
 }
 
-.action-btn-new:hover {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+.purchase-row:hover .action-menu-trigger {
+    opacity: 1;
+    background: #f2f4f7;
+    color: var(--primary);
 }
 
-.action-btn-new.delete {
-    color: #d92d20;
-    border-color: #fecdca;
-    background: #fefcfc;
-    /* subtle tint */
+.action-dropdown {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: #ffffff;
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+    min-width: 140px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.action-btn-new.delete:hover {
-    background: #fef3f2;
-    border-color: #fda29b;
-    color: #b42318;
-    box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.15);
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(10px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
 }
 
-.action-btn-new.edit {
-    color: #4338ca;
-    border-color: #c7d2fe;
-    background: #fefeff;
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #344054;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
 }
 
-.action-btn-new.edit:hover {
-    background: #eef2ff;
-    border-color: #a5b4fc;
-    color: #3730a3;
-    box-shadow: 0 4px 6px -1px rgba(67, 56, 202, 0.15);
+.dropdown-item svg {
+    flex-shrink: 0;
 }
 
-.action-btn-new.copy {
+.dropdown-item:hover {
+    background: #f9fafb;
+}
+
+.dropdown-item.copy {
     color: #059669;
-    border-color: #a7f3d0;
-    background: #fcfffd;
 }
 
-.action-btn-new.copy:hover {
+.dropdown-item.copy:hover {
     background: #ecfdf5;
-    border-color: #6ee7b7;
-    color: #047857;
-    box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.15);
+}
+
+.dropdown-item.edit {
+    color: #4338ca;
+}
+
+.dropdown-item.edit:hover {
+    background: #eef2ff;
+}
+
+.dropdown-item.delete {
+    color: #d92d20;
+}
+
+.dropdown-item.delete:hover {
+    background: #fef3f2;
 }
 
 /* Month Grouping */
@@ -376,6 +413,43 @@
 
     .td-actions::before {
         display: none;
+    }
+
+    .action-menu-trigger {
+        opacity: 1 !important;
+        background: #f9fafb;
+        border: 1px solid #eaecf0;
+    }
+
+    .action-dropdown {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        top: auto;
+        width: auto;
+        min-width: 0;
+        transform: none !important;
+        animation: slideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        padding: 12px;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    @keyframes slideUpMobile {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    .dropdown-item {
+        padding: 16px;
+        font-size: 15px;
     }
 }
 
