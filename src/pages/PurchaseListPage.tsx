@@ -8,12 +8,11 @@ import * as XLSX from 'xlsx';
 import { Upload, Download, XCircle, X, Trash2, CheckSquare, Square, MoreVertical, Copy, Edit } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
-import { useSearchParams } from 'react-router-dom';
+
 import './PurchaseListPage.css';
 
 const PurchaseListPage: React.FC = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
-    const initialSearch = searchParams.get('q') || '';
+
     const { ledgerAccounts, selectedYear, purchaseListRefreshKey } = useApp();
     const { appUser } = useAuth();
     const isGuest = appUser?.role === 'guest';
@@ -35,7 +34,7 @@ const PurchaseListPage: React.FC = () => {
     const [filterCreator, setFilterCreator] = useState('');
     const [filterReqType, setFilterReqType] = useState('');
     const [filterPurType, setFilterPurType] = useState('');
-    const [filterSearch, setFilterSearch] = useState(initialSearch);
+
     const [vendorDetail, setVendorDetail] = useState<string | null>(null);
     const [importResult, setImportResult] = useState<{ success: number; skipped: number; errors: string[] } | null>(null);
     const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
@@ -124,22 +123,6 @@ const PurchaseListPage: React.FC = () => {
                 }
             }
         });
-
-        if (filterSearch) {
-            const q = filterSearch.toLowerCase();
-            list = list.filter(p => {
-                const acc = ledgerAccounts.find(a => a.id === p.ledgerAccountId);
-                const accCode = acc?.code.toLowerCase() || '';
-                return (
-                    p.title.toLowerCase().includes(q) ||
-                    p.vendor.toLowerCase().includes(q) ||
-                    p.docNumber.toLowerCase().includes(q) ||
-                    p.ledgerAccountName.toLowerCase().includes(q) ||
-                    accCode.includes(q) ||
-                    (p.note && p.note.toLowerCase().includes(q))
-                );
-            });
-        }
 
         return Array.from(seen.values());
     }, [localPurchases, ledgerAccounts]);
@@ -528,23 +511,7 @@ const PurchaseListPage: React.FC = () => {
                         <option value="工程">工程</option>
                     </select>
                 </div>
-                <div className="filter-group" style={{ flex: 1, minWidth: '200px' }}>
-                    <span className="filter-label">搜尋</span>
-                    <input
-                        type="text"
-                        placeholder="搜尋品名、廠商或單號..."
-                        value={filterSearch}
-                        onChange={(e) => {
-                            setFilterSearch(e.target.value);
-                            setSearchParams(prev => {
-                                if (e.target.value) prev.set('q', e.target.value);
-                                else prev.delete('q');
-                                return prev;
-                            });
-                        }}
-                        className="search-input-inner"
-                    />
-                </div>
+
                 {appUser?.role === 'admin' && (
                     <div className="filter-group">
                         <span className="filter-label">建立人</span>
