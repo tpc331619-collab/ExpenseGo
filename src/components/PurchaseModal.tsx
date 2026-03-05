@@ -374,26 +374,63 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                                     required
                                                 />
                                                 {(() => {
+                                                    const rawVal = parseFloat(item.amount) || 0;
+                                                    if (rawVal <= 0) return null;
+
+                                                    const itemAmountNet = isGrossMode ? rawVal / 1.05 : rawVal;
+                                                    const currentYear = new Date(form.purchaseDate).getFullYear();
+
+                                                    // 1. Budget Warning
                                                     const acc = ledgerAccounts.find(a => a.id === item.ledgerAccountId);
+                                                    let budgetWarn = null;
                                                     if (acc && acc.budget) {
-                                                        const currentYear = new Date(form.purchaseDate).getFullYear();
                                                         const spent = purchases
                                                             .filter(p => p.ledgerAccountId === acc.id && p.purchaseDate.toDate().getFullYear() === currentYear && p.id !== (editPurchase?.id))
                                                             .reduce((sum, p) => sum + p.amount, 0);
-
-                                                        const rawVal = parseFloat(item.amount) || 0;
-                                                        const itemAmount = isGrossMode ? rawVal / 1.05 : rawVal;
-                                                        const totalAfter = spent + itemAmount;
-
+                                                        const totalAfter = spent + itemAmountNet;
                                                         if (totalAfter > acc.budget) {
-                                                            return (
+                                                            budgetWarn = (
                                                                 <div className="budget-warning">
                                                                     ⚠️ 已超出預算 ${(totalAfter - acc.budget).toLocaleString()}
                                                                 </div>
                                                             );
                                                         }
                                                     }
-                                                    return null;
+
+                                                    // 2. Price Anomaly Detection (Trend Label)
+                                                    let trendLabel = null;
+                                                    if (form.vendor && item.title.trim().length >= 2) {
+                                                        const history = purchases.filter(p =>
+                                                            p.vendor === form.vendor &&
+                                                            p.title.trim().toLowerCase() === item.title.trim().toLowerCase() &&
+                                                            p.id !== (editPurchase?.id)
+                                                        );
+
+                                                        if (history.length > 0) {
+                                                            const avgPrice = history.reduce((s, p) => s + p.amount, 0) / history.length;
+                                                            const diffRate = (itemAmountNet - avgPrice) / avgPrice;
+
+                                                            if (Math.abs(diffRate) >= 0.1) { // 差異超過 10%
+                                                                const isUp = diffRate > 0;
+                                                                const percent = Math.abs(Math.round(diffRate * 100));
+                                                                trendLabel = (
+                                                                    <div className={`price-trend-tag ${isUp ? 'up' : 'down'}`}>
+                                                                        {isUp ? '↑' : '↓'} {isUp ? '漲幅' : '降幅'} {percent}%
+                                                                        <span className="avg-hint">(均價 ${Math.round(avgPrice).toLocaleString()})</span>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (!budgetWarn && !trendLabel) return null;
+
+                                                    return (
+                                                        <div className="item-alerts">
+                                                            {trendLabel}
+                                                            {budgetWarn}
+                                                        </div>
+                                                    );
                                                 })()}
                                             </div>
                                         </div>
