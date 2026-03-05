@@ -87,9 +87,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
     cursor: pointer;
     border: 1px solid transparent;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -159,32 +159,24 @@
 .date-end {
     color: #9f1239;
     font-weight: 600;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Tag & Badge Styles */
 .type-tag {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 6px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
+    color: #1e293b;
     white-space: nowrap;
 }
 
-.type-service {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.type-small {
-    background: #fff7ed;
-    color: #c2410c;
-    border: 1px solid #ffedd5;
-}
-
+.type-service,
+.type-small,
 .type-joint {
-    background: #fef9c3;
-    color: #854d0e;
+    background: none;
+    border: none;
+    color: #1e293b;
 }
 
 /* Modern Status Pill */
@@ -347,4 +339,160 @@
     opacity: 0.3;
     cursor: not-allowed;
     background: #f8fafc;
+}
+
+/* ── Smart Insight Bar ───────────────────────────────────────────────────── */
+.ch-insight-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    animation: slideDown 0.4s ease-out;
+}
+
+.insight-item {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 150px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.insight-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+.insight-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.insight-icon.info {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.insight-icon.warn {
+    background: #fff7ed;
+    color: #f59e0b;
+}
+
+.insight-icon.danger {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.insight-content {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.insight-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.insight-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.renewal-badge.safe {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.insight-item.warning {
+    border-color: #fbbf24;
+}
+
+.insight-item.danger {
+    border-color: #f87171;
+}
+
+.pulse-border {
+    position: relative;
+}
+
+.pulse-border::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 15px;
+    border: 2px solid #fbbf24;
+    opacity: 0;
+    animation: pulseBorder 2s infinite;
+}
+
+@keyframes pulseBorder {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1.05);
+        opacity: 0;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Renewal Badge ───────────────────────────────────────────────────────── */
+.renewal-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    font-weight: 700;
+    width: fit-content;
+}
+
+.renewal-badge.warning {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+}
+
+.renewal-badge.expired {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fee2e2;
+}
+
+.renewal-badge.safe {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    font-weight: 500;
 }

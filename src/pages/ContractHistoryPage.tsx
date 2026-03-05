@@ -8,9 +8,26 @@ import {
     getPaginatedPurchases,
 } from '../lib/firestore';
 import type { NotebookEntry, Purchase } from '../types';
-import { Plus, Edit2, Trash2, X, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, CheckCircle, ChevronLeft, ChevronRight, FileText, AlertTriangle, AlertCircle } from 'lucide-react';
 import './ContractHistoryPage.css';
 import '../components/PurchaseModal.css'; // Reuse modal styles
+
+// ── Helper: Calculate Contract Status ─────────────────────────────────────────
+const getRenewalInfo = (endDateStr: string, status: NotebookEntry['status']) => {
+    if (status === '已結案' || !endDateStr) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(endDateStr);
+    end.setHours(0, 0, 0, 0);
+
+    const diffTime = end.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { type: 'expired', days: Math.abs(diffDays), label: `已逾期 (${Math.abs(diffDays)}天)` };
+    if (diffDays <= 120) return { type: 'warning', days: diffDays, label: `即將到期 (${diffDays}天)` };
+    return { type: 'safe', days: diffDays, label: `剩餘 ${diffDays}天` };
+};
 
 // ── Edit / Add Modal ──────────────────────────────────────────────────────────
 interface EntryModalProps {
@@ -298,10 +315,59 @@ const ContractHistoryPage: React.FC = () => {
                 <h1 className="page-title">契約履歷</h1>
                 <div className="header-actions">
                     <button className="btn-primary" onClick={startAdd}>
-                        <Plus size={18} /> 新增履歷
+                        <Plus size={18} /> 新增契約
                     </button>
                 </div>
             </div>
+
+            {/* Smart Insight Bar */}
+            {!loading && entries.length > 0 && (
+                <div className="ch-insight-bar">
+                    <div className="insight-item">
+                        <div className="insight-icon info"><FileText size={16} /></div>
+                        <div className="insight-content">
+                            <span className="insight-label">執行中合約</span>
+                            <span className="insight-value">{entries.filter(e => e.status === '執行中').length}</span>
+                        </div>
+                    </div>
+                    {(() => {
+                        const expiringCount = entries.filter(e => {
+                            const info = getRenewalInfo(e.endDate, e.status);
+                            return info?.type === 'warning';
+                        }).length;
+                        if (expiringCount > 0) {
+                            return (
+                                <div className="insight-item warning pulse-border">
+                                    <div className="insight-icon warn"><AlertTriangle size={16} /></div>
+                                    <div className="insight-content">
+                                        <span className="insight-label">120天內到期</span>
+                                        <span className="insight-value">{expiringCount}</span>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+                    {(() => {
+                        const expiredCount = entries.filter(e => {
+                            const info = getRenewalInfo(e.endDate, e.status);
+                            return info?.type === 'expired';
+                        }).length;
+                        if (expiredCount > 0) {
+                            return (
+                                <div className="insight-item danger">
+                                    <div className="insight-icon danger"><AlertCircle size={16} /></div>
+                                    <div className="insight-content">
+                                        <span className="insight-label">已逾期(未結)</span>
+                                        <span className="insight-value">{expiredCount}</span>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+                </div>
+            )}
 
             <div className="ch-table-wrapper table-wrapper">
                 {loading ? (
@@ -318,13 +384,13 @@ const ContractHistoryPage: React.FC = () => {
                                 <tr>
                                     <th style={{ width: 40, color: 'var(--text3)' }}>#</th>
                                     <th style={{ minWidth: 120 }}>廠商</th>
-                                    <th style={{ width: 100 }}>契約形式</th>
+                                    <th style={{ width: 130, whiteSpace: 'nowrap' }}>契約形式</th>
                                     <th style={{ width: 110 }}>總額(未稅)</th>
                                     <th style={{ minWidth: 150 }}>採購案號</th>
-                                    <th style={{ width: 130 }}>採購編號</th>
-                                    <th style={{ width: 140 }}>契約期間</th>
-                                    <th style={{ width: 100 }}>狀態</th>
-                                    <th style={{ width: 130, textAlign: 'center' }}>操作</th>
+                                    <th style={{ width: 140, whiteSpace: 'nowrap' }}>採購編號</th>
+                                    <th style={{ width: 150 }}>契約期間</th>
+                                    <th style={{ width: 90 }}>狀態</th>
+                                    <th style={{ width: 100, textAlign: 'center' }}>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -364,7 +430,20 @@ const ContractHistoryPage: React.FC = () => {
                                         <td>
                                             <div className="date-period">
                                                 <span className="date-start">{entry.startDate}</span>
-                                                <span className="date-end">{entry.endDate}</span>
+                                                <span className="date-end">
+                                                    {entry.endDate}
+                                                    {(() => {
+                                                        const info = getRenewalInfo(entry.endDate, entry.status);
+                                                        if (info) {
+                                                            return (
+                                                                <span className={`renewal-badge ${info.type}`}>
+                                                                    {info.label}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </span>
                                             </div>
                                         </td>
                                         <td>
@@ -379,14 +458,14 @@ const ContractHistoryPage: React.FC = () => {
                                             <div className="action-group">
                                                 {entry.status !== '已結案' && (
                                                     <button className="icon-btn-fancy close" onClick={() => handleCloseCase(entry)} title="結案">
-                                                        <CheckCircle size={18} />
+                                                        <CheckCircle size={14} />
                                                     </button>
                                                 )}
                                                 <button className="icon-btn-fancy edit" onClick={() => startEdit(entry)} title="編輯">
-                                                    <Edit2 size={18} />
+                                                    <Edit2 size={14} />
                                                 </button>
                                                 <button className="icon-btn-fancy delete" onClick={() => setDeleteTargetId(entry.id)} title="刪除">
-                                                    <Trash2 size={18} />
+                                                    <Trash2 size={14} />
                                                 </button>
                                             </div>
                                         </td>
