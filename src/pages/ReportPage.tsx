@@ -578,7 +578,7 @@ const ReportPage: React.FC = () => {
             const text = sortedData.map(acc => {
                 const titles = acc.items.map(it => it.title);
                 const summary = summarizeTitles(titles);
-                return `${acc.ledgerAccountName}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
+                return `${acc.ledgerAccountCode}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
             }).join('；\n');
 
             navigator.clipboard.writeText(text);
@@ -607,7 +607,7 @@ const ReportPage: React.FC = () => {
                                                 onClick={() => {
                                                     const titles = acc.items.map(it => it.title);
                                                     const summary = summarizeTitles(titles);
-                                                    const text = `${acc.ledgerAccountName}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
+                                                    const text = `${acc.ledgerAccountCode}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
                                                     navigator.clipboard.writeText(text);
                                                 }}
                                             >
@@ -615,7 +615,7 @@ const ReportPage: React.FC = () => {
                                             </button>
                                         </div>
                                         <div className="ai-header">
-                                            <span className="ai-name">{acc.ledgerAccountName}</span>
+                                            <span className="ai-name">{acc.ledgerAccountCode}</span>
                                         </div>
                                         <div className="ai-values">
                                             <span className="ai-amount">NT$ {acc.total.toLocaleString()}</span>
