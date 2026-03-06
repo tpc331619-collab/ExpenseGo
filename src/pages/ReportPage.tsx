@@ -164,7 +164,7 @@ const ReportPage: React.FC = () => {
 
     const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b', '#14b8a6'];
 
-    const PieChart = ({ data, total, title, selectedId, onSelect }: { data: { id: string, label: string, value: number }[], total: number, title: string, selectedId: string | null, onSelect: (id: string | null) => void }) => {
+    const PieChart = ({ data, total, title, selectedId, onSelect }: { data: { id: string, label: string, name?: string, value: number }[], total: number, title: string, selectedId: string | null, onSelect: (id: string | null) => void }) => {
         const containerRef = React.useRef<HTMLDivElement>(null);
         const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
 
@@ -252,59 +252,21 @@ const ReportPage: React.FC = () => {
                                     const color = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
                                     const isFocused = hoveredIdx === idx || selectedId === item.id;
 
-                                    // Smooth Curved Leader Line Logic
-                                    const midAngle = currentAngle + arcLength / 2;
-                                    const lx1 = centerX + Math.cos(midAngle) * radius;
-                                    const ly1 = centerY + Math.sin(midAngle) * radius;
-
-                                    const targetX = 304; // Points to the left edge of the legend text area
-                                    const totalItems = chartData.length;
-                                    const lgGap = 4;
-                                    // Match CSS min-height/max-height flexible logic
-                                    const itemH = Math.min(42, Math.max(28, (250 - (totalItems - 1) * lgGap) / totalItems));
-                                    const totalLgH = (totalItems * itemH) + ((totalItems - 1) * lgGap);
-                                    // Safe centering: offset can't be negative (starting from top if overflow)
-                                    const centeringOffset = Math.max(0, (250 - totalLgH) / 2);
-                                    const targetY = centeringOffset + (idx * (itemH + lgGap)) + itemH / 2;
-
-                                    const isLeft = Math.cos(midAngle) < 0;
-                                    let pathD = "";
-                                    if (isLeft) {
-                                        // Fluid wrap around curve: dynamic bounds based on 250px height
-                                        const wrapY = midAngle < Math.PI ? 249 : 1;
-                                        const cp1x = lx1 - 45;
-                                        const cpMidX = lx1 + (targetX - lx1) * 0.3;
-                                        pathD = `M ${lx1} ${ly1} C ${cp1x} ${ly1}, ${cp1x} ${wrapY}, ${cpMidX} ${wrapY} S ${targetX} ${targetY}, ${targetX} ${targetY}`;
-                                    } else {
-                                        // Smooth S-curve: balanced horizontal points to prevent inward bulging
-                                        const cp1x = lx1 + (targetX - lx1) * 0.5;
-                                        const cp2x = targetX - (targetX - lx1) * 0.5;
-                                        pathD = `M ${lx1} ${ly1} C ${cp1x} ${ly1}, ${cp2x} ${targetY}, ${targetX} ${targetY}`;
-                                    }
 
                                     const path = (
                                         <g key={item.id} onClick={(e) => { e.stopPropagation(); handleSegClick(item); }}>
-                                            {isFocused && (
-                                                <path
-                                                    d={pathD}
-                                                    fill="none"
-                                                    stroke={color}
-                                                    strokeWidth="0.7"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    style={{ pointerEvents: 'none', transition: 'all 0.4s ease-out' }}
-                                                />
-                                            )}
                                             <path
                                                 d={d}
                                                 fill={color}
+                                                stroke={isFocused ? 'white' : 'none'}
+                                                strokeWidth={isFocused ? 2.5 : 0}
                                                 style={{
-                                                    opacity: (hoveredIdx === null && !selectedId) || isFocused ? 1 : 0.5,
-                                                    transform: isFocused ? 'scale(1.04)' : 'scale(1)',
+                                                    opacity: (hoveredIdx === null && !selectedId) || isFocused ? 1 : 0.45,
+                                                    transform: isFocused ? 'scale(1.05)' : 'scale(1)',
                                                     transformOrigin: 'center',
                                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                                     cursor: 'pointer',
-                                                    filter: isFocused ? 'brightness(1.05)' : 'none'
+                                                    filter: isFocused ? `drop-shadow(0 0 6px ${color}88)` : 'none'
                                                 }}
                                                 onMouseEnter={() => setHoveredIdx(idx)}
                                                 onMouseLeave={() => setHoveredIdx(null)}
@@ -324,7 +286,7 @@ const ReportPage: React.FC = () => {
                                     className="pie-center-label"
                                 >
                                     {hoveredIdx !== null || selectedId
-                                        ? chartData[hoveredIdx ?? chartData.findIndex(d => d.id === selectedId)].label
+                                        ? (() => { const item = chartData[hoveredIdx ?? chartData.findIndex(d => d.id === selectedId)]; return item.name ?? item.label; })()
                                         : '總計金額'}
                                 </text>
                                 <text
@@ -340,19 +302,27 @@ const ReportPage: React.FC = () => {
                         </svg>
                     </div>
                     <div className="pie-legend-custom">
-                        {chartData.map((item, idx) => (
-                            <div
-                                key={item.id}
-                                className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''} ${selectedId === item.id ? 'pinned' : ''}`}
-                                onMouseEnter={() => setHoveredIdx(idx)}
-                                onMouseLeave={() => setHoveredIdx(null)}
-                                onClick={(e) => { e.stopPropagation(); handleSegClick(item); }}
-                            >
-                                <span className="pie-legend-dot" style={{ backgroundColor: item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length] }} />
-                                <span className="pie-legend-name">{item.label}</span>
-                                <span className="pie-legend-percent">{((item.value / total) * 100).toFixed(1)}%</span>
-                            </div>
-                        ))}
+                        {chartData.map((item, idx) => {
+                            const pinColor = item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length];
+                            const isPinned = selectedId === item.id;
+                            return (
+                                <div
+                                    key={item.id}
+                                    className={`pie-legend-item ${hoveredIdx === idx ? 'active' : ''} ${isPinned ? 'pinned' : ''}`}
+                                    style={isPinned ? {
+                                        '--legend-pin-color': pinColor,
+                                        '--legend-pin-bg': `${pinColor}14`
+                                    } as React.CSSProperties : {}}
+                                    onMouseEnter={() => setHoveredIdx(idx)}
+                                    onMouseLeave={() => setHoveredIdx(null)}
+                                    onClick={(e) => { e.stopPropagation(); handleSegClick(item); }}
+                                >
+                                    <span className="pie-legend-dot" style={{ backgroundColor: item.id === 'others' ? '#94a3b8' : CHART_COLORS[idx % CHART_COLORS.length] }} />
+                                    <span className="pie-legend-name">{item.label}</span>
+                                    <span className="pie-legend-percent">{((item.value / total) * 100).toFixed(1)}%</span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -542,7 +512,7 @@ const ReportPage: React.FC = () => {
         return (
             <div className="visual-board">
                 <PieChart
-                    data={data.map(d => ({ id: d.id, label: d.label, value: d.value }))}
+                    data={data.map(d => ({ id: d.id, label: d.label, name: (d as any).name, value: d.value }))}
                     total={total}
                     title={pieTitle}
                     selectedId={selectedId}
@@ -771,7 +741,7 @@ const ReportPage: React.FC = () => {
 
             {/* Visual Analysis Area */}
             {tab === 'account' && <VisualAnalysisBoard
-                data={byAccount.map(a => ({ id: a.ledgerAccountId, label: a.ledgerAccountName, value: a.total, items: a.items }))}
+                data={byAccount.map(a => ({ id: a.ledgerAccountId, label: a.ledgerAccountCode, name: a.ledgerAccountName, value: a.total, items: a.items }))}
                 total={grandTotal}
                 titlePrefix="總帳科目"
                 pieTitle="總帳科目金額比例"

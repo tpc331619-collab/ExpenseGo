@@ -129,16 +129,20 @@
     border-color: var(--border);
 }
 
-/* Selection state: Red Underline */
+/* Selection state: colored left accent bar + tinted background */
+.pie-legend-item.pinned {
+    background: var(--legend-pin-bg, rgba(59,130,246,0.08));
+    border-left: 3px solid var(--legend-pin-color, #3b82f6);
+    padding-left: 9px; /* compensate for 3px border */
+}
+
 .pie-legend-item.pinned .pie-legend-name {
-    border-bottom: 1px solid #ef4444;
-    /* 1px 幼紅線 */
-    padding-bottom: 2px;
+    font-weight: 700;
+    color: var(--legend-pin-color, #3b82f6);
 }
 
 .pie-legend-item.pinned .pie-legend-dot {
-    transform: scale(1.2);
-    box-shadow: 0 0 0 1px white, 0 0 0 1.5px #ef4444;
+    transform: scale(1.3);
 }
 
 .pie-legend-dot {
@@ -635,7 +639,7 @@
 }
 
 .pie-legend-item.pinned .pie-legend-dot {
-    box-shadow: 0 0 0 1px white, 0 0 0 1.5px #ef4444 !important;
+    box-shadow: none !important;
 }
 
 .btn-planning {
