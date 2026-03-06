@@ -1,18 +1,30 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { exporttoExcel } from '../lib/excelExport';
-import type { AnnualSummaryByAccount, AnnualSummaryByVendor, AnnualSummaryByRequisition, AnnualSummaryByPurchaseType } from '../types';
+import type { AnnualSummaryByVendor, AnnualSummaryByRequisition, AnnualSummaryByPurchaseType, Purchase } from '../types';
 import { BarChartBig, FolderOpen, Building2, Tags, Layers, Copy } from 'lucide-react';
 import { copyChart } from '../lib/chartUtils';
 import './ReportPage.css';
+
+// Extend AnnualSummaryByAccount for ReportPage specific fields
+interface ReportSummaryByAccount {
+    ledgerAccountId: string;
+    ledgerAccountCode: string;
+    ledgerAccountName: string;
+    total: number;
+    count: number;
+    items: Purchase[];
+}
 
 type Tab = 'account' | 'vendor' | 'requisition' | 'purchaseType';
 
 const cleanAccName = (name: string) => name.replace(/^[A-Z]\d{5}\s+/, '');
 
 const ReportPage: React.FC = () => {
-    const { purchases, ledgerAccounts, selectedYear: year } = useApp();
-    const [tab, setTab] = useState<Tab>('account');
+    const { purchases: yearPurchases, ledgerAccounts, selectedYear } = useApp();
+    const [tab, setTab] = useState<'account' | 'vendor' | 'requisition' | 'purchaseType'>('account');
+    const year = selectedYear;
+
     const [showAnalysis, setShowAnalysis] = useState(false);
     const [showBudgetPlanning, setShowBudgetPlanning] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -29,10 +41,12 @@ const ReportPage: React.FC = () => {
         setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const yearPurchases = purchases; // purchases are already filtered by year in context
+    useEffect(() => {
+        // yearPurchases now comes directly from context
+    }, [yearPurchases, selectedYear]);
 
-    const byAccount: AnnualSummaryByAccount[] = useMemo(() => {
-        const map: Record<string, AnnualSummaryByAccount> = {};
+    const byAccount: ReportSummaryByAccount[] = useMemo(() => {
+        const map: Record<string, ReportSummaryByAccount> = {};
         yearPurchases.forEach((p) => {
             if (!map[p.ledgerAccountId]) {
                 const acc = ledgerAccounts.find(a => a.id === p.ledgerAccountId);
@@ -42,7 +56,7 @@ const ReportPage: React.FC = () => {
                     ledgerAccountName: cleanAccName(p.ledgerAccountName),
                     total: 0,
                     count: 0,
-                    items: []
+                    items: [],
                 };
             }
             map[p.ledgerAccountId].total += p.amount;
@@ -117,7 +131,7 @@ const ReportPage: React.FC = () => {
     };
 
     // Budget execution rate per account (spent / budget)
-    const getBudgetExec = (acc: AnnualSummaryByAccount) => {
+    const getBudgetExec = (acc: ReportSummaryByAccount) => {
         const la = ledgerAccounts.find(a => a.id === acc.ledgerAccountId);
         const budget = la?.budget ?? 0;
         if (!budget) return { pct: null, hasBudget: false };
@@ -796,27 +810,25 @@ const ReportPage: React.FC = () => {
                                 </div>
                                 <div className="rs-right">
                                     {(() => {
-                                        const be = getBudgetExec(acc);
-                                        if (!be.hasBudget) return (
+                                        const { pct: pExec, hasBudget } = getBudgetExec(acc);
+                                        if (!hasBudget) return (
                                             <>
                                                 <div className="rs-bar-wrap"><div className="rs-bar" style={{ width: '0%' }} /></div>
                                                 <span className="rs-pct rs-pct-none">未設預算</span>
-                                                <span className="rs-amount">{fmt(acc.total)}</span>
                                             </>
                                         );
-                                        const p = be.pct!;
-                                        const cls = p > 100 ? 'rs-pct-over' : p > 90 ? 'rs-pct-warn' : 'rs-pct-ok';
+                                        const isOver = (pExec as number) > 100;
+                                        const isWarn = pExec !== null && pExec > 85 && pExec <= 100;
                                         return (
                                             <>
-                                                <div className="rs-bar-wrap">
-                                                    <div className={`rs-bar ${p > 100 ? 'rs-bar-over' : p > 90 ? 'rs-bar-warn' : ''}`}
-                                                        style={{ width: `${Math.min(p, 100)}%` }} />
-                                                </div>
-                                                <span className={`rs-pct ${cls}`}>{p.toFixed(1)}%</span>
-                                                <span className="rs-amount">{fmt(acc.total)}</span>
+                                                <div className="rs-bar-wrap"><div className={`rs-bar ${isOver ? 'rs-bar-over' : isWarn ? 'rs-bar-warn' : ''}`} style={{ width: `${Math.min(pExec || 0, 100)}%` }} /></div>
+                                                <span className={`rs-pct ${isOver ? 'rs-pct-over' : isWarn ? 'rs-pct-warn' : 'rs-pct-ok'}`}>
+                                                    {(pExec as number).toFixed(1)}%
+                                                </span>
                                             </>
                                         );
                                     })()}
+                                    <span className="rs-amount">{fmt(acc.total)}</span>
                                 </div>
                             </div>
                             {(expandedIds[acc.ledgerAccountId] || selectedId === acc.ledgerAccountId) && (

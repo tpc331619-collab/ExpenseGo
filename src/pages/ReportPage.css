@@ -1,8 +1,14 @@
 .report-kpi {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 640px) {
+    .report-kpi {
+        grid-template-columns: 1fr;
+    }
 }
 
 .report-actions {
@@ -21,7 +27,6 @@
     font-size: 14px;
     cursor: pointer;
 }
-
 
 
 .report-sections {
@@ -131,9 +136,10 @@
 
 /* Selection state: colored left accent bar + tinted background */
 .pie-legend-item.pinned {
-    background: var(--legend-pin-bg, rgba(59,130,246,0.08));
+    background: var(--legend-pin-bg, rgba(59, 130, 246, 0.08));
     border-left: 3px solid var(--legend-pin-color, #3b82f6);
-    padding-left: 9px; /* compensate for 3px border */
+    padding-left: 9px;
+    /* compensate for 3px border */
 }
 
 .pie-legend-item.pinned .pie-legend-name {
@@ -263,6 +269,7 @@
     align-items: center;
     gap: 12px;
 }
+
 
 .rs-bar-wrap {
     width: 120px;

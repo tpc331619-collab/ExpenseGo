@@ -30,7 +30,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [purchaseListRefreshKey, setPurchaseListRefreshKey] = useState(0);
     const incrementPurchaseListRefresh = () => setPurchaseListRefreshKey(k => k + 1);
-    const [compareYear, setCompareYearState] = useState<number | null>(() => {
+    const [compareYearState, setCompareYearState] = useState<number | null>(() => {
         const saved = localStorage.getItem('compareYear');
         return saved ? Number(saved) : null;
     });
@@ -62,10 +62,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     useEffect(() => {
-        if (compareYear !== null && compareYear === selectedYear) {
+        if (compareYearState !== null && compareYearState === selectedYear) {
             setCompareYear(null);
         }
-    }, [selectedYear, compareYear]);
+    }, [selectedYear, compareYearState]);
 
     useEffect(() => {
         if (appUser && ['admin', 'user', 'guest'].includes(appUser.role)) {
@@ -96,7 +96,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         <AppContext.Provider value={{
             purchases, ledgerAccounts, vendors, loadingData,
             selectedYear, setSelectedYear,
-            compareYear, setCompareYear,
+            compareYear: compareYearState, setCompareYear,
             refreshPurchases, refreshLedgerAccounts, refreshVendors,
             purchaseListRefreshKey, incrementPurchaseListRefresh
         }}>

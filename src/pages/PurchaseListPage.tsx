@@ -5,7 +5,7 @@ import { deletePurchaseGroup, deletePurchasesBatch, getPaginatedPurchases, getAl
 import type { Purchase } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
-import { Upload, Download, XCircle, X, Trash2, CheckSquare, Square, MoreVertical, Copy, Edit } from 'lucide-react';
+import { Upload, Download, XCircle, X, Trash2, CheckSquare, Square, MoreVertical, Copy, Edit, Search } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
 
@@ -34,6 +34,7 @@ const PurchaseListPage: React.FC = () => {
     const [filterCreator, setFilterCreator] = useState('');
     const [filterReqType, setFilterReqType] = useState('');
     const [filterPurType, setFilterPurType] = useState('');
+    const [filterText, setFilterText] = useState('');
 
     const [vendorDetail, setVendorDetail] = useState<string | null>(null);
     const [importResult, setImportResult] = useState<{ success: number; skipped: number; errors: string[] } | null>(null);
@@ -99,6 +100,16 @@ const PurchaseListPage: React.FC = () => {
         // 1. 基本過濾 (目前由 Firestore 完成，這裡僅作保險或未來擴充)
         let list = localPurchases;
 
+        // Text search filter (Client-side)
+        if (filterText.trim()) {
+            const lowerQuery = filterText.toLowerCase().trim();
+            list = list.filter(p =>
+                p.vendor.toLowerCase().includes(lowerQuery) ||
+                p.title.toLowerCase().includes(lowerQuery) ||
+                (p.docNumber && p.docNumber.toLowerCase().includes(lowerQuery))
+            );
+        }
+
         // 2. 自動去重 (Deduplication)
         // 判斷依據：日期、廠商、單號、品名、金額 全部相同則視為重複
         const seen = new Map<string, Purchase>();
@@ -125,7 +136,7 @@ const PurchaseListPage: React.FC = () => {
         });
 
         return Array.from(seen.values());
-    }, [localPurchases, ledgerAccounts]);
+    }, [localPurchases, ledgerAccounts, filterText]);
 
     const grouped = useMemo(() => {
         const groups: Record<string, Purchase[]> = {};
@@ -486,43 +497,64 @@ const PurchaseListPage: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="list-controls" style={{ flexWrap: 'wrap', gap: '10px' }}>
-                <div className="filter-group">
-                    <span className="filter-label">科目</span>
-                    <select value={filterAccount} onChange={(e) => setFilterAccount(e.target.value)}>
-                        <option value="">全部科目</option>
-                        {ledgerAccounts.map(a => <option key={a.id} value={a.id}>{a.code} {a.name}</option>)}
-                    </select>
-                </div>
-                <div className="filter-group">
-                    <span className="filter-label">類型</span>
-                    <select value={filterReqType} onChange={(e) => setFilterReqType(e.target.value)}>
-                        <option value="">全部</option>
-                        <option value="經MM">經MM</option>
-                        <option value="非經MM">非經MM</option>
-                    </select>
-                </div>
-                <div className="filter-group">
-                    <span className="filter-label">採購</span>
-                    <select value={filterPurType} onChange={(e) => setFilterPurType(e.target.value)}>
-                        <option value="">全部</option>
-                        <option value="勞務">勞務</option>
-                        <option value="財務">財務</option>
-                        <option value="工程">工程</option>
-                    </select>
-                </div>
-
-                {appUser?.role === 'admin' && (
+            <div className="list-controls-container">
+                <div className="list-controls" style={{ flexWrap: 'wrap', gap: '10px' }}>
                     <div className="filter-group">
-                        <span className="filter-label">建立人</span>
-                        <select value={filterCreator} onChange={(e) => setFilterCreator(e.target.value)}>
-                            <option value="">所有人</option>
-                            {Object.entries(usersMap).map(([uid, name]) => (
-                                <option key={uid} value={uid}>{name}</option>
-                            ))}
+                        <span className="filter-label">科目</span>
+                        <select value={filterAccount} onChange={(e) => setFilterAccount(e.target.value)}>
+                            <option value="">全部科目</option>
+                            {ledgerAccounts.map(a => <option key={a.id} value={a.id}>{a.code} {a.name}</option>)}
                         </select>
                     </div>
-                )}
+                    <div className="filter-group">
+                        <span className="filter-label">類型</span>
+                        <select value={filterReqType} onChange={(e) => setFilterReqType(e.target.value)}>
+                            <option value="">全部</option>
+                            <option value="經MM">經MM</option>
+                            <option value="非經MM">非經MM</option>
+                        </select>
+                    </div>
+                    <div className="filter-group">
+                        <span className="filter-label">採購</span>
+                        <select value={filterPurType} onChange={(e) => setFilterPurType(e.target.value)}>
+                            <option value="">全部</option>
+                            <option value="勞務">勞務</option>
+                            <option value="財務">財務</option>
+                            <option value="工程">工程</option>
+                        </select>
+                    </div>
+
+                    {appUser?.role === 'admin' && (
+                        <div className="filter-group">
+                            <span className="filter-label">建立人</span>
+                            <select value={filterCreator} onChange={(e) => setFilterCreator(e.target.value)}>
+                                <option value="">所有人</option>
+                                {Object.entries(usersMap).map(([uid, name]) => (
+                                    <option key={uid} value={uid}>{name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="filter-group search-filter">
+                        <span className="filter-label" style={{ visibility: 'hidden' }}>搜尋</span>
+                        <div className="search-bar-wrapper">
+                            <Search size={16} className="search-icon" />
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="搜尋廠商名稱、品名或單號..."
+                                value={filterText}
+                                onChange={(e) => setFilterText(e.target.value)}
+                            />
+                            {filterText && (
+                                <button className="search-clear-btn" onClick={() => setFilterText('')}>
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
             {/* Summary */}
             <div className="list-summary">
