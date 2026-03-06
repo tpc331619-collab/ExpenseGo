@@ -148,7 +148,7 @@ export interface PaginatedResult<T> {
 
 export const getPaginatedPurchases = async (
     year: number,
-    pageSize: number = 20,
+    pageSize: number = 200,
     lastDoc: QueryDocumentSnapshot | null = null,
     filters: {
         uid?: string;
@@ -161,22 +161,9 @@ export const getPaginatedPurchases = async (
     const purchaseRef = getPurchaseRef(year);
     let q = query(purchaseRef, orderBy('purchaseDate', 'desc'), orderBy('createdAt', 'desc'));
 
+    // Only filter by uid server-side (single field, no composite index needed)
     if (filters.uid) {
         q = query(q, where('createdBy', '==', filters.uid));
-    }
-    if (filters.ledgerAccountId) {
-        q = query(q, where('ledgerAccountId', '==', filters.ledgerAccountId));
-    }
-    if (filters.requisitionType) {
-        q = query(q, where('requisitionType', '==', filters.requisitionType));
-    }
-    if (filters.purchaseType) {
-        q = query(q, where('purchaseType', '==', filters.purchaseType));
-    }
-    if (filters.vendor) {
-        // Firestore doesn't support partial string match ('contains') natively with where.
-        // For simple equality:
-        q = query(q, where('vendor', '==', filters.vendor));
     }
 
     if (lastDoc) {
@@ -186,7 +173,22 @@ export const getPaginatedPurchases = async (
     q = query(q, limit(pageSize));
 
     const snap = await getDocs(q);
-    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Purchase);
+    let data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Purchase);
+
+    // Client-side filtering for the rest (avoids Firestore composite index requirement)
+    if (filters.ledgerAccountId) {
+        data = data.filter(p => p.ledgerAccountId === filters.ledgerAccountId);
+    }
+    if (filters.requisitionType) {
+        data = data.filter(p => p.requisitionType === filters.requisitionType);
+    }
+    if (filters.purchaseType) {
+        data = data.filter(p => p.purchaseType === filters.purchaseType);
+    }
+    if (filters.vendor) {
+        data = data.filter(p => p.vendor === filters.vendor);
+    }
+
     const nextLastDoc = snap.docs[snap.docs.length - 1] || null;
 
     return {
