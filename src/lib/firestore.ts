@@ -17,7 +17,7 @@ import {
     QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor, NotebookEntry } from '../types';
+import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor, NotebookEntry, SystemOptions } from '../types';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -450,4 +450,34 @@ export const updateNotebookEntry = async (id: string, data: Partial<Omit<Noteboo
 
 export const deleteNotebookEntry = async (id: string) => {
     await deleteDoc(doc(db, 'notebooks', id));
+};
+
+// ─── System Options ──────────────────────────────────────────────────────────
+
+export const getSystemOptions = async (): Promise<SystemOptions> => {
+    const ref = doc(db, 'settings', 'systemOptions');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+        const defaultOptions: SystemOptions = {
+            purchaseTypes: ['工程', '財務', '勞務'],
+            requisitionTypes: ['經MM', '非經MM']
+        };
+        // 嘗試寫入預設值
+        try {
+            await setDoc(ref, { ...defaultOptions, updatedAt: Timestamp.now() });
+        } catch (e) {
+            console.warn('Failed to set default system options, likely due to rules during initial read', e);
+        }
+        return defaultOptions;
+    }
+    return snap.data() as SystemOptions;
+};
+
+export const updateSystemOptions = async (data: Partial<SystemOptions>) => {
+    const ref = doc(db, 'settings', 'systemOptions');
+    // 使用 setDoc 與 merge 以確保文件即使一開始不存在也能成功更新
+    await setDoc(ref, {
+        ...data,
+        updatedAt: Timestamp.now()
+    }, { merge: true });
 };

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getLedgerAccounts, getPurchases, getVendors } from '../lib/firestore';
+import { getLedgerAccounts, getPurchases, getVendors, getSystemOptions } from '../lib/firestore';
 import type { LedgerAccount, Purchase, Vendor } from '../types';
 import { useAuth } from './AuthContext';
 
@@ -17,6 +17,9 @@ interface AppContextValue {
     refreshVendors: () => Promise<void>;
     purchaseListRefreshKey: number;
     incrementPurchaseListRefresh: () => void;
+    purchaseTypes: string[];
+    requisitionTypes: string[];
+    refreshSystemOptions: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -29,6 +32,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [loadingData, setLoadingData] = useState(false);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [purchaseListRefreshKey, setPurchaseListRefreshKey] = useState(0);
+    const [purchaseTypes, setPurchaseTypes] = useState<string[]>([]);
+    const [requisitionTypes, setRequisitionTypes] = useState<string[]>([]);
     const incrementPurchaseListRefresh = () => setPurchaseListRefreshKey(k => k + 1);
     const [compareYearState, setCompareYearState] = useState<number | null>(() => {
         const saved = localStorage.getItem('compareYear');
@@ -61,6 +66,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setVendors(data);
     };
 
+    const refreshSystemOptions = async () => {
+        const options = await getSystemOptions();
+        setPurchaseTypes(options.purchaseTypes || []);
+        setRequisitionTypes(options.requisitionTypes || []);
+    };
+
     useEffect(() => {
         if (compareYearState !== null && compareYearState === selectedYear) {
             setCompareYear(null);
@@ -80,7 +91,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     await Promise.all([
                         refreshPurchases(selectedYear).catch(e => { throw new Error(`Purchases fetch failed: ${e.message}`); }),
                         refreshLedgerAccounts().catch(e => { throw new Error(`Accounts fetch failed: ${e.message}`); }),
-                        refreshVendors().catch(e => { throw new Error(`Vendors fetch failed: ${e.message}`); })
+                        refreshVendors().catch(e => { throw new Error(`Vendors fetch failed: ${e.message}`); }),
+                        refreshSystemOptions().catch(e => { throw new Error(`SystemOptions fetch failed: ${e.message}`); })
                     ]);
                     console.log('Initial data loaded successfully.');
                 } catch (e: any) {
@@ -98,7 +110,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             selectedYear, setSelectedYear,
             compareYear: compareYearState, setCompareYear,
             refreshPurchases, refreshLedgerAccounts, refreshVendors,
-            purchaseListRefreshKey, incrementPurchaseListRefresh
+            purchaseListRefreshKey, incrementPurchaseListRefresh,
+            purchaseTypes, requisitionTypes, refreshSystemOptions
         }}>
             {children}
         </AppContext.Provider>

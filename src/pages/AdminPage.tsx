@@ -4,6 +4,7 @@ import {
     addLedgerAccount, deleteLedgerAccount, updateLedgerAccount,
     addVendor, deleteVendor, updateVendor,
     cleanupDuplicatePurchases,
+    updateSystemOptions,
 } from '../lib/firestore';
 import * as XLSX from 'xlsx';
 import { Upload, Plus, Database, Wrench } from 'lucide-react';
@@ -205,7 +206,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     );
 };
 
-type AdminTab = 'users' | 'accounts' | 'vendors' | 'maintenance';
+type AdminTab = 'users' | 'accounts' | 'vendors' | 'maintenance' | 'options';
 
 const ROLE_LABEL: Record<string, string> = {
     admin: '管理員', user: '使用者', pending: '待審核', rejected: '已拒絕', guest: '訪客'
@@ -213,7 +214,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 const AdminPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear } = useApp();
+    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear, purchaseTypes, requisitionTypes, refreshSystemOptions } = useApp();
     const isAdmin = appUser?.role === 'admin';
     const isGuest = appUser?.role === 'guest';
     const [tab, setTab] = useState<AdminTab>(isAdmin ? 'users' : 'accounts');
@@ -248,6 +249,11 @@ const AdminPage: React.FC = () => {
 
     const [showAccImport, setShowAccImport] = useState(false);
     const [showVendorImport, setShowVendorImport] = useState(false);
+
+    // Options form
+    const [newPurType, setNewPurType] = useState('');
+    const [newReqType, setNewReqType] = useState('');
+    const [optionsSaving, setOptionsSaving] = useState(false);
 
     const fetchUsers = async () => {
         setLoadingUsers(true);
@@ -615,6 +621,61 @@ const AdminPage: React.FC = () => {
 
     const pendingCount = users.filter((u) => u.role === 'pending').length;
 
+    const handleAddOption = async (type: 'purchase' | 'requisition') => {
+        setOptionsSaving(true);
+        try {
+            if (type === 'purchase') {
+                const val = newPurType.trim();
+                if (!val) return;
+                if (purchaseTypes.includes(val)) {
+                    alert('此採購類型已存在！');
+                    return;
+                }
+                await updateSystemOptions({ purchaseTypes: [...purchaseTypes, val] });
+                setNewPurType('');
+            } else {
+                const val = newReqType.trim();
+                if (!val) return;
+                if (requisitionTypes.includes(val)) {
+                    alert('此請購類型已存在！');
+                    return;
+                }
+                await updateSystemOptions({ requisitionTypes: [...requisitionTypes, val] });
+                setNewReqType('');
+            }
+            await refreshSystemOptions();
+        } catch (e: any) {
+            alert('儲存選項失敗: ' + e.message);
+        } finally {
+            setOptionsSaving(false);
+        }
+    };
+
+    const handleDeleteOption = async (type: 'purchase' | 'requisition', targetVal: string) => {
+        setConfirmState({
+            isOpen: true,
+            title: `刪除選項`,
+            message: `確定要刪除「${targetVal}」嗎？\n注意：這不會影響過去已經使用此選項的採購紀錄，但未來新增時將無法再選此項目。`,
+            type: 'danger',
+            onConfirm: async () => {
+                setOptionsSaving(true);
+                try {
+                    if (type === 'purchase') {
+                        await updateSystemOptions({ purchaseTypes: purchaseTypes.filter(t => t !== targetVal) });
+                    } else {
+                        await updateSystemOptions({ requisitionTypes: requisitionTypes.filter(t => t !== targetVal) });
+                    }
+                    await refreshSystemOptions();
+                    setConfirmState(prev => ({ ...prev, isOpen: false }));
+                } catch (e: any) {
+                    alert('刪除選項失敗: ' + e.message);
+                } finally {
+                    setOptionsSaving(false);
+                }
+            }
+        });
+    };
+
     return (
         <div className="page-container">
             <div className="page-header">
@@ -633,240 +694,378 @@ const AdminPage: React.FC = () => {
                 <button className={`tab-btn ${tab === 'vendors' ? 'active' : ''}`} onClick={() => setTab('vendors')}>
                     廠商管理
                 </button>
+                <button className={`tab-btn ${tab === 'options' ? 'active' : ''}`} onClick={() => setTab('options')}>
+                    選項設定
+                </button>
                 <button className={`tab-btn ${tab === 'maintenance' ? 'active' : ''}`} onClick={() => setTab('maintenance')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Database size={16} /> 資料維護
                 </button>
             </div>
 
+            {/* Options tab content */}
+            {tab === 'options' && (
+                <div className="options-panel" style={{ animation: 'fadeIn 0.4s ease', display: 'flex', gap: 24, flexDirection: 'row', flexWrap: 'wrap' }}>
+                    <div className="admin-maintenance-card" style={{ flex: '1 1 400px', padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
+                        <h3 style={{ margin: '0 0 16px', fontSize: 18, color: 'var(--text1)' }}>採購性質設定</h3>
+                        <p style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--text2)' }}>若刪除現有選項，將不影響過去已建檔之採購紀錄。</p>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                            <input
+                                placeholder="新增採購性質..."
+                                value={newPurType}
+                                onChange={e => setNewPurType(e.target.value)}
+                                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}
+                                onKeyDown={e => { if (e.key === 'Enter') handleAddOption('purchase'); }}
+                            />
+                            <button className="btn-primary" onClick={() => handleAddOption('purchase')} disabled={optionsSaving || !newPurType.trim()}>
+                                新增
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                            {purchaseTypes.map(pt => (
+                                <div key={pt} className="option-tag" style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    background: '#f1f5f9',
+                                    border: '1px solid #e2e8f0',
+                                    padding: '6px 14px',
+                                    borderRadius: 20,
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: 'var(--text1)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                    transition: 'all 0.2s ease',
+                                }}>
+                                    {pt}
+                                    <button
+                                        onClick={() => handleDeleteOption('purchase', pt)}
+                                        className="option-delete-btn"
+                                        title="刪除"
+                                        style={{
+                                            background: '#e2e8f0',
+                                            border: 'none',
+                                            color: '#64748b',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: '50%',
+                                            padding: 0,
+                                            fontSize: 10,
+                                            fontWeight: 'bold',
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}
+                                    >✕</button>
+                                </div>
+                            ))}
+                            {purchaseTypes.length === 0 && <span style={{ color: 'var(--text3)', fontSize: 14 }}>目前無選項</span>}
+                        </div>
+                    </div>
+
+                    <div className="admin-maintenance-card" style={{ flex: '1 1 400px', padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
+                        <h3 style={{ margin: '0 0 16px', fontSize: 18, color: 'var(--text1)' }}>請購類型設定</h3>
+                        <p style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--text2)' }}>若刪除現有選項，將不影響過去已建檔之採購紀錄。</p>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                            <input
+                                placeholder="新增請購類型..."
+                                value={newReqType}
+                                onChange={e => setNewReqType(e.target.value)}
+                                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}
+                                onKeyDown={e => { if (e.key === 'Enter') handleAddOption('requisition'); }}
+                            />
+                            <button className="btn-primary" onClick={() => handleAddOption('requisition')} disabled={optionsSaving || !newReqType.trim()}>
+                                新增
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                            {requisitionTypes.map(rt => (
+                                <div key={rt} className="option-tag" style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    background: '#f1f5f9',
+                                    border: '1px solid #e2e8f0',
+                                    padding: '6px 14px',
+                                    borderRadius: 20,
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: 'var(--text1)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                    transition: 'all 0.2s ease',
+                                }}>
+                                    {rt}
+                                    <button
+                                        onClick={() => handleDeleteOption('requisition', rt)}
+                                        className="option-delete-btn"
+                                        title="刪除"
+                                        style={{
+                                            background: '#e2e8f0',
+                                            border: 'none',
+                                            color: '#64748b',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: '50%',
+                                            padding: 0,
+                                            fontSize: 10,
+                                            fontWeight: 'bold',
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}
+                                    >✕</button>
+                                </div>
+                            ))}
+                            {requisitionTypes.length === 0 && <span style={{ color: 'var(--text3)', fontSize: 14 }}>目前無選項</span>}
+                        </div>
+                    </div>
+                </div>
+            )
+            }
 
             {/* Maintenance tab content */}
-            {tab === 'maintenance' && (
-                <div className="maintenance-panel" style={{ animation: 'fadeIn 0.4s ease' }}>
-                    <div className="admin-maintenance-card" style={{ padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-                            <div className="maintenance-icon-wrapper" style={{
-                                background: 'rgba(59, 130, 246, 0.1)',
-                                color: 'var(--primary)',
-                                padding: 16,
-                                borderRadius: 16,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                <Wrench size={32} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <h3 style={{ margin: '0 0 12px', fontSize: 20, color: 'var(--text1)', fontWeight: 800 }}>採購紀錄去重清理 ({selectedYear} 年度)</h3>
+            {
+                tab === 'maintenance' && (
+                    <div className="maintenance-panel" style={{ animation: 'fadeIn 0.4s ease' }}>
+                        <div className="admin-maintenance-card" style={{ padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
+                                <div className="maintenance-icon-wrapper" style={{
+                                    background: 'rgba(59, 130, 246, 0.1)',
+                                    color: 'var(--primary)',
+                                    padding: 16,
+                                    borderRadius: 16,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <Wrench size={32} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <h3 style={{ margin: '0 0 12px', fontSize: 20, color: 'var(--text1)', fontWeight: 800 }}>採購紀錄去重清理 ({selectedYear} 年度)</h3>
 
-                                <div className="maintenance-info" style={{ background: '#f8fafc', padding: 20, borderRadius: 12, marginBottom: 24 }}>
-                                    <h4 style={{ margin: '0 0 8px', fontSize: 15, color: 'var(--primary)' }}>使用時機：</h4>
-                                    <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--text2)', fontSize: 14, lineHeight: 1.6 }}>
-                                        <li><strong>Excel 導入後</strong>：批次導入資料後，若擔心有重複上傳，可執行清理。</li>
-                                        <li><strong>數據不一致時</strong>：當發現採購清單出現兩筆金額日期相同，但一筆有科目代碼一筆沒有時。</li>
-                                        <li><strong>系統維護</strong>：定期執行可縮小資料庫體積，提升系統讀取效能。</li>
-                                    </ul>
+                                    <div className="maintenance-info" style={{ background: '#f8fafc', padding: 20, borderRadius: 12, marginBottom: 24 }}>
+                                        <h4 style={{ margin: '0 0 8px', fontSize: 15, color: 'var(--primary)' }}>使用時機：</h4>
+                                        <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--text2)', fontSize: 14, lineHeight: 1.6 }}>
+                                            <li><strong>Excel 導入後</strong>：批次導入資料後，若擔心有重複上傳，可執行清理。</li>
+                                            <li><strong>數據不一致時</strong>：當發現採購清單出現兩筆金額日期相同，但一筆有科目代碼一筆沒有時。</li>
+                                            <li><strong>系統維護</strong>：定期執行可縮小資料庫體積，提升系統讀取效能。</li>
+                                        </ul>
 
-                                    <h4 style={{ margin: '16px 0 8px', fontSize: 15, color: 'var(--primary)' }}>執行說明：</h4>
-                                    <p style={{ margin: 0, color: 'var(--text2)', fontSize: 14, lineHeight: 1.6 }}>
-                                        系統會比對該年度所有紀錄的 <strong>「日期、廠商、單號、品名、金額」</strong>。<br />
-                                        若判定為重複，會自動保留「資訊最完整（已連結正式總帳科目編號）」的那一筆，永久移除其他冗餘紀錄。
+                                        <h4 style={{ margin: '16px 0 8px', fontSize: 15, color: 'var(--primary)' }}>執行說明：</h4>
+                                        <p style={{ margin: 0, color: 'var(--text2)', fontSize: 14, lineHeight: 1.6 }}>
+                                            系統會比對該年度所有紀錄的 <strong>「日期、廠商、單號、品名、金額」</strong>。<br />
+                                            若判定為重複，會自動保留「資訊最完整（已連結正式總帳科目編號）」的那一筆，永久移除其他冗餘紀錄。
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        className="btn-primary"
+                                        onClick={handleCleanupDuplicates}
+                                        disabled={cleaningData}
+                                    >
+                                        {cleaningData ? '深度掃描並清理中...' : `立即清理 ${selectedYear} 年度重複項`}
+                                    </button>
+
+                                    <p style={{ marginTop: 16, fontSize: 12, color: '#ef4444', fontWeight: 500 }}>
+                                        ※ 注意：此操作將永久從資料庫移除冗餘數據，執行前請確認已選擇正確年度。
                                     </p>
                                 </div>
-
-                                <button
-                                    className="btn-primary"
-                                    onClick={handleCleanupDuplicates}
-                                    disabled={cleaningData}
-                                >
-                                    {cleaningData ? '深度掃描並清理中...' : `立即清理 ${selectedYear} 年度重複項`}
-                                </button>
-
-                                <p style={{ marginTop: 16, fontSize: 12, color: '#ef4444', fontWeight: 500 }}>
-                                    ※ 注意：此操作將永久從資料庫移除冗餘數據，執行前請確認已選擇正確年度。
-                                </p>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Users tab */}
-            {tab === 'users' && (
-                <div>
-                    {loadingUsers ? (
-                        <div className="full-loading"><div className="spinner" /></div>
-                    ) : (
-                        <div className="table-wrapper">
-                            <table className="admin-table">
-                                <thead>
-                                    <tr><th>使用者</th><th>Email</th><th>申請時間</th><th>目前角色</th><th>變更角色</th></tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((u) => (
-                                        <tr key={u.uid} className={u.role === 'pending' ? 'row-pending' : ''}>
-                                            <td>
-                                                <div className="user-cell">
-                                                    <img src={u.photoURL} className="user-avatar" alt="" />
-                                                    <span>{u.displayName}</span>
-                                                </div>
-                                            </td>
-                                            <td>{u.email}</td>
-                                            <td>{u.createdAt?.toDate().toLocaleDateString('zh-TW')}</td>
-                                            <td>
-                                                <span className={`role-tag role-${u.role}`}>{ROLE_LABEL[u.role]}</span>
-                                            </td>
-                                            <td>
-                                                <div className="role-actions">
-                                                    {u.role !== 'admin' && (
-                                                        <button className="role-btn approve" onClick={() => handleRoleChange(u.uid, 'admin')}>管理員</button>
-                                                    )}
-                                                    {u.role !== 'user' && (
-                                                        <button className="role-btn user" onClick={() => handleRoleChange(u.uid, 'user')}>使用者</button>
-                                                    )}
-                                                    <button className="role-btn reject" onClick={() => handleDeleteUser(u.uid, u.displayName)}>刪除</button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
+            {
+                tab === 'users' && (
+                    <div>
+                        {loadingUsers ? (
+                            <div className="full-loading"><div className="spinner" /></div>
+                        ) : (
+                            <div className="table-wrapper">
+                                <table className="admin-table">
+                                    <thead>
+                                        <tr><th>使用者</th><th>Email</th><th>申請時間</th><th>目前角色</th><th>變更角色</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map((u) => (
+                                            <tr key={u.uid} className={u.role === 'pending' ? 'row-pending' : ''}>
+                                                <td>
+                                                    <div className="user-cell">
+                                                        <img src={u.photoURL} className="user-avatar" alt="" />
+                                                        <span>{u.displayName}</span>
+                                                    </div>
+                                                </td>
+                                                <td>{u.email}</td>
+                                                <td>{u.createdAt?.toDate().toLocaleDateString('zh-TW')}</td>
+                                                <td>
+                                                    <span className={`role-tag role-${u.role}`}>{ROLE_LABEL[u.role]}</span>
+                                                </td>
+                                                <td>
+                                                    <div className="role-actions">
+                                                        {u.role !== 'admin' && (
+                                                            <button className="role-btn approve" onClick={() => handleRoleChange(u.uid, 'admin')}>管理員</button>
+                                                        )}
+                                                        {u.role !== 'user' && (
+                                                            <button className="role-btn user" onClick={() => handleRoleChange(u.uid, 'user')}>使用者</button>
+                                                        )}
+                                                        <button className="role-btn reject" onClick={() => handleDeleteUser(u.uid, u.displayName)}>刪除</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )
+            }
 
             {/* Ledger accounts tab */}
-            {tab === 'accounts' && (
-                <div className="accounts-panel">
-                    {!isGuest && (
-                        <div className="admin-action-bar">
-                            <button className="btn-primary" onClick={startAddAccount}>
-                                <Plus size={18} /> 新增 ({selectedYear})
-                            </button>
+            {
+                tab === 'accounts' && (
+                    <div className="accounts-panel">
+                        {!isGuest && (
+                            <div className="admin-action-bar">
+                                <button className="btn-primary" onClick={startAddAccount}>
+                                    <Plus size={18} /> 新增 ({selectedYear})
+                                </button>
 
-                            <button
-                                type="button"
-                                className={`btn-outline ${showAccImport ? 'active' : ''}`}
-                                onClick={() => setShowAccImport(!showAccImport)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                            >
-                                <Upload size={18} /> 批次導入
-                            </button>
+                                <button
+                                    type="button"
+                                    className={`btn-outline ${showAccImport ? 'active' : ''}`}
+                                    onClick={() => setShowAccImport(!showAccImport)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                                >
+                                    <Upload size={18} /> 批次導入
+                                </button>
 
-                            {showAccImport && (
-                                <div className="batch-import-box" style={{ width: '100%' }}>
-                                    <label className="btn-batch-import">
-                                        <Upload size={16} />
-                                        批次導入 Excel
-                                        <input type="file" accept=".xlsx, .xls" onChange={handleAccountImport} hidden />
-                                    </label>
-                                    <button type="button" className="btn-text-link" onClick={downloadAccountTemplate}>
-                                        📥 下載科目範本
-                                    </button>
-                                    <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
-                                </div>
+                                {showAccImport && (
+                                    <div className="batch-import-box" style={{ width: '100%' }}>
+                                        <label className="btn-batch-import">
+                                            <Upload size={16} />
+                                            批次導入 Excel
+                                            <input type="file" accept=".xlsx, .xls" onChange={handleAccountImport} hidden />
+                                        </label>
+                                        <button type="button" className="btn-text-link" onClick={downloadAccountTemplate}>
+                                            📥 下載科目範本
+                                        </button>
+                                        <span className="import-hint">欄位：科目代碼, 科目名稱, 計畫成本</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="table-wrapper">
+                            {ledgerAccounts.length === 0 ? (
+                                <div className="empty-state"><div className="empty-icon">📂</div><p>尚未建立任何科目</p></div>
+                            ) : (
+                                <table className="admin-table">
+                                    <thead>
+                                        <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>科目代碼</th><th>科目名稱</th><th>計畫成本</th>{!isGuest && <th>操作</th>}</tr>
+                                    </thead>
+                                    <tbody>
+                                        {ledgerAccounts.map((acc, idx) => (
+                                            <tr key={acc.id}>
+                                                <td style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</td>
+                                                <td><code>{acc.code}</code></td>
+                                                <td>{acc.name}</td>
+                                                <td>{acc.budget ? `NT$ ${acc.budget.toLocaleString()}` : '-'}</td>
+                                                {!isGuest && (
+                                                    <td>
+                                                        <div className="role-actions">
+                                                            <button className="role-btn user" onClick={() => startEdit(acc)}>編輯</button>
+                                                            <button className="role-btn reject" onClick={() => handleDeleteAccount(acc.id, acc.name)}>刪除</button>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             )}
                         </div>
-                    )}
-
-                    <div className="table-wrapper">
-                        {ledgerAccounts.length === 0 ? (
-                            <div className="empty-state"><div className="empty-icon">📂</div><p>尚未建立任何科目</p></div>
-                        ) : (
-                            <table className="admin-table">
-                                <thead>
-                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>科目代碼</th><th>科目名稱</th><th>計畫成本</th>{!isGuest && <th>操作</th>}</tr>
-                                </thead>
-                                <tbody>
-                                    {ledgerAccounts.map((acc, idx) => (
-                                        <tr key={acc.id}>
-                                            <td style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</td>
-                                            <td><code>{acc.code}</code></td>
-                                            <td>{acc.name}</td>
-                                            <td>{acc.budget ? `NT$ ${acc.budget.toLocaleString()}` : '-'}</td>
-                                            {!isGuest && (
-                                                <td>
-                                                    <div className="role-actions">
-                                                        <button className="role-btn user" onClick={() => startEdit(acc)}>編輯</button>
-                                                        <button className="role-btn reject" onClick={() => handleDeleteAccount(acc.id, acc.name)}>刪除</button>
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Vendors tab */}
-            {tab === 'vendors' && (
-                <div className="accounts-panel">
-                    {!isGuest && (
-                        <div className="admin-action-bar">
-                            <button className="btn-primary" onClick={startAddVendor}>
-                                <Plus size={18} /> 新增廠商
-                            </button>
+            {
+                tab === 'vendors' && (
+                    <div className="accounts-panel">
+                        {!isGuest && (
+                            <div className="admin-action-bar">
+                                <button className="btn-primary" onClick={startAddVendor}>
+                                    <Plus size={18} /> 新增廠商
+                                </button>
 
-                            <button
-                                type="button"
-                                className={`btn-outline ${showVendorImport ? 'active' : ''}`}
-                                onClick={() => setShowVendorImport(!showVendorImport)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                            >
-                                <Upload size={18} /> 批次導入
-                            </button>
+                                <button
+                                    type="button"
+                                    className={`btn-outline ${showVendorImport ? 'active' : ''}`}
+                                    onClick={() => setShowVendorImport(!showVendorImport)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                                >
+                                    <Upload size={18} /> 批次導入
+                                </button>
 
-                            {showVendorImport && (
-                                <div className="batch-import-box v-batch" style={{ width: '100%' }}>
-                                    <label className="btn-batch-import">
-                                        <Upload size={16} />
-                                        批次導入 Excel
-                                        <input type="file" accept=".xlsx, .xls" onChange={handleVendorImport} hidden />
-                                    </label>
-                                    <button type="button" className="btn-text-link" onClick={downloadVendorTemplate}>
-                                        📥 下載廠商範本
-                                    </button>
-                                    <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
-                                </div>
+                                {showVendorImport && (
+                                    <div className="batch-import-box v-batch" style={{ width: '100%' }}>
+                                        <label className="btn-batch-import">
+                                            <Upload size={16} />
+                                            批次導入 Excel
+                                            <input type="file" accept=".xlsx, .xls" onChange={handleVendorImport} hidden />
+                                        </label>
+                                        <button type="button" className="btn-text-link" onClick={downloadVendorTemplate}>
+                                            📥 下載廠商範本
+                                        </button>
+                                        <span className="import-hint">欄位：廠商名稱, 統一編號, 聯絡人, 電話</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="table-wrapper">
+                            {vendors.length === 0 ? (
+                                <div className="empty-state"><div className="empty-icon">🏢</div><p>尚未建立任何廠商</p></div>
+                            ) : (
+                                <table className="admin-table">
+                                    <thead>
+                                        <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>統編</th><th>廠商名稱</th><th>聯絡人</th><th>電話</th>{!isGuest && <th>操作</th>}</tr>
+                                    </thead>
+                                    <tbody>
+                                        {vendors.map((v, idx) => (
+                                            <tr key={v.id}>
+                                                <td style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</td>
+                                                <td><code>{v.taxId || v.code || '-'}</code></td>
+                                                <td>{v.name}</td>
+                                                <td>{v.contact || '-'}</td>
+                                                <td>{v.phone || '-'}</td>
+                                                {!isGuest && (
+                                                    <td>
+                                                        <div className="role-actions">
+                                                            <button className="role-btn user" onClick={() => startEditVendor(v)}>編輯</button>
+                                                            <button className="role-btn reject" onClick={() => handleDeleteVendor(v.id, v.name)}>刪除</button>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             )}
                         </div>
-                    )}
-
-                    <div className="table-wrapper">
-                        {vendors.length === 0 ? (
-                            <div className="empty-state"><div className="empty-icon">🏢</div><p>尚未建立任何廠商</p></div>
-                        ) : (
-                            <table className="admin-table">
-                                <thead>
-                                    <tr><th style={{ width: '40px', color: 'var(--text3)' }}>#</th><th>統編</th><th>廠商名稱</th><th>聯絡人</th><th>電話</th>{!isGuest && <th>操作</th>}</tr>
-                                </thead>
-                                <tbody>
-                                    {vendors.map((v, idx) => (
-                                        <tr key={v.id}>
-                                            <td style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center' }}>{idx + 1}</td>
-                                            <td><code>{v.taxId || v.code || '-'}</code></td>
-                                            <td>{v.name}</td>
-                                            <td>{v.contact || '-'}</td>
-                                            <td>{v.phone || '-'}</td>
-                                            {!isGuest && (
-                                                <td>
-                                                    <div className="role-actions">
-                                                        <button className="role-btn user" onClick={() => startEditVendor(v)}>編輯</button>
-                                                        <button className="role-btn reject" onClick={() => handleDeleteVendor(v.id, v.name)}>刪除</button>
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
                     </div>
-                </div>
-            )}
+                )
+            }
             <LedgerAccountModal
                 isOpen={showAccModal}
                 onClose={() => setShowAccModal(false)}
@@ -892,7 +1091,7 @@ const AdminPage: React.FC = () => {
                 onConfirm={confirmState.onConfirm}
                 onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
             />
-        </div>
+        </div >
     );
 };
 

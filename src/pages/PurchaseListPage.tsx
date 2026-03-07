@@ -13,7 +13,7 @@ import './PurchaseListPage.css';
 
 const PurchaseListPage: React.FC = () => {
 
-    const { ledgerAccounts, selectedYear, purchaseListRefreshKey } = useApp();
+    const { ledgerAccounts, selectedYear, purchaseListRefreshKey, purchaseTypes, requisitionTypes } = useApp();
     const { appUser } = useAuth();
     const isGuest = appUser?.role === 'guest';
 
@@ -295,8 +295,8 @@ const PurchaseListPage: React.FC = () => {
             { '欄位名稱': '品名', '必填': '✅ 必填', '格式說明': '採購品名或項目描述' },
             { '欄位名稱': '科目代碼', '必填': '✅ 必填', '格式說明': '總帳科目代碼，例：M54000、P20000（需存在於系統中）' },
             { '欄位名稱': '金額(未稅)', '必填': '✅ 必填', '格式說明': '純數字，未稅金額，必須大於 0' },
-            { '欄位名稱': '請購類型', '必填': '✅ 必填', '格式說明': '只接受：經MM 或 非經MM（兩者擇一）' },
-            { '欄位名稱': '採購性質', '必填': '✅ 必填', '格式說明': '只接受：勞務、財務、工程（三者擇一）' },
+            { '欄位名稱': '請購類型', '必填': '✅ 必填', '格式說明': `只接受系統中有的類型 (${requisitionTypes.join('、')})` },
+            { '欄位名稱': '採購性質', '必填': '✅ 必填', '格式說明': `只接受系統中有的型質 (${purchaseTypes.join('、')})` },
             { '欄位名稱': '文件號碼', '必填': '✅ 必填', '格式說明': '發票或單據號碼，同一號碼只會導入一次（防重複）' },
             { '欄位名稱': '備註', '必填': '⬜ 可空白', '格式說明': '額外說明，可留空' },
         ];
@@ -397,16 +397,14 @@ const PurchaseListPage: React.FC = () => {
 
                     if (!docNum) { errors.push(`${rowPrefix}「文件號碼」不可為空`); return; }
 
-                    const validReqTypes = ['經MM', '非經MM'];
-                    const validPurTypes = ['勞務', '財務', '工程'];
-                    if (!reqType) { errors.push(`${rowPrefix}「請購類型」不可為空 (應為：經MM 或 非經MM)`); return; }
-                    if (!validReqTypes.includes(reqType)) {
-                        errors.push(`${rowPrefix}「請購類型」錯誤 [${reqType}] (應為：經MM 或 非經MM)`);
+                    if (!reqType) { errors.push(`${rowPrefix}「請購類型」不可為空 (應為系統設定內選項)`); return; }
+                    if (!requisitionTypes.includes(reqType)) {
+                        errors.push(`${rowPrefix}「請購類型」錯誤 [${reqType}] (應輸入正確系統選項)`);
                         return;
                     }
-                    if (!purType) { errors.push(`${rowPrefix}「採購性質」不可為空 (應為：勞務、財務 或 工程)`); return; }
-                    if (!validPurTypes.includes(purType)) {
-                        errors.push(`${rowPrefix}「採購性質」錯誤 [${purType}] (應為：勞務、財務 或 工程)`);
+                    if (!purType) { errors.push(`${rowPrefix}「採購性質」不可為空 (應為系統設定內選項)`); return; }
+                    if (!purchaseTypes.includes(purType)) {
+                        errors.push(`${rowPrefix}「採購性質」錯誤 [${purType}] (應輸入正確系統選項)`);
                         return;
                     }
 
@@ -510,17 +508,14 @@ const PurchaseListPage: React.FC = () => {
                         <span className="filter-label">類型</span>
                         <select value={filterReqType} onChange={(e) => setFilterReqType(e.target.value)}>
                             <option value="">全部</option>
-                            <option value="經MM">經MM</option>
-                            <option value="非經MM">非經MM</option>
+                            {requisitionTypes.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     <div className="filter-group">
                         <span className="filter-label">採購</span>
                         <select value={filterPurType} onChange={(e) => setFilterPurType(e.target.value)}>
                             <option value="">全部</option>
-                            <option value="勞務">勞務</option>
-                            <option value="財務">財務</option>
-                            <option value="工程">工程</option>
+                            {purchaseTypes.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
 

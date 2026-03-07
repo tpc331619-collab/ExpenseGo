@@ -113,3 +113,9 @@ export interface NotebookEntry {
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
+
+export interface SystemOptions {
+    purchaseTypes: string[];
+    requisitionTypes: string[];
+    updatedAt?: Timestamp;
+}

@@ -20,19 +20,19 @@ const emptyItem = () => ({
     _isManual: false,
 });
 
-const emptyForm = (): PurchaseFormData => ({
+const emptyForm = (purchaseTypes: string[], requisitionTypes: string[]): PurchaseFormData => ({
     vendor: '',
     items: [emptyItem()],
     purchaseDate: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
-    purchaseType: '勞務',
-    requisitionType: '經MM',
+    purchaseType: purchaseTypes[0] || '勞務',
+    requisitionType: requisitionTypes[0] || '非經MM',
     docNumber: '',
     note: '',
 });
 
 const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
     const { appUser } = useAuth();
-    const { purchases, ledgerAccounts, vendors, selectedYear } = useApp();
+    const { purchases, ledgerAccounts, vendors, selectedYear, purchaseTypes, requisitionTypes } = useApp();
     const [form, setForm] = useState<PurchaseFormData>(() => {
         const today = new Date();
         const currentYear = today.getFullYear();
@@ -43,7 +43,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         }
 
         return {
-            ...emptyForm(),
+            ...emptyForm(purchaseTypes, requisitionTypes),
             purchaseDate: defaultDate
         };
     });
@@ -265,9 +265,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                         <div className="form-group col-4">
                             <label>採購類型</label>
                             <select value={form.purchaseType} onChange={(e) => set('purchaseType', e.target.value)}>
-                                <option value="工程">工程</option>
-                                <option value="財務">財務</option>
-                                <option value="勞務">勞務</option>
+                                {purchaseTypes.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
                         <div className="form-group col-4">
@@ -290,8 +288,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                                     setForm(f => ({ ...f, requisitionType: reqType, docNumber: newDocNumber }));
                                 }}
                             >
-                                <option value="經MM">經MM</option>
-                                <option value="非經MM">非經MM</option>
+                                {requisitionTypes.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
 
