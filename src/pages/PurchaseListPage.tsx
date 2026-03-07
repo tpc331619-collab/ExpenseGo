@@ -106,7 +106,8 @@ const PurchaseListPage: React.FC = () => {
             list = list.filter(p =>
                 p.vendor.toLowerCase().includes(lowerQuery) ||
                 p.title.toLowerCase().includes(lowerQuery) ||
-                (p.docNumber && p.docNumber.toLowerCase().includes(lowerQuery))
+                (p.docNumber && p.docNumber.toLowerCase().includes(lowerQuery)) ||
+                (p.note && p.note.toLowerCase().includes(lowerQuery))
             );
         }
 
@@ -538,7 +539,7 @@ const PurchaseListPage: React.FC = () => {
                             <input
                                 type="text"
                                 className="search-input"
-                                placeholder="搜尋廠商名稱、品名或單號..."
+                                placeholder="搜尋廠商名稱、品名、文件單號或備註..."
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
                             />
@@ -588,6 +589,7 @@ const PurchaseListPage: React.FC = () => {
                                 <th>總帳科目</th>
                                 <th>金額 (未稅 / 含稅)</th>
                                 <th>類型</th>
+                                <th>備註</th>
                                 {appUser?.role === 'admin' && <th>建立人</th>}
                                 {!isGuest && <th>操作</th>}
                             </tr>
@@ -599,7 +601,7 @@ const PurchaseListPage: React.FC = () => {
                                 return (
                                     <React.Fragment key={monthKey}>
                                         <tr className="month-group-header" onClick={() => toggleMonth(monthKey)}>
-                                            <td colSpan={8}>
+                                            <td colSpan={appUser?.role === 'admin' ? (!isGuest ? 10 : 9) : (!isGuest ? 9 : 8)}>
                                                 <div className="month-header-content">
                                                     <span className={`arrow ${isExpanded ? 'open' : ''}`}>
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -655,11 +657,15 @@ const PurchaseListPage: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     </td>
-
                                                     <td data-label="類型" className="td-types">
                                                         <div className="vertical-stack type-stack">
                                                             <div className="type-text requisition">{p.requisitionType}</div>
                                                             <div className="type-text purchase">{p.purchaseType}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td data-label="備註" className="td-note">
+                                                        <div style={{ fontSize: '12px', color: 'var(--text2)', maxWidth: '120px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.note || ''}>
+                                                            {p.note || '-'}
                                                         </div>
                                                     </td>
                                                     {appUser?.role === 'admin' && (

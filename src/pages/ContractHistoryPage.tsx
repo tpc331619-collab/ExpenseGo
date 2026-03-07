@@ -314,59 +314,64 @@ const ContractHistoryPage: React.FC = () => {
         <div className="page-container">
             <div className="page-header">
                 <h1 className="page-title">契約履歷</h1>
-                <div className="header-actions">
-                    <button className="btn-primary" onClick={startAdd}>
-                        <Plus size={18} /> 新增契約
-                    </button>
-                </div>
             </div>
 
             {/* Smart Insight Bar */}
-            {!loading && entries.length > 0 && (
+            {!loading && (
                 <div className="ch-insight-bar">
-                    <div className="insight-item">
-                        <div className="insight-icon info"><FileText size={16} /></div>
-                        <div className="insight-content">
-                            <span className="insight-label">執行中合約</span>
-                            <span className="insight-value">{entries.filter(e => e.status === '執行中').length}</span>
-                        </div>
+                    {entries.length > 0 && (
+                        <>
+                            <div className="insight-item">
+                                <div className="insight-icon info"><FileText size={16} /></div>
+                                <div className="insight-content">
+                                    <span className="insight-label">執行中合約</span>
+                                    <span className="insight-value">{entries.filter(e => e.status === '執行中').length}</span>
+                                </div>
+                            </div>
+                            {(() => {
+                                const expiringCount = entries.filter(e => {
+                                    const info = getRenewalInfo(e.endDate, e.status);
+                                    return info?.type === 'warning';
+                                }).length;
+                                if (expiringCount > 0) {
+                                    return (
+                                        <div className="insight-item warning pulse-border">
+                                            <div className="insight-icon warn"><AlertTriangle size={16} /></div>
+                                            <div className="insight-content">
+                                                <span className="insight-label">120天內到期</span>
+                                                <span className="insight-value">{expiringCount}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+                            {(() => {
+                                const expiredCount = entries.filter(e => {
+                                    const info = getRenewalInfo(e.endDate, e.status);
+                                    return info?.type === 'expired';
+                                }).length;
+                                if (expiredCount > 0) {
+                                    return (
+                                        <div className="insight-item danger">
+                                            <div className="insight-icon danger"><AlertCircle size={16} /></div>
+                                            <div className="insight-content">
+                                                <span className="insight-label">已逾期(未結)</span>
+                                                <span className="insight-value">{expiredCount}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </>
+                    )}
+
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                        <button className="btn-primary" onClick={startAdd} style={{ height: '44px', borderRadius: '10px', padding: '0 24px' }}>
+                            <Plus size={18} /> 新增契約
+                        </button>
                     </div>
-                    {(() => {
-                        const expiringCount = entries.filter(e => {
-                            const info = getRenewalInfo(e.endDate, e.status);
-                            return info?.type === 'warning';
-                        }).length;
-                        if (expiringCount > 0) {
-                            return (
-                                <div className="insight-item warning pulse-border">
-                                    <div className="insight-icon warn"><AlertTriangle size={16} /></div>
-                                    <div className="insight-content">
-                                        <span className="insight-label">120天內到期</span>
-                                        <span className="insight-value">{expiringCount}</span>
-                                    </div>
-                                </div>
-                            );
-                        }
-                        return null;
-                    })()}
-                    {(() => {
-                        const expiredCount = entries.filter(e => {
-                            const info = getRenewalInfo(e.endDate, e.status);
-                            return info?.type === 'expired';
-                        }).length;
-                        if (expiredCount > 0) {
-                            return (
-                                <div className="insight-item danger">
-                                    <div className="insight-icon danger"><AlertCircle size={16} /></div>
-                                    <div className="insight-content">
-                                        <span className="insight-label">已逾期(未結)</span>
-                                        <span className="insight-value">{expiredCount}</span>
-                                    </div>
-                                </div>
-                            );
-                        }
-                        return null;
-                    })()}
                 </div>
             )}
 
@@ -377,6 +382,9 @@ const ContractHistoryPage: React.FC = () => {
                     <div className="empty-state">
                         <div className="empty-icon">📋</div>
                         <p>尚未加入任何契約履歷</p>
+                        <button className="btn-primary mt-3" onClick={startAdd} style={{ marginTop: '15px' }}>
+                            <Plus size={16} className="mr-2" style={{ marginRight: '8px' }} /> 新增第一筆契約
+                        </button>
                     </div>
                 ) : (
                     <>
