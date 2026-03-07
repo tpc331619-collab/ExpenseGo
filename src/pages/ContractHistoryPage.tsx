@@ -9,6 +9,7 @@ import {
 } from '../lib/firestore';
 import type { NotebookEntry, Purchase } from '../types';
 import { Plus, Edit2, Trash2, X, CheckCircle, ChevronLeft, ChevronRight, FileText, AlertTriangle, AlertCircle } from 'lucide-react';
+import { useApp } from '../contexts/AppContext';
 import './ContractHistoryPage.css';
 import '../components/PurchaseModal.css'; // Reuse modal styles
 
@@ -36,12 +37,13 @@ interface EntryModalProps {
     onSave: (data: { caseName: string; vendor: string; contractType: string; totalAmount: number; procNumber: string; startDate: string; endDate: string; status: NotebookEntry['status'] }) => Promise<void>;
     editingEntry: NotebookEntry | null;
     saving: boolean;
+    contractTypes: string[];
 }
 
-const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editingEntry, saving }) => {
+const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editingEntry, saving, contractTypes }) => {
     const [caseName, setCaseName] = useState('');
     const [vendor, setVendor] = useState('');
-    const [contractType, setContractType] = useState('勞務契約');
+    const [contractType, setContractType] = useState(contractTypes[0] || '勞務契約');
     const [totalAmount, setTotalAmount] = useState<string>('');
     const [procNumber, setProcNumber] = useState('');
     const [startDate, setStartDate] = useState('');
@@ -61,7 +63,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
         } else {
             setCaseName('');
             setVendor('');
-            setContractType('勞務契約');
+            setContractType(contractTypes[0] || '勞務契約');
             setTotalAmount('');
             setProcNumber('');
             setStartDate('');
@@ -88,9 +90,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
                         <div className="form-group" style={{ flex: 1 }}>
                             <label>契約形式 <span className="required">*</span></label>
                             <select value={contractType} onChange={e => setContractType(e.target.value)}>
-                                <option value="勞務契約">勞務契約</option>
-                                <option value="小額採購契約">小額採購契約</option>
-                                <option value="共同供應契約">共同供應契約</option>
+                                {contractTypes.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
                         <div className="form-group" style={{ flex: 1 }}>
@@ -164,6 +164,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteProps> = ({ isOpen, onConfirm, o
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const ContractHistoryPage: React.FC = () => {
     const { appUser } = useAuth();
+    const { contractTypes } = useApp();
 
     const [entries, setEntries] = useState<NotebookEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -197,8 +198,8 @@ const ContractHistoryPage: React.FC = () => {
                 if (a.status === '已結案' && b.status !== '已結案') return 1;
                 if (a.status !== '已結案' && b.status === '已結案') return -1;
 
-                //同狀態則依時間排序
-                return a.createdAt.toMillis() - b.createdAt.toMillis();
+                //同狀態則依時間排序 (由新排到舊)
+                return b.createdAt.toMillis() - a.createdAt.toMillis();
             });
 
             setEntries(sorted);
@@ -407,9 +408,16 @@ const ContractHistoryPage: React.FC = () => {
                                             {entry.vendor}
                                         </td>
                                         <td>
-                                            <span className={`type-tag ${entry.contractType === '勞務契約' ? 'type-service' :
-                                                entry.contractType === '小額採購契約' ? 'type-small' : 'type-joint'
-                                                }`}>
+                                            <span style={{
+                                                background: '#f1f5f9',
+                                                border: '1px solid #e2e8f0',
+                                                color: '#334155',
+                                                padding: '4px 10px',
+                                                borderRadius: '20px',
+                                                fontSize: '12px',
+                                                fontWeight: 600,
+                                                whiteSpace: 'nowrap'
+                                            }}>
                                                 {entry.contractType}
                                             </span>
                                         </td>
@@ -570,6 +578,7 @@ const ContractHistoryPage: React.FC = () => {
                 onSave={handleSave}
                 editingEntry={editingEntry}
                 saving={saving}
+                contractTypes={contractTypes}
             />
 
             <ConfirmDeleteModal

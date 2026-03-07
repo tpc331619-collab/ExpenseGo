@@ -117,5 +117,6 @@ export interface NotebookEntry {
 export interface SystemOptions {
     purchaseTypes: string[];
     requisitionTypes: string[];
+    contractTypes?: string[];
     updatedAt?: Timestamp;
 }

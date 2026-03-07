@@ -214,7 +214,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 const AdminPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear, purchaseTypes, requisitionTypes, refreshSystemOptions } = useApp();
+    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear, purchaseTypes, requisitionTypes, contractTypes, refreshSystemOptions } = useApp();
     const isAdmin = appUser?.role === 'admin';
     const isGuest = appUser?.role === 'guest';
     const [tab, setTab] = useState<AdminTab>(isAdmin ? 'users' : 'accounts');
@@ -253,6 +253,7 @@ const AdminPage: React.FC = () => {
     // Options form
     const [newPurType, setNewPurType] = useState('');
     const [newReqType, setNewReqType] = useState('');
+    const [newContractType, setNewContractType] = useState('');
     const [optionsSaving, setOptionsSaving] = useState(false);
 
     const fetchUsers = async () => {
@@ -621,7 +622,7 @@ const AdminPage: React.FC = () => {
 
     const pendingCount = users.filter((u) => u.role === 'pending').length;
 
-    const handleAddOption = async (type: 'purchase' | 'requisition') => {
+    const handleAddOption = async (type: 'purchase' | 'requisition' | 'contract') => {
         setOptionsSaving(true);
         try {
             if (type === 'purchase') {
@@ -633,7 +634,7 @@ const AdminPage: React.FC = () => {
                 }
                 await updateSystemOptions({ purchaseTypes: [...purchaseTypes, val] });
                 setNewPurType('');
-            } else {
+            } else if (type === 'requisition') {
                 const val = newReqType.trim();
                 if (!val) return;
                 if (requisitionTypes.includes(val)) {
@@ -642,6 +643,15 @@ const AdminPage: React.FC = () => {
                 }
                 await updateSystemOptions({ requisitionTypes: [...requisitionTypes, val] });
                 setNewReqType('');
+            } else if (type === 'contract') {
+                const val = newContractType.trim();
+                if (!val) return;
+                if (contractTypes.includes(val)) {
+                    alert('此契約形式已存在！');
+                    return;
+                }
+                await updateSystemOptions({ contractTypes: [...contractTypes, val] });
+                setNewContractType('');
             }
             await refreshSystemOptions();
         } catch (e: any) {
@@ -651,19 +661,21 @@ const AdminPage: React.FC = () => {
         }
     };
 
-    const handleDeleteOption = async (type: 'purchase' | 'requisition', targetVal: string) => {
+    const handleDeleteOption = async (type: 'purchase' | 'requisition' | 'contract', targetVal: string) => {
         setConfirmState({
             isOpen: true,
             title: `刪除選項`,
-            message: `確定要刪除「${targetVal}」嗎？\n注意：這不會影響過去已經使用此選項的採購紀錄，但未來新增時將無法再選此項目。`,
+            message: `確定要刪除「${targetVal}」嗎？\n注意：這不會影響過去已經使用此選項的紀錄，但未來新增時將無法再選此項目。`,
             type: 'danger',
             onConfirm: async () => {
                 setOptionsSaving(true);
                 try {
                     if (type === 'purchase') {
                         await updateSystemOptions({ purchaseTypes: purchaseTypes.filter(t => t !== targetVal) });
-                    } else {
+                    } else if (type === 'requisition') {
                         await updateSystemOptions({ requisitionTypes: requisitionTypes.filter(t => t !== targetVal) });
+                    } else if (type === 'contract') {
+                        await updateSystemOptions({ contractTypes: contractTypes.filter(t => t !== targetVal) });
                     }
                     await refreshSystemOptions();
                     setConfirmState(prev => ({ ...prev, isOpen: false }));
@@ -824,6 +836,67 @@ const AdminPage: React.FC = () => {
                                 </div>
                             ))}
                             {requisitionTypes.length === 0 && <span style={{ color: 'var(--text3)', fontSize: 14 }}>目前無選項</span>}
+                        </div>
+                    </div>
+
+                    <div className="admin-maintenance-card" style={{ flex: '1 1 400px', padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
+                        <h3 style={{ margin: '0 0 16px', fontSize: 18, color: 'var(--text1)' }}>契約形式設定</h3>
+                        <p style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--text2)' }}>若刪除現有選項，將不影響過去已建檔之紀錄。</p>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                            <input
+                                placeholder="新增契約形式..."
+                                value={newContractType}
+                                onChange={e => setNewContractType(e.target.value)}
+                                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}
+                                onKeyDown={e => { if (e.key === 'Enter') handleAddOption('contract'); }}
+                            />
+                            <button className="btn-primary" onClick={() => handleAddOption('contract')} disabled={optionsSaving || !newContractType.trim()}>
+                                新增
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                            {contractTypes.map(ct => (
+                                <div key={ct} className="option-tag" style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    background: '#f1f5f9',
+                                    border: '1px solid #e2e8f0',
+                                    padding: '6px 14px',
+                                    borderRadius: 20,
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: 'var(--text1)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                    transition: 'all 0.2s ease',
+                                }}>
+                                    {ct}
+                                    <button
+                                        onClick={() => handleDeleteOption('contract', ct)}
+                                        className="option-delete-btn"
+                                        title="刪除"
+                                        style={{
+                                            background: '#e2e8f0',
+                                            border: 'none',
+                                            color: '#64748b',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: '50%',
+                                            padding: 0,
+                                            fontSize: 10,
+                                            fontWeight: 'bold',
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}
+                                    >✕</button>
+                                </div>
+                            ))}
+                            {contractTypes.length === 0 && <span style={{ color: 'var(--text3)', fontSize: 14 }}>目前無選項</span>}
                         </div>
                     </div>
                 </div>

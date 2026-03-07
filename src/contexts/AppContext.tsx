@@ -19,6 +19,7 @@ interface AppContextValue {
     incrementPurchaseListRefresh: () => void;
     purchaseTypes: string[];
     requisitionTypes: string[];
+    contractTypes: string[];
     refreshSystemOptions: () => Promise<void>;
 }
 
@@ -34,6 +35,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [purchaseListRefreshKey, setPurchaseListRefreshKey] = useState(0);
     const [purchaseTypes, setPurchaseTypes] = useState<string[]>([]);
     const [requisitionTypes, setRequisitionTypes] = useState<string[]>([]);
+    const [contractTypes, setContractTypes] = useState<string[]>([]);
     const incrementPurchaseListRefresh = () => setPurchaseListRefreshKey(k => k + 1);
     const [compareYearState, setCompareYearState] = useState<number | null>(() => {
         const saved = localStorage.getItem('compareYear');
@@ -70,6 +72,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const options = await getSystemOptions();
         setPurchaseTypes(options.purchaseTypes || []);
         setRequisitionTypes(options.requisitionTypes || []);
+        setContractTypes(options.contractTypes || []);
     };
 
     useEffect(() => {
@@ -111,7 +114,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             compareYear: compareYearState, setCompareYear,
             refreshPurchases, refreshLedgerAccounts, refreshVendors,
             purchaseListRefreshKey, incrementPurchaseListRefresh,
-            purchaseTypes, requisitionTypes, refreshSystemOptions
+            purchaseTypes, requisitionTypes, contractTypes, refreshSystemOptions
         }}>
             {children}
         </AppContext.Provider>

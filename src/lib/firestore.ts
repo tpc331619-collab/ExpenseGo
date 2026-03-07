@@ -460,7 +460,8 @@ export const getSystemOptions = async (): Promise<SystemOptions> => {
     if (!snap.exists()) {
         const defaultOptions: SystemOptions = {
             purchaseTypes: ['工程', '財務', '勞務'],
-            requisitionTypes: ['經MM', '非經MM']
+            requisitionTypes: ['經MM', '非經MM'],
+            contractTypes: ['勞務契約', '小額採購契約', '共同供應契約']
         };
         // 嘗試寫入預設值
         try {
