@@ -16,7 +16,7 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     width: 100%;
-    max-width: 980px;
+    max-width: 900px;
     max-height: 95vh;
     display: flex;
     flex-direction: column;
@@ -374,7 +374,7 @@
 .item-fields {
     flex: 1;
     display: grid;
-    grid-template-columns: 2.5fr 2fr 130px;
+    grid-template-columns: 2.8fr 2.2fr 120px;
     gap: 12px;
     min-width: 0;
 }
@@ -394,9 +394,6 @@
     width: 100%;
     padding: 8px 12px;
     font-size: 14px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
 }
 
 .item-fields .f-group select {
