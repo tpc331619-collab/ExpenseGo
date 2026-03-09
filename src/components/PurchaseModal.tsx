@@ -259,7 +259,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                     <div className="form-grid">
                         {/* Row 1: 採購日期 / 採購類型 / 請購類型 */}
                         <div className="form-group col-4">
-                            <label>採購日期 <span className="required">*</span></label>
+                            <label>發票日期 <span className="required">*</span></label>
                             <input type="date" value={form.purchaseDate} onChange={(e) => set('purchaseDate', e.target.value)} />
                         </div>
                         <div className="form-group col-4">
