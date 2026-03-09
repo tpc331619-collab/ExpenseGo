@@ -6,7 +6,8 @@ import {
     cleanupDuplicatePurchases,
     updateSystemOptions,
 } from '../lib/firestore';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { Upload, Plus, Database, Wrench } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { AppUser, LedgerAccount, Vendor } from '../types';
@@ -32,6 +33,7 @@ const LedgerAccountModal: React.FC<LedgerAccountModalProps> = ({
 
     useEffect(() => {
         if (editingAccount) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCode(editingAccount.code);
             setName(editingAccount.name);
             setBudget(String(editingAccount.budget || ''));
@@ -100,6 +102,7 @@ const VendorModal: React.FC<VendorModalProps> = ({
 
     useEffect(() => {
         if (editingVendor) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCode(editingVendor.code || '');
             setName(editingVendor.name);
             setTaxId(editingVendor.taxId || '');
@@ -288,8 +291,9 @@ const AdminPage: React.FC = () => {
                     await deleteUser(uid);
                     await fetchUsers();
                     setConfirmState(prev => ({ ...prev, isOpen: false }));
-                } catch (err: any) {
-                    alert('刪除失敗：' + err.message);
+                } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    alert('刪除失敗：' + msg);
                 }
             }
         });
@@ -322,8 +326,9 @@ const AdminPage: React.FC = () => {
             }
             await refreshLedgerAccounts();
             setShowAccModal(false);
-        } catch (err: any) {
-            alert(`科目儲存失敗: ${err.message}`);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            alert(`科目儲存失敗: ${msg}`);
         } finally {
             setAccSaving(false);
         }
@@ -360,11 +365,40 @@ const AdminPage: React.FC = () => {
         const reader = new FileReader();
         reader.onload = async (evt) => {
             try {
-                const data = evt.target?.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const sheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
-                const json: any[] = XLSX.utils.sheet_to_json(sheet);
+                const data = evt.target?.result as ArrayBuffer;
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(data);
+                const sheet = workbook.worksheets[0];
+                const json: Record<string, unknown>[] = [];
+
+                const headers: Record<number, string> = {};
+                if (sheet.getRow(1)) {
+                    sheet.getRow(1).eachCell((cell, colNumber) => {
+                        if (cell.text) headers[colNumber] = cell.text.trim();
+                    });
+                }
+
+                sheet.eachRow((row, rowNumber) => {
+                    if (rowNumber === 1) return;
+
+                    const rowData: Record<string, unknown> = {};
+                    let hasRealData = false;
+                    Object.keys(headers).forEach((colStr) => {
+                        const colNum = parseInt(colStr, 10);
+                        const cell = row.getCell(colNum);
+                        let val: unknown = cell.value;
+                        if (val !== null && val !== undefined) {
+                            if (typeof val === 'object') {
+                                if ('result' in val) val = (val as { result: unknown }).result;
+                                else if ('text' in val) val = (val as { text: string }).text;
+                                else if ('richText' in val) val = (val as { richText: { text: string }[] }).richText.map((t) => t.text).join('');
+                            }
+                            rowData[headers[colNum]] = val;
+                            hasRealData = true;
+                        }
+                    });
+                    if (hasRealData) json.push(rowData);
+                });
 
                 if (json.length === 0) {
                     alert('Excel 檔案內沒有資料。');
@@ -373,14 +407,14 @@ const AdminPage: React.FC = () => {
 
                 setAccSaving(true);
                 let successCount = 0;
-                let errors: string[] = [];
+                const errors: string[] = [];
 
                 const seenCodes = new Set();
                 json.forEach((row, index) => {
                     const rowNum = index + 2; // Data starts on line 2
                     const code = String(row['科目代碼'] || row['代碼'] || '').trim();
                     const name = String(row['科目名稱'] || row['名稱'] || '').trim();
-                    const budget = parseFloat(row['計畫成本'] || row['預算'] || '0');
+                    const budget = parseFloat(String(row['計畫成本'] || row['預算'] || '0'));
 
                     if (name.startsWith('範例-')) return;
 
@@ -403,18 +437,19 @@ const AdminPage: React.FC = () => {
                         return;
                     }
 
-                    row._valid = true;
-                    row._processed = { code, name, budget, rowNum };
+                    (row as Record<string, unknown>)._valid = true;
+                    (row as Record<string, unknown>)._processed = { code, name, budget, rowNum };
                 });
 
                 for (const row of json) {
                     if (!row._valid) continue;
-                    const { code, name, budget, rowNum } = row._processed;
+                    const { code, name, budget, rowNum } = row._processed as { code: string; name: string; budget: number; rowNum: number };
                     try {
                         await addLedgerAccount(selectedYear, code, name, budget);
                         successCount++;
-                    } catch (err: any) {
-                        errors.push(`第 ${rowNum} 列：儲存失敗 (${err.message || '權限問題'})`);
+                    } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        errors.push(`第 ${rowNum} 列：儲存失敗 (${msg || '權限問題'})`);
                     }
                 }
 
@@ -433,13 +468,13 @@ const AdminPage: React.FC = () => {
                 e.target.value = '';
             }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     };
 
     const normalizeName = (name: string) => {
         return name.trim()
             .replace(/(股份有限公司|有限公司|實業有限公司|實業股份有限公司|股份公司|有限公司|公司)$/, '')
-            .replace(/[\(\)（）\s]/g, ''); // 移除空格與括弧
+            .replace(/[()（）\s]/g, ''); // 移除空格與括弧
     };
 
     const handleSaveVendor = async (data: Partial<Vendor>) => {
@@ -468,8 +503,9 @@ const AdminPage: React.FC = () => {
 
             await refreshVendors();
             setShowVendorModal(false);
-        } catch (err: any) {
-            alert(`廠商儲存失敗: ${err.message}`);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            alert(`廠商儲存失敗: ${msg}`);
         } finally {
             setVendorSaving(false);
         }
@@ -511,8 +547,9 @@ const AdminPage: React.FC = () => {
                     const count = await cleanupDuplicatePurchases(selectedYear, ledgerAccounts.map(a => a.id));
                     alert(`清理完成！共刪除了 ${count} 筆重複資料。`);
                     window.location.reload();
-                } catch (err: any) {
-                    alert('清理失敗：' + err.message);
+                } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    alert('清理失敗：' + msg);
                 } finally {
                     setCleaningData(false);
                     setConfirmState(prev => ({ ...prev, isOpen: false }));
@@ -528,11 +565,40 @@ const AdminPage: React.FC = () => {
         const reader = new FileReader();
         reader.onload = async (evt) => {
             try {
-                const data = evt.target?.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const sheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
-                const json: any[] = XLSX.utils.sheet_to_json(sheet);
+                const data = evt.target?.result as ArrayBuffer;
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(data);
+                const sheet = workbook.worksheets[0];
+                const json: Record<string, unknown>[] = [];
+
+                const headers: Record<number, string> = {};
+                if (sheet.getRow(1)) {
+                    sheet.getRow(1).eachCell((cell, colNumber) => {
+                        if (cell.text) headers[colNumber] = cell.text.trim();
+                    });
+                }
+
+                sheet.eachRow((row, rowNumber) => {
+                    if (rowNumber === 1) return;
+
+                    const rowData: Record<string, unknown> = {};
+                    let hasRealData = false;
+                    Object.keys(headers).forEach((colStr) => {
+                        const colNum = parseInt(colStr, 10);
+                        const cell = row.getCell(colNum);
+                        let val: unknown = cell.value;
+                        if (val !== null && val !== undefined) {
+                            if (typeof val === 'object') {
+                                if ('result' in val) val = (val as { result: unknown }).result;
+                                else if ('text' in val) val = (val as { text: string }).text;
+                                else if ('richText' in val) val = (val as { richText: { text: string }[] }).richText.map((t) => t.text).join('');
+                            }
+                            rowData[headers[colNum]] = val;
+                            hasRealData = true;
+                        }
+                    });
+                    if (hasRealData) json.push(rowData);
+                });
 
                 if (json.length === 0) {
                     alert('Excel 檔案內沒有資料。');
@@ -542,7 +608,7 @@ const AdminPage: React.FC = () => {
                 setVendorSaving(true);
                 let successCount = 0;
                 let skipCount = 0;
-                let errors: string[] = [];
+                const errors: string[] = [];
 
                 json.forEach((row, index) => {
                     const rowNum = index + 2;
@@ -574,12 +640,13 @@ const AdminPage: React.FC = () => {
                     if (row._skip) { skipCount++; continue; }
                     if (!row._valid) continue;
 
-                    const { name, taxId, contact, phone, rowNum } = row._processed;
+                    const { name, taxId, contact, phone, rowNum } = row._processed as { name: string; taxId: string; contact: string; phone: string; rowNum: number };
                     try {
                         await addVendor({ name, taxId, contact, phone });
                         successCount++;
-                    } catch (err: any) {
-                        errors.push(`第 ${rowNum} 列：儲存失敗 (${err.message})`);
+                    } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        errors.push(`第 ${rowNum} 列：儲存失敗 (${msg})`);
                     }
                 }
 
@@ -598,26 +665,49 @@ const AdminPage: React.FC = () => {
                 e.target.value = '';
             }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     };
-    const downloadAccountTemplate = () => {
-        const data = [
-            { '科目代碼': 'M54000', '科目名稱': '範例-差旅費', '計畫成本': 50000 }
+    const downloadAccountTemplate = async () => {
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('科目範本');
+
+        ws.columns = [
+            { header: '科目代碼', key: 'code', width: 20 },
+            { header: '科目名稱', key: 'name', width: 30 },
+            { header: '計畫成本', key: 'budget', width: 20 }
         ];
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '科目範本');
-        XLSX.writeFile(wb, '總帳科目導入範本.xlsx');
+
+        ws.addRow({ code: 'M54000', name: '範例-差旅費', budget: 50000 });
+
+        ws.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+        });
+
+        const buf = await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf]), '總帳科目導入範本.xlsx');
     };
 
-    const downloadVendorTemplate = () => {
-        const data = [
-            { '廠商名稱': '範例-國泰化工', '統一編號': '12345678', '聯絡人': '張小明', '電話': '02-12345678' }
+    const downloadVendorTemplate = async () => {
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('廠商範本');
+
+        ws.columns = [
+            { header: '廠商名稱', key: 'name', width: 30 },
+            { header: '統一編號', key: 'taxId', width: 20 },
+            { header: '聯絡人', key: 'contact', width: 20 },
+            { header: '電話', key: 'phone', width: 20 }
         ];
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '廠商範本');
-        XLSX.writeFile(wb, '廠商資料導入範本.xlsx');
+
+        ws.addRow({ name: '範例-國泰化工', taxId: '12345678', contact: '張小明', phone: '02-12345678' });
+
+        ws.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+        });
+
+        const buf = await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf]), '廠商資料導入範本.xlsx');
     };
 
     const pendingCount = users.filter((u) => u.role === 'pending').length;
@@ -654,8 +744,9 @@ const AdminPage: React.FC = () => {
                 setNewContractType('');
             }
             await refreshSystemOptions();
-        } catch (e: any) {
-            alert('儲存選項失敗: ' + e.message);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            alert('儲存選項失敗: ' + msg);
         } finally {
             setOptionsSaving(false);
         }
@@ -679,8 +770,9 @@ const AdminPage: React.FC = () => {
                     }
                     await refreshSystemOptions();
                     setConfirmState(prev => ({ ...prev, isOpen: false }));
-                } catch (e: any) {
-                    alert('刪除選項失敗: ' + e.message);
+                } catch (e: unknown) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    alert('刪除選項失敗: ' + msg);
                 } finally {
                     setOptionsSaving(false);
                 }

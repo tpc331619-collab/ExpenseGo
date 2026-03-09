@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -70,7 +71,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
             setEndDate('');
             setStatus('執行中');
         }
-    }, [editingEntry, isOpen]);
+    }, [editingEntry, isOpen, contractTypes]);
 
     if (!isOpen) return null;
 
@@ -210,7 +211,10 @@ const ContractHistoryPage: React.FC = () => {
         }
     };
 
-    useEffect(() => { fetchEntries(); }, [appUser]);
+    useEffect(() => {
+        fetchEntries();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appUser]);
 
     const handleSave = async (data: { caseName: string; vendor: string; contractType: string; totalAmount: number; procNumber: string; startDate: string; endDate: string; status: NotebookEntry['status'] }) => {
         if (!appUser) return;
@@ -224,8 +228,9 @@ const ContractHistoryPage: React.FC = () => {
             setShowModal(false);
             setEditingEntry(null);
             await fetchEntries();
-        } catch (err: any) {
-            alert('儲存失敗：' + err.message);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            alert('儲存失敗：' + msg);
         } finally {
             setSaving(false);
         }
@@ -237,8 +242,9 @@ const ContractHistoryPage: React.FC = () => {
             await deleteNotebookEntry(deleteTargetId);
             setDeleteTargetId(null);
             await fetchEntries();
-        } catch (err: any) {
-            alert('刪除失敗：' + err.message);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            alert('刪除失敗：' + msg);
         }
     };
 
@@ -246,8 +252,9 @@ const ContractHistoryPage: React.FC = () => {
         try {
             await updateNotebookEntry(entry.id, { status: '已結案' });
             await fetchEntries();
-        } catch (err: any) {
-            alert('結案失敗：' + err.message);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            alert('結案失敗：' + msg);
         }
     };
 
@@ -300,9 +307,10 @@ const ContractHistoryPage: React.FC = () => {
                 const section = document.querySelector('.ch-related-section');
                 section?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Fetch related purchases failed:', err);
-            if (err.message?.includes('index')) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (msg.includes('index')) {
                 alert('系統正在建立搜尋索引，請稍候再試。');
             }
         } finally {

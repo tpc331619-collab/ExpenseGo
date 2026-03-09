@@ -343,7 +343,7 @@ const ReportPage: React.FC = () => {
         );
     };
 
-    const StackedBarChart = ({ datasets, title }: { datasets: { label: string, color: string, purchases: any[] }[], title: string }) => {
+    const StackedBarChart = ({ datasets, title }: { datasets: { label: string, color: string, purchases: Purchase[] }[], title: string }) => {
         const containerRef = React.useRef<HTMLDivElement>(null);
         const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
         const months = 12;
@@ -488,7 +488,7 @@ const ReportPage: React.FC = () => {
         );
     };
 
-    const VisualAnalysisBoard = ({ data, total, titlePrefix, pieTitle, selectedId, onSelect }: { data: any[], total: number, titlePrefix: string, pieTitle: string, selectedId: string | null, onSelect: (id: string | null) => void }) => {
+    const VisualAnalysisBoard = ({ data, total, titlePrefix, pieTitle, selectedId, onSelect }: { data: { id: string, label: string, name?: string, value: number, items: Purchase[] }[], total: number, titlePrefix: string, pieTitle: string, selectedId: string | null, onSelect: (id: string | null) => void }) => {
         if (total === 0) return null;
 
         // Sync with PieChart's top categories
@@ -526,7 +526,7 @@ const ReportPage: React.FC = () => {
         return (
             <div className="visual-board">
                 <PieChart
-                    data={data.map(d => ({ id: d.id, label: d.label, name: (d as any).name, value: d.value }))}
+                    data={data.map(d => ({ id: d.id, label: d.label, name: d.name, value: d.value }))}
                     total={total}
                     title={pieTitle}
                     selectedId={selectedId}

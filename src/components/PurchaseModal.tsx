@@ -76,7 +76,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         }
     }, [editPurchase, purchases, isCopy]);
 
-    const set = (k: keyof PurchaseFormData, v: any) =>
+    const set = (k: keyof PurchaseFormData, v: PurchaseFormData[keyof PurchaseFormData]) =>
         setForm((f) => ({ ...f, [k]: v }));
 
     const addItem = () => {
@@ -88,8 +88,8 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
         set('items', form.items.filter((_, i) => i !== idx));
     };
 
-    const setItem = (idx: number, k: keyof PurchaseItem | '_isManual', v: any) => {
-        const newItems = [...form.items] as any[];
+    const setItem = (idx: number, k: keyof PurchaseItem | '_isManual', v: string | boolean) => {
+        const newItems = [...form.items] as (PurchaseItem & { _isManual?: boolean })[];
         newItems[idx] = { ...newItems[idx], [k]: v };
 
         if (k === 'ledgerAccountId') {
@@ -103,7 +103,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
     };
 
     const handleTitleChange = (idx: number, title: string) => {
-        const newItems = [...form.items] as any[];
+        const newItems = [...form.items] as (PurchaseItem & { _isManual?: boolean })[];
         newItems[idx] = { ...newItems[idx], title };
 
         const q = title.trim().toLowerCase();
@@ -235,8 +235,8 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                 await addPurchase(finalForm, appUser!.uid);
             }
             onClose(true);
-        } catch (err: any) {
-            const msg = err.message || '儲存失敗，請再試一次';
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
             setError(msg);
             alert('儲存失敗：' + msg);
             console.error(err);

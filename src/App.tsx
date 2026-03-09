@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
 import PrivateRoute from './components/PrivateRoute';
 import Navbar from './components/Navbar';
-import LoginPage from './pages/LoginPage';
-import PendingPage from './pages/PendingPage';
-import Dashboard from './pages/Dashboard';
-import PurchaseListPage from './pages/PurchaseListPage';
-import ReportPage from './pages/ReportPage';
-import AdminPage from './pages/AdminPage';
-import ContractHistoryPage from './pages/ContractHistoryPage';
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const PendingPage = lazy(() => import('./pages/PendingPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const PurchaseListPage = lazy(() => import('./pages/PurchaseListPage'));
+const ReportPage = lazy(() => import('./pages/ReportPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ContractHistoryPage = lazy(() => import('./pages/ContractHistoryPage'));
+
+const LoadingFallback = () => <div className="p-4 flex justify-center text-gray-500">載入中...</div>;
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import QuickAddFAB from './components/QuickAddFAB';
 import SpotlightSearch from './components/SpotlightSearch';
@@ -69,20 +71,22 @@ const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <AppProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/pending" element={<PendingPage />} />
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/pending" element={<PendingPage />} />
 
-            <Route element={<PrivateRoute />}>
-              <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-              <Route path="/purchases" element={<AppLayout><PurchaseListPage /></AppLayout>} />
-              <Route path="/report" element={<AppLayout><ReportPage /></AppLayout>} />
-              <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
-              <Route path="/contracts" element={<AppLayout><ContractHistoryPage /></AppLayout>} />
-            </Route>
+              <Route element={<PrivateRoute />}>
+                <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+                <Route path="/purchases" element={<AppLayout><PurchaseListPage /></AppLayout>} />
+                <Route path="/report" element={<AppLayout><ReportPage /></AppLayout>} />
+                <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
+                <Route path="/contracts" element={<AppLayout><ContractHistoryPage /></AppLayout>} />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </AppProvider>
       </AuthProvider>
     </BrowserRouter>

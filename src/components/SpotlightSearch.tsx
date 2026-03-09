@@ -83,6 +83,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose }) =>
 
         window.addEventListener('keydown', handleKeyDown, true);
         return () => window.removeEventListener('keydown', handleKeyDown, true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, results, selectedIndex, onClose]);
 
     // Scroll active item into view
@@ -96,7 +97,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose }) =>
     if (!isOpen) return null;
 
     const fmt = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
-    const fmtDate = (d: any) => {
+    const fmtDate = (d: import('firebase/firestore').Timestamp) => {
         const date = d.toDate();
         return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
     };

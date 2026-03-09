@@ -22,7 +22,7 @@ export const copyChart = async (containerElement: HTMLElement | null, fileName: 
                     new ClipboardItem({ [blob.type]: blob })
                 ]);
                 alert('全區快照已複製！可直接貼上至報告。');
-            } catch (err) {
+            } catch {
                 const link = document.createElement('a');
                 link.download = `${fileName}.png`;
                 link.href = URL.createObjectURL(blob);

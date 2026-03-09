@@ -168,7 +168,7 @@ const Dashboard: React.FC = () => {
         const compareCount = comparePurchases.length;
 
         return { total, count, topAccounts, topVendors, budgetStatus, monthly, monthlyItems, monthlyStacked, allCategories, compareMonthly, compareMonthlyItems, compareTotal, compareCount };
-    }, [purchases, ledgerAccounts, currentYear, comparePurchases]);
+    }, [purchases, ledgerAccounts, comparePurchases]);
 
     const filteredMonthlyStacked = useMemo(() => {
         return stats.monthlyStacked.map(m => {

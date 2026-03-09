@@ -2,9 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { deletePurchaseGroup, deletePurchasesBatch, getPaginatedPurchases, getAllUsers } from '../lib/firestore';
-import type { Purchase } from '../types';
+import type { Purchase, PurchaseFormData } from '../types';
 import { QueryDocumentSnapshot } from 'firebase/firestore';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { Upload, Download, XCircle, X, Trash2, CheckSquare, Square, MoreVertical, Copy, Edit, Search } from 'lucide-react';
 import PurchaseModal from '../components/PurchaseModal';
 import VendorDetailCard from '../components/VendorDetailCard';
@@ -76,6 +77,7 @@ const PurchaseListPage: React.FC = () => {
     useEffect(() => {
         setSelectedGroups(new Set());
         fetchPurchases();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedYear, filterAccount, filterCreator, filterReqType, filterPurType, appUser, purchaseListRefreshKey]);
 
     useEffect(() => {
@@ -175,9 +177,10 @@ const PurchaseListPage: React.FC = () => {
         try {
             await deletePurchaseGroup(p.groupId, selectedYear);
             fetchPurchases();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Delete failed:', err);
-            alert('刪除失敗：' + (err.message || '請管理員確認權限'));
+            const msg = err instanceof Error ? err.message : String(err);
+            alert('刪除失敗：' + (msg || '請管理員確認權限'));
         } finally {
             setDeleting(null);
         }
@@ -240,74 +243,120 @@ const PurchaseListPage: React.FC = () => {
             setSelectedGroups(new Set());
             fetchPurchases();
             alert(`已成功刪除 ${count} 份單據`);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Batch delete failed:', err);
-            alert('批次刪除失敗：' + err.message);
+            const msg = err instanceof Error ? err.message : String(err);
+            alert('批次刪除失敗：' + msg);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleExportExcel = () => {
-        const rows = filtered.map(p => {
+    const handleExportExcel = async () => {
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet(`${selectedYear}年採購記錄`);
+
+        ws.columns = [
+            { header: '日期', key: 'date', width: 15 },
+            { header: '廠商', key: 'vendor', width: 25 },
+            { header: '品名', key: 'title', width: 30 },
+            { header: '科目', key: 'account', width: 25 },
+            { header: '金額(未稅)', key: 'amount', width: 15 },
+            { header: '金額(含稅)', key: 'amountIncl', width: 15 },
+            { header: '請購類型', key: 'reqType', width: 15 },
+            { header: '採購性質', key: 'purType', width: 15 },
+            { header: '文件號碼', key: 'docNum', width: 20 },
+            { header: '備註', key: 'note', width: 30 },
+            { header: '建立人', key: 'creator', width: 15 },
+        ];
+
+        filtered.forEach(p => {
             const d = p.purchaseDate.toDate();
             const dateStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
             const acc = ledgerAccounts.find(a => a.id === p.ledgerAccountId);
-            return {
-                '日期': dateStr,
-                '廠商': p.vendor,
-                '品名': p.title,
-                '科目': acc ? `${acc.code} ${acc.name}` : p.ledgerAccountName,
-                '金額(未稅)': p.amount,
-                '金額(含稅)': Math.round(p.amount * 1.05),
-                '請購類型': p.requisitionType,
-                '採購性質': p.purchaseType,
-                '文件號碼': p.docNumber || '',
-                '備註': p.note || '',
-                '建立人': usersMap[p.createdBy] || p.createdBy,
-            };
+            ws.addRow({
+                date: dateStr,
+                vendor: p.vendor,
+                title: p.title,
+                account: acc ? `${acc.code} ${acc.name}` : p.ledgerAccountName,
+                amount: p.amount,
+                amountIncl: Math.round(p.amount * 1.05),
+                reqType: p.requisitionType,
+                purType: p.purchaseType,
+                docNum: p.docNumber || '',
+                note: p.note || '',
+                creator: usersMap[p.createdBy] || p.createdBy,
+            });
         });
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, `${selectedYear}年採購記錄`);
-        XLSX.writeFile(wb, `採購記錄_${selectedYear}.xlsx`);
+
+        ws.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+        });
+
+        const buf = await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `採購記錄_${selectedYear}.xlsx`);
     };
 
-    const downloadTemplate = () => {
-        const data = [
-            {
-                '日期': `${selectedYear}-01-01`,
-                '廠商名稱': '範例-國泰化工',
-                '品名': '範例-辦公用品費',
-                '科目代碼': 'M54000',
-                '金額(未稅)': 1000,
-                '請購類型': '經MM',
-                '採購性質': '勞務',
-                '文件號碼': 'DOC12345',
-                '備註': '範例描述（可空白）'
-            }
+    const downloadTemplate = async () => {
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('採購導入範本');
+
+        ws.columns = [
+            { header: '日期', key: 'date', width: 15 },
+            { header: '廠商名稱', key: 'vendor', width: 25 },
+            { header: '品名', key: 'title', width: 30 },
+            { header: '科目代碼', key: 'accountCode', width: 15 },
+            { header: '金額(未稅)', key: 'amount', width: 15 },
+            { header: '請購類型', key: 'reqType', width: 15 },
+            { header: '採購性質', key: 'purType', width: 15 },
+            { header: '文件號碼', key: 'docNum', width: 20 },
+            { header: '備註', key: 'note', width: 30 }
         ];
-        const ws = XLSX.utils.json_to_sheet(data);
+
+        ws.addRow({
+            date: `${selectedYear}-01-01`,
+            vendor: '範例-國泰化工',
+            title: '範例-辦公用品費',
+            accountCode: 'M54000',
+            amount: 1000,
+            reqType: '經MM',
+            purType: '勞務',
+            docNum: 'DOC12345',
+            note: '範例描述（可空白）'
+        });
 
         // 說明頁
-        const rules = [
-            { '欄位名稱': '日期', '必填': '✅ 必填', '格式說明': `完整年月日，例：${selectedYear}-03-15、${selectedYear}/3/15、3月15日` },
-            { '欄位名稱': '廠商名稱', '必填': '✅ 必填', '格式說明': '廠商全名，需與系統廠商名稱一致' },
-            { '欄位名稱': '品名', '必填': '✅ 必填', '格式說明': '採購品名或項目描述' },
-            { '欄位名稱': '科目代碼', '必填': '✅ 必填', '格式說明': '總帳科目代碼，例：M54000、P20000（需存在於系統中）' },
-            { '欄位名稱': '金額(未稅)', '必填': '✅ 必填', '格式說明': '純數字，未稅金額，必須大於 0' },
-            { '欄位名稱': '請購類型', '必填': '✅ 必填', '格式說明': `只接受系統中有的類型 (${requisitionTypes.join('、')})` },
-            { '欄位名稱': '採購性質', '必填': '✅ 必填', '格式說明': `只接受系統中有的型質 (${purchaseTypes.join('、')})` },
-            { '欄位名稱': '文件號碼', '必填': '✅ 必填', '格式說明': '發票或單據號碼，同一號碼只會導入一次（防重複）' },
-            { '欄位名稱': '備註', '必填': '⬜ 可空白', '格式說明': '額外說明，可留空' },
+        const wsRules = wb.addWorksheet('填寫說明');
+        wsRules.columns = [
+            { header: '欄位名稱', key: 'name', width: 15 },
+            { header: '必填', key: 'required', width: 15 },
+            { header: '格式說明', key: 'desc', width: 60 }
         ];
-        const wsRules = XLSX.utils.json_to_sheet(rules);
-        wsRules['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 55 }];
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '採購導入範本');
-        XLSX.utils.book_append_sheet(wb, wsRules, '填寫說明');
-        XLSX.writeFile(wb, `採購紀錄導入範本_${selectedYear}.xlsx`);
+        const rules = [
+            { name: '日期', required: '✅ 必填', desc: `完整年月日，例：${selectedYear}-03-15、${selectedYear}/3/15、3月15日` },
+            { name: '廠商名稱', required: '✅ 必填', desc: '廠商全名，需與系統廠商名稱一致' },
+            { name: '品名', required: '✅ 必填', desc: '採購品名或項目描述' },
+            { name: '科目代碼', required: '✅ 必填', desc: '總帳科目代碼，例：M54000、P20000（需存在於系統中）' },
+            { name: '金額(未稅)', required: '✅ 必填', desc: '純數字，未稅金額，必須大於 0' },
+            { name: '請購類型', required: '✅ 必填', desc: `只接受系統中有的類型 (${requisitionTypes.join('、')})` },
+            { name: '採購性質', required: '✅ 必填', desc: `只接受系統中有的型質 (${purchaseTypes.join('、')})` },
+            { name: '文件號碼', required: '✅ 必填', desc: '發票或單據號碼，同一號碼只會導入一次（防重複）' },
+            { name: '備註', required: '⬜ 可空白', desc: '額外說明，可留空' }
+        ];
+
+        rules.forEach(r => wsRules.addRow(r));
+
+        [ws, wsRules].forEach(sheet => {
+            sheet.getRow(1).eachCell((cell) => {
+                cell.font = { bold: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+            });
+        });
+
+        const buf = await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `採購紀錄導入範本_${selectedYear}.xlsx`);
     };
 
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,13 +366,44 @@ const PurchaseListPage: React.FC = () => {
         const reader = new FileReader();
         reader.onload = async (evt) => {
             try {
-                const data = evt.target?.result;
-                // Use array type for better compatibility
-                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json: any[] = XLSX.utils.sheet_to_json(sheet, {
-                    raw: false,
-                    dateNF: 'yyyy-mm-dd'
+                const data = evt.target?.result as ArrayBuffer;
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(data);
+                const sheet = workbook.worksheets[0];
+                const json: Record<string, unknown>[] = [];
+
+                // 讀取標題列
+                const headers: Record<number, string> = {};
+                if (sheet.getRow(1)) {
+                    sheet.getRow(1).eachCell((cell, colNumber) => {
+                        if (cell.text) headers[colNumber] = cell.text.trim();
+                    });
+                }
+
+                sheet.eachRow((row, rowNumber) => {
+                    if (rowNumber === 1) return; // 跳過標題列
+
+                    const rowData: Record<string, unknown> = {};
+                    let hasRealData = false;
+                    Object.keys(headers).forEach((colStr) => {
+                        const colNum = parseInt(colStr, 10);
+                        const cell = row.getCell(colNum);
+                        let val: unknown = cell.value;
+
+                        if (val !== null && val !== undefined) {
+                            if (typeof val === 'object') {
+                                if ('result' in val) val = (val as { result: unknown }).result;
+                                else if ('text' in val) val = (val as { text: string }).text;
+                                else if ('richText' in val) val = (val as { richText: { text: string }[] }).richText.map(t => t.text).join('');
+                            }
+                            if (val instanceof Date) {
+                                val = `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, '0')}-${String(val.getDate()).padStart(2, '0')}`;
+                            }
+                            rowData[headers[colNum]] = val;
+                            hasRealData = true;
+                        }
+                    });
+                    if (hasRealData) json.push(rowData);
                 });
 
                 if (json.length === 0) {
@@ -334,7 +414,7 @@ const PurchaseListPage: React.FC = () => {
                 setLoading(true);
                 let success = 0;
                 let skipped = 0;
-                let errors: string[] = [];
+                const errors: string[] = [];
 
                 const { addPurchase, getPurchases } = await import('../lib/firestore');
 
@@ -346,14 +426,14 @@ const PurchaseListPage: React.FC = () => {
 
                 const parseLocalDateStr = (s: string): { date: Date; str: string } | null => {
                     // Try YYYY-MM-DD or YYYY/MM/DD directly
-                    const isoMatch = s.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})$/);
+                    const isoMatch = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
                     if (isoMatch) {
                         const [, y, m, d] = isoMatch.map(Number);
                         const dt = new Date(y, m - 1, d);
                         return { date: dt, str: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` };
                     }
                     // Try MM-DD or M/D (add current year)
-                    const shortMatch = s.replace(/[月日]/g, '-').replace(/-+$/, '').match(/^(\d{1,2})[\-\/](\d{1,2})$/);
+                    const shortMatch = s.replace(/[月日]/g, '-').replace(/-+$/, '').match(/^(\d{1,2})[-/](\d{1,2})$/);
                     if (shortMatch) {
                         const [, m, d] = shortMatch.map(Number);
                         const dt = new Date(selectedYear, m - 1, d);
@@ -368,8 +448,8 @@ const PurchaseListPage: React.FC = () => {
                     const vendor = String(row['廠商名稱'] || '').trim();
                     const title = String(row['品名'] || '').trim();
                     const accCode = String(row['科目代碼'] || '').trim();
-                    const amountRaw = row['金額(未稅)'];
-                    const amount = parseFloat(amountRaw || '0');
+                    const amountRaw = row['金額(未稅)'] as string | number;
+                    const amount = parseFloat(String(amountRaw || '0'));
                     const reqType = String(row['請購類型'] || '').trim();
                     const purType = String(row['採購性質'] || '').trim();
                     const docNum = String(row['文件號碼'] || '').trim();
@@ -415,8 +495,8 @@ const PurchaseListPage: React.FC = () => {
                         return;
                     }
 
-                    row._valid = true;
-                    row._processed = {
+                    (row as Record<string, unknown>)._valid = true;
+                    (row as Record<string, unknown>)._processed = {
                         data: {
                             purchaseDate: finalDate, // 使用修正後的日期資料
                             vendor,
@@ -437,7 +517,7 @@ const PurchaseListPage: React.FC = () => {
 
                 for (const row of json) {
                     if (!row._valid) continue;
-                    const { data, rowNum } = row._processed;
+                    const { data, rowNum } = row._processed as { data: PurchaseFormData; rowNum: number };
                     // Deduplication: skip if docNumber already exists in Firestore
                     const docNum = data.docNumber?.trim();
                     if (docNum && existingDocNums.has(docNum)) {
@@ -449,14 +529,15 @@ const PurchaseListPage: React.FC = () => {
                         success++;
                         // Add to set so the same file can't double-insert the same docNumber
                         if (docNum) existingDocNums.add(docNum);
-                    } catch (err: any) {
-                        errors.push(`第 ${rowNum} 列：資料庫存入失敗 (${err.message})`);
+                    } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        errors.push(`第 ${rowNum} 列：資料庫存入失敗 (${msg})`);
                     }
                 }
 
                 setImportResult({ success, skipped, errors });
                 fetchPurchases();
-            } catch (err) {
+            } catch {
                 alert('處理失敗，請檢查 Excel 格式');
             } finally {
                 setLoading(false);

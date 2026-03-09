@@ -32,7 +32,7 @@ const DashboardSkeleton: React.FC = () => {
                     {Array.from({ length: 12 }).map((_, i) => (
                         <div className="bar-col" key={i} style={{ height: '240px' }}>
                             <div className="bar-group" style={{ height: '100%' }}>
-                                <Skeleton width={36} height={`${Math.random() * 60 + 20}%`} />
+                                <Skeleton width={36} height={`${(i * 17) % 60 + 20}%`} />
                             </div>
                             <Skeleton width={24} height={12} style={{ marginTop: '12px' }} />
                         </div>
