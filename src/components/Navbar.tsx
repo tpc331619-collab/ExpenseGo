@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { getAllUsers } from '../lib/firestore';
-import { LayoutDashboard, FileText, BarChart3, Database, RefreshCw, NotebookPen, Key } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, Settings, RefreshCw, NotebookPen, Key } from 'lucide-react';
 import Logo from './Logo';
 import './Navbar.css';
 
@@ -45,7 +45,7 @@ const Navbar: React.FC = () => {
         { to: '/', label: '總覽', icon: <LayoutDashboard size={18} />, exact: true, badge: 0 },
         { to: '/purchases', label: '紀錄', icon: <FileText size={18} />, exact: false, badge: purchases.length, badgeClass: 'badge-purchases' },
         { to: '/report', label: '報表', icon: <BarChart3 size={18} />, exact: false, badge: 0 },
-        { to: '/admin', label: '管理', icon: <Database size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0, badgeClass: 'badge-admin' },
+        { to: '/admin', label: '管理', icon: <Settings size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0, badgeClass: 'badge-admin' },
         { to: '/contracts', label: '契約', icon: <NotebookPen size={18} />, exact: false, badge: contractCount, badgeClass: 'badge-contracts' },
         { to: '/notes', label: '筆記', icon: <Key size={18} />, exact: false, badge: noteCount, badgeClass: 'badge-notes' },
     ];
