@@ -12,6 +12,35 @@ import VendorDetailCard from '../components/VendorDetailCard';
 
 import './PurchaseListPage.css';
 
+interface ConfirmDeleteProps {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+const ConfirmDeleteModal: React.FC<ConfirmDeleteProps> = ({ isOpen, title, message, onConfirm, onCancel }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="modal-overlay" onClick={onCancel}>
+            <div className="modal-box confirm-modal" onClick={e => e.stopPropagation()}>
+                <div className="confirm-content">
+                    <div className="confirm-icon icon-danger">
+                        <Trash2 size={42} />
+                    </div>
+                    <h3>{title}</h3>
+                    <p style={{ marginTop: '8px' }}>{message}<br />此操作無法復原。</p>
+                </div>
+                <div className="confirm-footer">
+                    <button className="btn-outline" onClick={onCancel}>取消</button>
+                    <button className="btn-danger-confirm" onClick={onConfirm}>確定刪除</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const PurchaseListPage: React.FC = () => {
 
     const { ledgerAccounts, selectedYear, purchaseListRefreshKey, purchaseTypes, requisitionTypes } = useApp();
@@ -41,6 +70,11 @@ const PurchaseListPage: React.FC = () => {
     const [importResult, setImportResult] = useState<{ success: number; skipped: number; errors: string[] } | null>(null);
     const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
+    // Delete Confirmation states
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<Purchase | null>(null);
+    const [isBatchDelete, setIsBatchDelete] = useState(false);
 
     const fetchPurchases = async (isLoadMore = false) => {
         if (!isLoadMore) setLoading(true);
@@ -171,8 +205,23 @@ const PurchaseListPage: React.FC = () => {
 
     const totalAmount = useMemo(() => filtered.reduce((s, p) => s + p.amount, 0), [filtered]);
 
-    const handleDelete = async (p: Purchase) => {
-        if (!confirm('確定要刪除此筆採購紀錄？')) return;
+    const handleDeleteClick = (p: Purchase) => {
+        setDeleteTarget(p);
+        setIsBatchDelete(false);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        if (isBatchDelete) {
+            await executeBatchDelete();
+        } else if (deleteTarget) {
+            await executeSingleDelete(deleteTarget);
+        }
+        setShowDeleteConfirm(false);
+        setDeleteTarget(null);
+    };
+
+    const executeSingleDelete = async (p: Purchase) => {
         setDeleting(p.id);
         try {
             await deletePurchaseGroup(p.groupId, selectedYear);
@@ -233,10 +282,14 @@ const PurchaseListPage: React.FC = () => {
         }
     };
 
-    const handleBatchDelete = async () => {
-        const count = selectedGroups.size;
-        if (!confirm(`確定要刪除所選的 ${count} 筆採購紀錄（包含其明細）？`)) return;
+    const handleBatchDeleteClick = () => {
+        if (selectedGroups.size === 0) return;
+        setIsBatchDelete(true);
+        setShowDeleteConfirm(true);
+    };
 
+    const executeBatchDelete = async () => {
+        const count = selectedGroups.size;
         setLoading(true);
         try {
             await deletePurchasesBatch(Array.from(selectedGroups), selectedYear);
@@ -779,7 +832,7 @@ const PurchaseListPage: React.FC = () => {
                                                                         </button>
                                                                         <button
                                                                             className="dropdown-item delete"
-                                                                            onClick={() => { handleDelete(p); setMenuOpenId(null); }}
+                                                                            onClick={() => { handleDeleteClick(p); setMenuOpenId(null); }}
                                                                             disabled={deleting === p.id}
                                                                         >
                                                                             {deleting === p.id ? '…' : <Trash2 size={14} />} 刪除這單
@@ -873,7 +926,7 @@ const PurchaseListPage: React.FC = () => {
                         已選擇 <strong>{selectedGroups.size}</strong> 份採購單據
                     </div>
                     <div className="batch-actions">
-                        <button className="btn-batch-delete" onClick={handleBatchDelete}>
+                        <button className="btn-batch-delete" onClick={handleBatchDeleteClick}>
                             <Trash2 size={16} /> 批次刪除
                         </button>
                         <button className="btn-batch-cancel" onClick={() => setSelectedGroups(new Set())}>
@@ -882,7 +935,17 @@ const PurchaseListPage: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div >
+
+            <ConfirmDeleteModal
+                isOpen={showDeleteConfirm}
+                title={isBatchDelete ? '批次刪除紀錄' : '刪除採購紀錄'}
+                message={isBatchDelete
+                    ? `確定要刪除所選的 ${selectedGroups.size} 筆採購紀錄（包含其明細）？`
+                    : `確定要刪除廠商「${deleteTarget?.vendor}」的此筆單據？`}
+                onConfirm={confirmDelete}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
+        </div>
     );
 };
 
