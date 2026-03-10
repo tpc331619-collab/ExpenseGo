@@ -30,7 +30,38 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose }) =>
     // Filter logic
     const results = useMemo(() => {
         if (!query.trim()) return [];
-        const q = query.toLowerCase();
+        const q = query.toLowerCase().trim();
+
+        // 1. 金額指令解析 (> or < number)
+        if (q.startsWith('>') || q.startsWith('<')) {
+            const operator = q[0];
+            const amountStr = q.substring(1).trim();
+            const amount = parseFloat(amountStr);
+            if (!isNaN(amount)) {
+                return purchases.filter(p =>
+                    operator === '>' ? p.amount > amount : p.amount < amount
+                ).sort((a, b) => b.amount - a.amount).slice(0, 10);
+            }
+        }
+
+        // 2. 廠商指令解析 (@vendor)
+        if (q.startsWith('@')) {
+            const vendorPart = q.substring(1).trim();
+            return purchases.filter(p =>
+                p.vendor.toLowerCase().includes(vendorPart)
+            ).sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis()).slice(0, 8);
+        }
+
+        // 3. 科目指令解析 (#account)
+        if (q.startsWith('#')) {
+            const accPart = q.substring(1).trim();
+            return purchases.filter(p => {
+                const accCode = accountCodeMap[p.ledgerAccountId] || '';
+                return p.ledgerAccountName.toLowerCase().includes(accPart) || accCode.includes(accPart);
+            }).sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis()).slice(0, 8);
+        }
+
+        // 基本關鍵字搜尋
         return purchases.filter(p => {
             const accCode = accountCodeMap[p.ledgerAccountId] || '';
             return (
@@ -41,7 +72,7 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose }) =>
                 accCode.includes(q) ||
                 (p.note && p.note.toLowerCase().includes(q))
             );
-        }).slice(0, 8); // Limit to top 8 results
+        }).slice(0, 8);
     }, [query, purchases, accountCodeMap]);
 
     useEffect(() => {
@@ -153,7 +184,13 @@ const SpotlightSearch: React.FC<SpotlightSearchProps> = ({ isOpen, onClose }) =>
 
                 {!query && (
                     <div className="spotlight-footer">
-                        提示：輸入關鍵字進行全局搜尋
+                        <div className="spotlight-hints">
+                            <span className="hint-tag">@廠商</span>
+                            <span className="hint-tag">#科目</span>
+                            <span className="hint-tag">&gt;金額</span>
+                            <span className="hint-tag">&lt;金額</span>
+                        </div>
+                        提示：輸入關鍵字或使用指令過濾
                     </div>
                 )}
             </div>

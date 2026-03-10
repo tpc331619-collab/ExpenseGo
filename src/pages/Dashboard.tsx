@@ -6,6 +6,7 @@ import { copyChart } from '../lib/chartUtils';
 import { getPurchases } from '../lib/firestore';
 import DashboardSkeleton from '../components/DashboardSkeleton';
 import VendorDetailCard from '../components/VendorDetailCard';
+import SmartInsightCard from '../components/SmartInsightCard';
 import './Dashboard.css';
 
 const cleanAccName = (name: string) => name.replace(/^[A-Z]\d{5}\s+/, '');
@@ -296,6 +297,13 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Smart Insight Engine */}
+            <SmartInsightCard
+                purchases={purchases}
+                ledgerAccounts={ledgerAccounts}
+                comparePurchases={comparePurchases}
+            />
 
             {/* Monthly bar chart */}
             <div ref={chartContainerRef} className="card bar-chart-card">

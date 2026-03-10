@@ -1,0 +1,109 @@
+.insight-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.insight-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.insight-logo {
+    color: #6366f1;
+}
+
+.insight-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.insight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.insight-item {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 12px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.insight-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.insight-icon-box {
+    display: flex;
+    align-items: flex-start;
+    padding-top: 2px;
+}
+
+.insight-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.insight-item-title {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.95rem;
+}
+
+.insight-item-text {
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+/* Types */
+.type-warning {
+    border-left: 4px solid #f97316;
+}
+
+.type-info {
+    border-left: 4px solid #3b82f6;
+}
+
+.type-success {
+    border-left: 4px solid #10b981;
+}
+
+.type-tip {
+    border-left: 4px solid #8b5cf6;
+}
+
+.text-orange {
+    color: #f97316;
+}
+
+.text-blue {
+    color: #3b82f6;
+}
+
+.text-green {
+    color: #10b981;
+}
+
+.text-purple {
+    color: #8b5cf6;
+}
+
+.text-yellow {
+    color: #eab308;
+}
