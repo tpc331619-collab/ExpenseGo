@@ -355,7 +355,7 @@
     animation: slideDown 0.4s ease-out;
 }
 
-.insight-item {
+.ch-stat-item {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(10px);
     border: 1px solid #e2e8f0;
@@ -369,13 +369,13 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.insight-item:hover {
+.ch-stat-item:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     background: white;
 }
 
-.insight-icon {
+.ch-stat-icon {
     width: 28px;
     height: 28px;
     border-radius: 8px;
@@ -385,37 +385,37 @@
     flex-shrink: 0;
 }
 
-.insight-icon.info {
+.ch-stat-icon.info {
     background: #eff6ff;
     color: #3b82f6;
 }
 
-.insight-icon.warn {
+.ch-stat-icon.warn {
     background: #fff7ed;
     color: #f59e0b;
 }
 
-.insight-icon.danger {
+.ch-stat-icon.danger {
     background: #fef2f2;
     color: #ef4444;
 }
 
-.insight-content {
+.ch-stat-content {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 12px;
 }
 
-.insight-label {
-    font-size: 12px;
+.ch-stat-label {
+    font-size: 11px;
     color: #64748b;
     font-weight: 600;
     white-space: nowrap;
 }
 
-.insight-value {
-    font-size: 20px;
+.ch-stat-value {
+    font-size: 18px;
     font-weight: 800;
     color: #1e293b;
     line-height: 1;
@@ -427,11 +427,11 @@
     border: 1px solid #e2e8f0;
 }
 
-.insight-item.warning {
+.ch-stat-item.warning {
     border-color: #fbbf24;
 }
 
-.insight-item.danger {
+.ch-stat-item.danger {
     border-color: #f87171;
 }
 

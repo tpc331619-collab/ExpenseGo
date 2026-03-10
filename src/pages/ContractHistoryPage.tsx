@@ -332,11 +332,11 @@ const ContractHistoryPage: React.FC = () => {
                 <div className="ch-insight-bar">
                     {entries.length > 0 && (
                         <>
-                            <div className="insight-item">
-                                <div className="insight-icon info"><FileText size={16} /></div>
-                                <div className="insight-content">
-                                    <span className="insight-label">執行中合約</span>
-                                    <span className="insight-value">{entries.filter(e => e.status === '執行中').length}</span>
+                            <div className="ch-stat-item info">
+                                <div className="ch-stat-icon info"><FileText size={16} /></div>
+                                <div className="ch-stat-content">
+                                    <span className="ch-stat-label">執行中合約</span>
+                                    <span className="ch-stat-value">{entries.filter(e => e.status === '執行中').length}</span>
                                 </div>
                             </div>
                             {(() => {
@@ -346,11 +346,11 @@ const ContractHistoryPage: React.FC = () => {
                                 }).length;
                                 if (expiringCount > 0) {
                                     return (
-                                        <div className="insight-item warning pulse-border">
-                                            <div className="insight-icon warn"><AlertTriangle size={16} /></div>
-                                            <div className="insight-content">
-                                                <span className="insight-label">{contractExpireDays}天內到期</span>
-                                                <span className="insight-value">{expiringCount}</span>
+                                        <div className="ch-stat-item warning pulse-border">
+                                            <div className="ch-stat-icon warn"><AlertTriangle size={16} /></div>
+                                            <div className="ch-stat-content">
+                                                <span className="ch-stat-label">{contractExpireDays}天內到期</span>
+                                                <span className="ch-stat-value">{expiringCount}</span>
                                             </div>
                                         </div>
                                     );
@@ -364,11 +364,11 @@ const ContractHistoryPage: React.FC = () => {
                                 }).length;
                                 if (expiredCount > 0) {
                                     return (
-                                        <div className="insight-item danger">
-                                            <div className="insight-icon danger"><AlertCircle size={16} /></div>
-                                            <div className="insight-content">
-                                                <span className="insight-label">已逾期(未結)</span>
-                                                <span className="insight-value">{expiredCount}</span>
+                                        <div className="ch-stat-item danger">
+                                            <div className="ch-stat-icon danger"><AlertCircle size={16} /></div>
+                                            <div className="ch-stat-content">
+                                                <span className="ch-stat-label">已逾期(未結)</span>
+                                                <span className="ch-stat-value">{expiredCount}</span>
                                             </div>
                                         </div>
                                     );

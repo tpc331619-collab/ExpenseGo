@@ -34,8 +34,9 @@
 
 .insight-item {
     display: flex;
+    align-items: center;
     gap: 12px;
-    padding: 16px;
+    padding: 10px 16px;
     border-radius: 12px;
     background: white;
     border: 1px solid #e2e8f0;
@@ -55,8 +56,9 @@
 
 .insight-content {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
 }
 
 .insight-item-title {
