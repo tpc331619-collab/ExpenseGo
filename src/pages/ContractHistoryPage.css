@@ -164,6 +164,7 @@
 }
 
 /* Tag & Badge Styles */
+
 .type-tag {
     font-size: 13px;
     font-weight: 500;
@@ -268,7 +269,8 @@
 
 /* 即將到期 (淡紅色底) */
 .row-expiring td {
-    background-color: #fef2f2 !important; /* light red */
+    background-color: #fef2f2 !important;
+    /* light red */
 }
 
 

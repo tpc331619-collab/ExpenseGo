@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Lightbulb, AlertTriangle, TrendingUp, ShieldCheck, Zap } from 'lucide-react';
+import { Lightbulb, AlertTriangle, TrendingUp, ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import type { Purchase, LedgerAccount } from '../types';
 import './SmartInsightCard.css';
 
@@ -69,7 +69,47 @@ const SmartInsightCard: React.FC<SmartInsightCardProps> = ({ purchases, ledgerAc
             }
         }
 
-        // 4. 預設鼓勵或小提示 (若無其他洞察)
+        // 4. [進階] 異常大額偵測 (檢測單筆是否異常偏高)
+        const accSpendStats: Record<string, { total: number, count: number, max: number }> = {};
+        purchases.forEach(p => {
+            if (!accSpendStats[p.ledgerAccountId]) accSpendStats[p.ledgerAccountId] = { total: 0, count: 0, max: 0 };
+            accSpendStats[p.ledgerAccountId].total += p.amount;
+            accSpendStats[p.ledgerAccountId].count += 1;
+            accSpendStats[p.ledgerAccountId].max = Math.max(accSpendStats[p.ledgerAccountId].max, p.amount);
+        });
+
+        for (const [accId, stat] of Object.entries(accSpendStats)) {
+            const avg = stat.total / stat.count;
+            if (stat.count >= 2 && stat.max > avg * 3) {
+                const accName = ledgerAccounts.find(a => a.id === accId)?.name.replace(/^[A-Z]\d{5}\s+/, '') || '未知科目';
+                list.push({
+                    type: 'warning',
+                    title: '檢測到異常大額請購',
+                    text: `「${accName}」科目中出現單筆遠高於平均（約 ${fmt(stat.max)}）的單據，請確認必要性。`,
+                    icon: <AlertTriangle size={18} className="text-red" />
+                });
+                break; // 只報一條
+            }
+        }
+
+        // 5. [進階] 重複採購檢測 (三天內相同廠商與相似品名)
+        const sorted = [...purchases].sort((a, b) => b.purchaseDate.toMillis() - a.purchaseDate.toMillis());
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const p1 = sorted[i];
+            const p2 = sorted[i + 1];
+            const diffDays = (p1.purchaseDate.toMillis() - p2.purchaseDate.toMillis()) / (1000 * 60 * 60 * 24);
+            if (diffDays <= 3 && p1.vendor === p2.vendor && (p1.title.includes(p2.title) || p2.title.includes(p1.title))) {
+                list.push({
+                    type: 'tip',
+                    title: '疑似重複請購提醒',
+                    text: `發現廠商「${p1.vendor}」在 3 天內有兩筆品名高度相似（${p1.title} / ${p2.title}），請確認是否重複。`,
+                    icon: <RefreshCw size={18} className="text-blue" />
+                });
+                break;
+            }
+        }
+
+        // 6. 預設鼓勵或小提示 (若無其他洞察)
         if (list.length === 0) {
             list.push({
                 type: 'success',
@@ -79,8 +119,10 @@ const SmartInsightCard: React.FC<SmartInsightCardProps> = ({ purchases, ledgerAc
             });
         }
 
-        return list.slice(0, 3); // 最多顯示 3 條
+        return list.slice(0, 4); // 調整為顯示更多洞察
     }, [purchases, ledgerAccounts, comparePurchases]);
+
+    const fmt = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
 
     return (
         <div className="insight-card">
