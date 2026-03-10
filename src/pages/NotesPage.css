@@ -12,9 +12,9 @@
 }
 
 .note-text-clickable span {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text1);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
     background: transparent;
     border: none;
     transition: color 0.2s ease;
@@ -22,6 +22,11 @@
 
 .note-text-clickable:hover span {
     color: var(--blue);
+}
+
+.note-text-clickable.password-cell span {
+    color: #2563eb;
+    font-weight: 600;
 }
 
 .note-text-clickable.copied span {
@@ -49,4 +54,154 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* ── Action Buttons ──────────────────────────────────────────────────────────── */
+.action-group {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.icon-btn-fancy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+}
+
+.icon-btn-fancy:active {
+    transform: scale(0.9);
+}
+
+.icon-btn-fancy.edit {
+    color: #10b981;
+    background: #f0fdf4;
+    border-color: #dcfce7;
+}
+
+.icon-btn-fancy.edit:hover {
+    background: #10b981;
+    color: white;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.icon-btn-fancy.history {
+    color: #3b82f6;
+    background: #eff6ff;
+    border-color: #dbeafe;
+}
+
+.icon-btn-fancy.history:hover {
+    background: #3b82f6;
+    color: white;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.icon-btn-fancy.delete {
+    color: #f43f5e;
+    background: #fff1f2;
+    border-color: #ffe4e6;
+}
+
+.icon-btn-fancy.delete:hover {
+    background: #f43f5e;
+    color: white;
+    box-shadow: 0 4px 10px rgba(244, 63, 94, 0.3);
+}
+
+/* ── Confirm Modal Fancy ──────────────────────────────────────────────────────── */
+.confirm-modal-fancy {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 20px;
+    text-align: center;
+    width: 380px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.confirm-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: #fff1f2;
+    color: #f43f5e;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.confirm-modal-fancy h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 12px;
+}
+
+.confirm-modal-fancy p {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.confirm-actions-fancy {
+    display: flex;
+    gap: 12px;
+}
+
+.confirm-actions-fancy button {
+    flex: 1;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-cancel-fancy {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.btn-cancel-fancy:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.btn-delete-fancy {
+    background: #f43f5e;
+    color: white;
+}
+
+.btn-delete-fancy:hover {
+    background: #e11d48;
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4);
+}
+
+.btn-delete-fancy:active {
+    transform: scale(0.96);
 }

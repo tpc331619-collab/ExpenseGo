@@ -132,3 +132,17 @@ export interface SystemOptions {
     contractExpireDays?: number;
     updatedAt?: Timestamp;
 }
+
+export interface PassNoteHistory {
+    id: string;
+    noteId: string;
+    action: 'update';
+    updatedByUid: string;
+    updatedByName: string;
+    updatedAt: Timestamp;
+    changes: {
+        field: string;
+        oldValue: string;
+        newValue: string;
+    }[];
+}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { getPassNotes, addPassNote, updatePassNote, deletePassNote } from '../lib/firestore';
-import type { PassNoteEntry } from '../types';
-import { Plus, Edit2, Trash2, X, Eye, EyeOff } from 'lucide-react';
+import { getPassNotes, addPassNote, updatePassNote, deletePassNote, getPassNoteHistory, deletePassNoteHistoryEntries } from '../lib/firestore';
+import type { PassNoteEntry, PassNoteHistory } from '../types';
+import { Plus, Edit2, Trash2, X, Eye, EyeOff, Clock, CheckSquare } from 'lucide-react';
 import './NotesPage.css';
 import '../components/PurchaseModal.css';
 
@@ -19,7 +19,7 @@ const PassNoteModal: React.FC<PassNoteModalProps> = ({ isOpen, onClose, onSave, 
     const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
     const [note, setNote] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState(true);
 
     useEffect(() => {
         if (editingEntry) {
@@ -31,7 +31,7 @@ const PassNoteModal: React.FC<PassNoteModalProps> = ({ isOpen, onClose, onSave, 
             setPassword('');
             setNote('');
         }
-        setShowPassword(false);
+        setShowPassword(true);
     }, [editingEntry, isOpen]);
 
     if (!isOpen) return null;
@@ -45,6 +45,13 @@ const PassNoteModal: React.FC<PassNoteModalProps> = ({ isOpen, onClose, onSave, 
                 </div>
                 <form className="modal-form" onSubmit={e => {
                     e.preventDefault();
+                    if (editingEntry &&
+                        account === editingEntry.account &&
+                        password === editingEntry.password &&
+                        (note || '') === (editingEntry.note || '')) {
+                        alert('資料一樣');
+                        return;
+                    }
                     onSave({ account, password, note });
                 }}>
                     <div className="form-group">
@@ -95,15 +102,172 @@ const ConfirmDeleteModal: React.FC<{ isOpen: boolean; onConfirm: () => void; onC
     if (!isOpen) return null;
     return (
         <div className="modal-overlay" onClick={onCancel}>
-            <div className="modal-box confirm-modal" onClick={e => e.stopPropagation()}>
-                <div className="confirm-content">
-                    <div className="confirm-icon icon-danger">⚠️</div>
-                    <h3>刪除筆記</h3>
-                    <p>確定要刪除此筆紀錄？<br />此操作無法復原。</p>
+            <div className="modal-box confirm-modal-fancy" onClick={e => e.stopPropagation()}>
+                <div className="confirm-icon-wrapper">
+                    <Trash2 size={32} />
                 </div>
-                <div className="confirm-footer">
-                    <button className="btn-outline" onClick={onCancel}>取消</button>
-                    <button className="btn-danger-confirm" onClick={onConfirm}>確定刪除</button>
+                <h3>確認刪除筆記</h3>
+                <p>您確定要刪除這筆筆記嗎？<br />此動作將無法復原，請務必確認。</p>
+                <div className="confirm-actions-fancy">
+                    <button className="btn-cancel-fancy" onClick={onCancel}>
+                        取消
+                    </button>
+                    <button className="btn-delete-fancy" onClick={onConfirm}>
+                        確定刪除
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const NoteHistoryModal: React.FC<{ isOpen: boolean; onClose: () => void; noteId: string | null }> = ({ isOpen, onClose, noteId }) => {
+    const [history, setHistory] = useState<PassNoteHistory[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [deleting, setDeleting] = useState(false);
+
+    const fetchHistory = async () => {
+        if (!noteId) return;
+        setLoading(true);
+        try {
+            const data = await getPassNoteHistory(noteId);
+            setHistory(data);
+        } catch (err) {
+            console.error('Failed to fetch history', err);
+            alert('讀取紀錄失敗，請檢查網路或 Firebase 規則設定。');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen && noteId) {
+            setSelectedIds([]);
+            fetchHistory();
+        }
+    }, [isOpen, noteId]);
+
+    const handleBatchDelete = async () => {
+        if (selectedIds.length === 0 || !noteId) return;
+        if (!window.confirm(`確定要刪除這 ${selectedIds.length} 筆修改紀錄嗎？此動作成法復原。`)) return;
+
+        setDeleting(true);
+        try {
+            await deletePassNoteHistoryEntries(noteId, selectedIds);
+            setSelectedIds([]);
+            await fetchHistory();
+        } catch (err: any) {
+            alert('刪除失敗：' + (err.message || err));
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === history.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(history.map(h => h.id));
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-box admin-modal" style={{ maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                <div className="modal-header" style={{ flexShrink: 0 }}>
+                    <h2>修改紀錄</h2>
+                    <button className="modal-close" onClick={onClose}><X size={20} /></button>
+                </div>
+                <div className="modal-body" style={{ overflowY: 'auto', padding: '16px 20px', flex: 1 }}>
+                    {loading ? (
+                        <div className="full-loading" style={{ height: 100 }}><div className="spinner" /></div>
+                    ) : history.length === 0 ? (
+                        <div className="empty-state" style={{ padding: '20px 0' }}>
+                            <p>尚無修改紀錄</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>
+                                <button
+                                    className="btn-text"
+                                    onClick={toggleSelectAll}
+                                    style={{ fontSize: 13, color: 'var(--blue)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+                                >
+                                    <CheckSquare size={14} />
+                                    {selectedIds.length === history.length ? '取消全選' : '全選所有紀錄'}
+                                </button>
+                                {selectedIds.length > 0 && (
+                                    <button
+                                        className="btn-danger-confirm"
+                                        onClick={handleBatchDelete}
+                                        disabled={deleting}
+                                        style={{ padding: '6px 12px', fontSize: 12, height: 'auto' }}
+                                    >
+                                        {deleting ? '刪除中...' : `刪除已選 (${selectedIds.length})`}
+                                    </button>
+                                )}
+                            </div>
+                            <div className="history-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {history.map((item, idx) => {
+                                    const isLatest = idx === 0;
+                                    const isSelected = selectedIds.includes(item.id);
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => toggleSelect(item.id)}
+                                            style={{
+                                                background: isSelected ? '#dbeafe' : (isLatest ? '#eff6ff' : '#f8fafc'),
+                                                padding: '14px',
+                                                borderRadius: '10px',
+                                                border: `1px solid ${isSelected ? '#3b82f6' : (isLatest ? '#bfdbfe' : '#e2e8f0')}`,
+                                                cursor: 'pointer',
+                                                position: 'relative',
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: isLatest ? '0 2px 4px rgba(59, 130, 246, 0.05)' : 'none'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', fontSize: 13, color: 'var(--text3)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => { }} // Managed by parent click
+                                                        style={{ cursor: 'pointer', width: 16, height: 16, flexShrink: 0 }}
+                                                    />
+                                                    <span style={{ fontWeight: 800, color: isLatest ? '#1e293b' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 14 }}>
+                                                        {item.updatedByName}
+                                                    </span>
+                                                    {isLatest && <span style={{ background: '#3b82f6', color: 'white', padding: '3px 10px', borderRadius: '8px', fontSize: 12, fontWeight: 900, whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)' }}>最新!</span>}
+                                                </div>
+                                                <span style={{ marginLeft: 8, flexShrink: 0, opacity: 0.8 }}>
+                                                    {item.updatedAt.toDate().toLocaleString('zh-TW', {
+                                                        year: 'numeric', month: '2-digit', day: '2-digit',
+                                                        hour: '2-digit', minute: '2-digit'
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '26px' }}>
+                                                {item.changes.map((change, cIdx) => (
+                                                    <div key={cIdx} style={{ fontSize: 13, lineHeight: '1.4' }}>
+                                                        <span style={{ fontWeight: 600, color: isLatest ? '#3b82f6' : '#94a3b8', marginRight: 6 }}>{change.field}</span>
+                                                        <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: 6 }}>{change.oldValue || '(空)'}</span>
+                                                        <span style={{ color: isLatest ? '#1e293b' : '#64748b', fontWeight: 500 }}>➔ {change.newValue || '(空)'}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
@@ -119,6 +283,7 @@ const NotesPage: React.FC = () => {
     const [editingEntry, setEditingEntry] = useState<PassNoteEntry | null>(null);
     const [saving, setSaving] = useState(false);
     const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+    const [historyTargetId, setHistoryTargetId] = useState<string | null>(null);
     const [copiedField, setCopiedField] = useState<string | null>(null);
 
     const fetchEntries = async () => {
@@ -144,9 +309,9 @@ const NotesPage: React.FC = () => {
         setSaving(true);
         try {
             if (editingEntry) {
-                await updatePassNote(editingEntry.id, data, appUser.displayName);
+                await updatePassNote(editingEntry.id, editingEntry, data, appUser.uid, appUser.displayName || '未知');
             } else {
-                await addPassNote(data, appUser.uid, appUser.displayName);
+                await addPassNote(data, appUser.uid, appUser.displayName || '未知');
             }
             setShowModal(false);
             setEditingEntry(null);
@@ -210,7 +375,7 @@ const NotesPage: React.FC = () => {
                         <tbody>
                             {entries.map((entry, idx) => (
                                 <tr key={entry.id}>
-                                    <td style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 16, fontWeight: 500 }}>
+                                    <td style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 500 }}>
                                         {idx + 1}
                                     </td>
                                     <td>
@@ -220,19 +385,19 @@ const NotesPage: React.FC = () => {
                                         </div>
                                     </td>
                                     <td>
-                                        <div className={`note-text-clickable ${copiedField === entry.id + 'pwd' ? 'copied' : ''}`} onClick={() => copyText(entry.password, entry.id + 'pwd')} title="點擊複製密碼">
+                                        <div className={`note-text-clickable password-cell ${copiedField === entry.id + 'pwd' ? 'copied' : ''}`} onClick={() => copyText(entry.password, entry.id + 'pwd')} title="點擊複製密碼">
                                             <span>{entry.password}</span>
                                             {copiedField === entry.id + 'pwd' && <span className="copy-feedback">已複製!</span>}
                                         </div>
                                     </td>
-                                    <td><span style={{ fontSize: 16, color: 'var(--text2)' }}>{entry.note || '-'}</span></td>
+                                    <td><span style={{ fontSize: 14, color: 'var(--text2)' }}>{entry.note || '-'}</span></td>
                                     <td style={{ whiteSpace: 'nowrap' }}>
-                                        <span style={{ fontSize: 16, color: 'var(--text2)', fontWeight: 500 }}>
+                                        <span style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>
                                             {entry.updatedByName || '-'}
                                         </span>
                                     </td>
                                     <td style={{ whiteSpace: 'nowrap' }}>
-                                        <span style={{ fontSize: 15, color: 'var(--text3)' }}>
+                                        <span style={{ fontSize: 13, color: 'var(--text3)' }}>
                                             {entry.updatedAt.toDate().toLocaleString('zh-TW', {
                                                 year: 'numeric', month: '2-digit', day: '2-digit',
                                                 hour: '2-digit', minute: '2-digit'
@@ -243,6 +408,9 @@ const NotesPage: React.FC = () => {
                                         <div className="action-group">
                                             <button className="icon-btn-fancy edit" onClick={() => { setEditingEntry(entry); setShowModal(true); }} title="編輯">
                                                 <Edit2 size={14} />
+                                            </button>
+                                            <button className="icon-btn-fancy history" onClick={() => setHistoryTargetId(entry.id)} title="歷史紀錄">
+                                                <Clock size={15} />
                                             </button>
                                             <button className="icon-btn-fancy delete" onClick={() => setDeleteTargetId(entry.id)} title="刪除">
                                                 <Trash2 size={14} />
@@ -268,6 +436,12 @@ const NotesPage: React.FC = () => {
                 isOpen={!!deleteTargetId}
                 onConfirm={handleDelete}
                 onCancel={() => setDeleteTargetId(null)}
+            />
+
+            <NoteHistoryModal
+                isOpen={!!historyTargetId}
+                onClose={() => setHistoryTargetId(null)}
+                noteId={historyTargetId}
             />
         </div>
     );

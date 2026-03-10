@@ -17,7 +17,7 @@ import {
     QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor, NotebookEntry, PassNoteEntry, SystemOptions } from '../types';
+import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor, NotebookEntry, PassNoteEntry, PassNoteHistory, SystemOptions } from '../types';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -472,17 +472,77 @@ export const addPassNote = async (data: Omit<PassNoteEntry, 'id' | 'createdBy' |
     });
 };
 
-export const updatePassNote = async (id: string, data: Partial<Omit<PassNoteEntry, 'id' | 'createdBy' | 'createdAt' | 'updatedAt' | 'updatedByName'>>, operatorName: string) => {
+export const updatePassNote = async (id: string, oldData: PassNoteEntry, newData: Partial<Omit<PassNoteEntry, 'id' | 'createdBy' | 'createdAt' | 'updatedAt' | 'updatedByName'>>, operatorUid: string, operatorName: string) => {
+    const changes: { field: string, oldValue: string, newValue: string }[] = [];
+
+    // Compare fields
+    if (newData.account !== undefined && newData.account !== oldData.account) {
+        changes.push({ field: '帳號', oldValue: oldData.account, newValue: newData.account });
+    }
+    if (newData.password !== undefined && newData.password !== oldData.password) {
+        changes.push({ field: '密碼', oldValue: oldData.password, newValue: newData.password });
+    }
+    if (newData.note !== undefined && newData.note !== oldData.note) {
+        changes.push({ field: '備註', oldValue: oldData.note || '', newValue: newData.note });
+    }
+
+    const batch = writeBatch(db);
+
     const ref = doc(db, 'passNotes', id);
-    await updateDoc(ref, {
-        ...data,
+    batch.update(ref, {
+        ...newData,
         updatedByName: operatorName,
         updatedAt: Timestamp.now(),
     });
+
+    if (changes.length > 0) {
+        const historyRef = doc(collection(db, 'passNotes', id, 'history'));
+        batch.set(historyRef, {
+            noteId: id,
+            action: 'update',
+            updatedByUid: operatorUid,
+            updatedByName: operatorName,
+            updatedAt: Timestamp.now(),
+            changes: changes
+        });
+    }
+
+    await batch.commit();
+};
+
+export const getPassNoteHistory = async (noteId: string): Promise<PassNoteHistory[]> => {
+    const q = query(
+        collection(db, 'passNotes', noteId, 'history')
+    );
+    const snap = await getDocs(q);
+    const history = snap.docs.map(d => ({ id: d.id, ...d.data() }) as PassNoteHistory);
+    // Sort in memory to avoid needing composite index in Firestore
+    return history.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis());
+};
+
+export const deletePassNoteHistoryEntries = async (noteId: string, historyIds: string[]) => {
+    const batch = writeBatch(db);
+    historyIds.forEach(id => {
+        const ref = doc(db, 'passNotes', noteId, 'history', id);
+        batch.delete(ref);
+    });
+    await batch.commit();
 };
 
 export const deletePassNote = async (id: string) => {
-    await deleteDoc(doc(db, 'passNotes', id));
+    // Delete all history entries first to completely remove the document node from Firestore console
+    const historyRef = collection(db, 'passNotes', id, 'history');
+    const historySnap = await getDocs(historyRef);
+
+    const batch = writeBatch(db);
+    historySnap.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+
+    // Delete the note document itself
+    batch.delete(doc(db, 'passNotes', id));
+
+    await batch.commit();
 };
 
 // ─── System Options ──────────────────────────────────────────────────────────
