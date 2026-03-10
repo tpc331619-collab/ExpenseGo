@@ -217,7 +217,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 const AdminPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear, purchaseTypes, requisitionTypes, contractTypes, refreshSystemOptions } = useApp();
+    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear, purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, refreshSystemOptions } = useApp();
     const isAdmin = appUser?.role === 'admin';
     const isGuest = appUser?.role === 'guest';
     const [tab, setTab] = useState<AdminTab>(isAdmin ? 'users' : 'accounts');
@@ -257,7 +257,14 @@ const AdminPage: React.FC = () => {
     const [newPurType, setNewPurType] = useState('');
     const [newReqType, setNewReqType] = useState('');
     const [newContractType, setNewContractType] = useState('');
+    const [expireDaysInput, setExpireDaysInput] = useState('');
     const [optionsSaving, setOptionsSaving] = useState(false);
+
+    useEffect(() => {
+        if (contractExpireDays !== undefined) {
+            setExpireDaysInput(String(contractExpireDays));
+        }
+    }, [contractExpireDays]);
 
     const fetchUsers = async () => {
         setLoadingUsers(true);
@@ -712,7 +719,7 @@ const AdminPage: React.FC = () => {
 
     const pendingCount = users.filter((u) => u.role === 'pending').length;
 
-    const handleAddOption = async (type: 'purchase' | 'requisition' | 'contract') => {
+    const handleAddOption = async (type: 'purchase' | 'requisition' | 'contract' | 'expireDays') => {
         setOptionsSaving(true);
         try {
             if (type === 'purchase') {
@@ -742,6 +749,14 @@ const AdminPage: React.FC = () => {
                 }
                 await updateSystemOptions({ contractTypes: [...contractTypes, val] });
                 setNewContractType('');
+            } else if (type === 'expireDays') {
+                const val = parseInt(expireDaysInput, 10);
+                if (isNaN(val) || val < 0) {
+                    alert('請輸入有效的天數！');
+                    return;
+                }
+                await updateSystemOptions({ contractExpireDays: val });
+                alert('到期提醒天數已更新！');
             }
             await refreshSystemOptions();
         } catch (e: unknown) {
@@ -989,6 +1004,23 @@ const AdminPage: React.FC = () => {
                                 </div>
                             ))}
                             {contractTypes.length === 0 && <span style={{ color: 'var(--text3)', fontSize: 14 }}>目前無選項</span>}
+                        </div>
+                        <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                            <h4 style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--text1)' }}>契約到期提醒天數設定</h4>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={expireDaysInput}
+                                    onChange={e => setExpireDaysInput(e.target.value)}
+                                    style={{ width: 100, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}
+                                    onKeyDown={e => { if (e.key === 'Enter') handleAddOption('expireDays'); }}
+                                />
+                                <span style={{ color: 'var(--text2)', fontSize: 14 }}>天內到期</span>
+                                <button className="btn-primary" style={{ padding: '6px 16px', marginLeft: 8 }} onClick={() => handleAddOption('expireDays')} disabled={optionsSaving}>
+                                    儲存
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -15,7 +15,7 @@ import './ContractHistoryPage.css';
 import '../components/PurchaseModal.css'; // Reuse modal styles
 
 // ── Helper: Calculate Contract Status ─────────────────────────────────────────
-const getRenewalInfo = (endDateStr: string, status: NotebookEntry['status']) => {
+const getRenewalInfo = (endDateStr: string, status: NotebookEntry['status'], expireDays: number = 120) => {
     if (status === '已結案' || !endDateStr) return null;
 
     const today = new Date();
@@ -27,7 +27,7 @@ const getRenewalInfo = (endDateStr: string, status: NotebookEntry['status']) => 
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return { type: 'expired', days: Math.abs(diffDays), label: `已逾期 (${Math.abs(diffDays)}天)` };
-    if (diffDays <= 120) return { type: 'warning', days: diffDays, label: `即將到期 (${diffDays}天)` };
+    if (diffDays <= expireDays) return { type: 'warning', days: diffDays, label: `即將到期 (${diffDays}天)` };
     return { type: 'safe', days: diffDays, label: `剩餘 ${diffDays}天` };
 };
 
@@ -165,7 +165,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteProps> = ({ isOpen, onConfirm, o
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const ContractHistoryPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { contractTypes } = useApp();
+    const { contractTypes, contractExpireDays } = useApp();
 
     const [entries, setEntries] = useState<NotebookEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -338,7 +338,7 @@ const ContractHistoryPage: React.FC = () => {
                             </div>
                             {(() => {
                                 const expiringCount = entries.filter(e => {
-                                    const info = getRenewalInfo(e.endDate, e.status);
+                                    const info = getRenewalInfo(e.endDate, e.status, contractExpireDays);
                                     return info?.type === 'warning';
                                 }).length;
                                 if (expiringCount > 0) {
@@ -346,7 +346,7 @@ const ContractHistoryPage: React.FC = () => {
                                         <div className="insight-item warning pulse-border">
                                             <div className="insight-icon warn"><AlertTriangle size={16} /></div>
                                             <div className="insight-content">
-                                                <span className="insight-label">120天內到期</span>
+                                                <span className="insight-label">{contractExpireDays}天內到期</span>
                                                 <span className="insight-value">{expiringCount}</span>
                                             </div>
                                         </div>
@@ -356,7 +356,7 @@ const ContractHistoryPage: React.FC = () => {
                             })()}
                             {(() => {
                                 const expiredCount = entries.filter(e => {
-                                    const info = getRenewalInfo(e.endDate, e.status);
+                                    const info = getRenewalInfo(e.endDate, e.status, contractExpireDays);
                                     return info?.type === 'expired';
                                 }).length;
                                 if (expiredCount > 0) {
@@ -411,90 +411,96 @@ const ContractHistoryPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {entries.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((entry, idx) => (
-                                    <tr key={entry.id} className={entry.status === '已結案' ? 'row-closed' : ''}>
-                                        <td style={{ color: 'var(--text3)', textAlign: 'center', fontSize: 13 }}>
-                                            {(currentPage - 1) * pageSize + idx + 1}
-                                        </td>
-                                        <td
-                                            style={{ fontWeight: 600, color: 'var(--blue)', cursor: 'pointer', textDecoration: 'underline' }}
-                                            onClick={() => handleVendorClick(entry.vendor, entry.startDate, entry.endDate)}
-                                            title={`查看 ${entry.vendor} 的採購紀錄`}
-                                        >
-                                            {entry.vendor}
-                                        </td>
-                                        <td>
-                                            <span style={{
-                                                background: '#f1f5f9',
-                                                border: '1px solid #e2e8f0',
-                                                color: '#334155',
-                                                padding: '4px 10px',
-                                                borderRadius: '20px',
-                                                fontSize: '12px',
-                                                fontWeight: 600,
-                                                whiteSpace: 'nowrap'
-                                            }}>
-                                                {entry.contractType}
-                                            </span>
-                                        </td>
-                                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                            ${entry.totalAmount?.toLocaleString()}
-                                        </td>
-                                        <td style={{ fontWeight: 500 }}>{entry.caseName}</td>
-                                        <td>
-                                            <div
-                                                className={`clickable-code ${copiedId === entry.id ? 'copied' : ''}`}
-                                                onClick={() => copyProcNumber(entry)}
-                                                title="點擊複製採購編號"
+                                {entries.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((entry, idx) => {
+                                    const renewalInfo = getRenewalInfo(entry.endDate, entry.status, contractExpireDays);
+                                    const rowClass = entry.status === '已結案'
+                                        ? 'row-closed'
+                                        : (renewalInfo?.type === 'warning' ? 'row-expiring' : (renewalInfo?.type === 'expired' ? 'row-expired' : ''));
+
+                                    return (
+                                        <tr key={entry.id} className={rowClass}>
+                                            <td style={{ color: 'var(--text3)', textAlign: 'center', fontSize: 13 }}>
+                                                {(currentPage - 1) * pageSize + idx + 1}
+                                            </td>
+                                            <td
+                                                style={{ fontWeight: 600, color: 'var(--blue)', cursor: 'pointer', textDecoration: 'underline' }}
+                                                onClick={() => handleVendorClick(entry.vendor, entry.startDate, entry.endDate)}
+                                                title={`查看 ${entry.vendor} 的採購紀錄`}
                                             >
-                                                <code>{entry.procNumber}</code>
-                                                {copiedId === entry.id && <span className="copy-feedback">已複製!</span>}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="date-period">
-                                                <span className="date-start">{entry.startDate}</span>
-                                                <span className="date-end">
-                                                    {entry.endDate}
-                                                    {(() => {
-                                                        const info = getRenewalInfo(entry.endDate, entry.status);
-                                                        if (info) {
-                                                            return (
-                                                                <span className={`renewal-badge ${info.type}`}>
-                                                                    {info.label}
-                                                                </span>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
+                                                {entry.vendor}
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    background: '#f1f5f9',
+                                                    border: '1px solid #e2e8f0',
+                                                    color: '#334155',
+                                                    padding: '4px 10px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '12px',
+                                                    fontWeight: 600,
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {entry.contractType}
                                                 </span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className={`status-pill ${entry.status === '執行中' ? 'active' :
-                                                entry.status === '已結案' ? 'closed' : 'terminated'
-                                                }`}>
-                                                <span className="status-dot"></span>
-                                                <span className="status-text">{entry.status}</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="action-group">
-                                                {entry.status !== '已結案' && (
-                                                    <button className="icon-btn-fancy close" onClick={() => handleCloseCase(entry)} title="結案">
-                                                        <CheckCircle size={14} />
+                                            </td>
+                                            <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                                ${entry.totalAmount?.toLocaleString()}
+                                            </td>
+                                            <td style={{ fontWeight: 500 }}>{entry.caseName}</td>
+                                            <td>
+                                                <div
+                                                    className={`clickable-code ${copiedId === entry.id ? 'copied' : ''}`}
+                                                    onClick={() => copyProcNumber(entry)}
+                                                    title="點擊複製採購編號"
+                                                >
+                                                    <code>{entry.procNumber}</code>
+                                                    {copiedId === entry.id && <span className="copy-feedback">已複製!</span>}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="date-period">
+                                                    <span className="date-start">{entry.startDate}</span>
+                                                    <span className="date-end">
+                                                        {entry.endDate}
+                                                        {(() => {
+                                                            if (renewalInfo) {
+                                                                return (
+                                                                    <span className={`renewal-badge ${renewalInfo.type}`}>
+                                                                        {renewalInfo.label}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className={`status-pill ${entry.status === '執行中' ? 'active' :
+                                                    entry.status === '已結案' ? 'closed' : 'terminated'
+                                                    }`}>
+                                                    <span className="status-dot"></span>
+                                                    <span className="status-text">{entry.status}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="action-group">
+                                                    {entry.status !== '已結案' && (
+                                                        <button className="icon-btn-fancy close" onClick={() => handleCloseCase(entry)} title="結案">
+                                                            <CheckCircle size={14} />
+                                                        </button>
+                                                    )}
+                                                    <button className="icon-btn-fancy edit" onClick={() => startEdit(entry)} title="編輯">
+                                                        <Edit2 size={14} />
                                                     </button>
-                                                )}
-                                                <button className="icon-btn-fancy edit" onClick={() => startEdit(entry)} title="編輯">
-                                                    <Edit2 size={14} />
-                                                </button>
-                                                <button className="icon-btn-fancy delete" onClick={() => setDeleteTargetId(entry.id)} title="刪除">
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    <button className="icon-btn-fancy delete" onClick={() => setDeleteTargetId(entry.id)} title="刪除">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
 

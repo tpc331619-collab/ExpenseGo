@@ -20,6 +20,7 @@ interface AppContextValue {
     purchaseTypes: string[];
     requisitionTypes: string[];
     contractTypes: string[];
+    contractExpireDays: number;
     refreshSystemOptions: () => Promise<void>;
 }
 
@@ -36,6 +37,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [purchaseTypes, setPurchaseTypes] = useState<string[]>([]);
     const [requisitionTypes, setRequisitionTypes] = useState<string[]>([]);
     const [contractTypes, setContractTypes] = useState<string[]>([]);
+    const [contractExpireDays, setContractExpireDays] = useState<number>(120);
     const incrementPurchaseListRefresh = () => setPurchaseListRefreshKey(k => k + 1);
     const [compareYearState, setCompareYearState] = useState<number | null>(() => {
         const saved = localStorage.getItem('compareYear');
@@ -73,6 +75,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPurchaseTypes(options.purchaseTypes || []);
         setRequisitionTypes(options.requisitionTypes || []);
         setContractTypes(options.contractTypes || []);
+        setContractExpireDays(options.contractExpireDays || 120);
     }, []);
 
     useEffect(() => {
@@ -119,11 +122,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         compareYear: compareYearState, setCompareYear,
         refreshPurchases, refreshLedgerAccounts, refreshVendors,
         purchaseListRefreshKey, incrementPurchaseListRefresh,
-        purchaseTypes, requisitionTypes, contractTypes, refreshSystemOptions
+        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, refreshSystemOptions
     }), [
         purchases, ledgerAccounts, vendors, loadingData,
         selectedYear, compareYearState, purchaseListRefreshKey,
-        purchaseTypes, requisitionTypes, contractTypes,
+        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays,
         setCompareYear, refreshPurchases, refreshLedgerAccounts, refreshVendors, refreshSystemOptions
     ]);
 

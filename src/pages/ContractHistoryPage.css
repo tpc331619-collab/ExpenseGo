@@ -266,6 +266,12 @@
     color: #94a3b8 !important;
 }
 
+/* 即將到期 (淡紅色底) */
+.row-expiring td {
+    background-color: #fef2f2 !important; /* light red */
+}
+
+
 /* Premium Pagination */
 .pagination-wrapper {
     display: flex;

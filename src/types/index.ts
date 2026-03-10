@@ -118,5 +118,6 @@ export interface SystemOptions {
     purchaseTypes: string[];
     requisitionTypes: string[];
     contractTypes?: string[];
+    contractExpireDays?: number;
     updatedAt?: Timestamp;
 }
