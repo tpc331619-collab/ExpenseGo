@@ -422,11 +422,11 @@ const ContractHistoryPage: React.FC = () => {
 
                                     return (
                                         <tr key={entry.id} className={rowClass}>
-                                            <td style={{ color: 'var(--text3)', textAlign: 'center', fontSize: 13 }}>
+                                            <td style={{ color: 'var(--text)', textAlign: 'center', fontSize: 14 }}>
                                                 {(currentPage - 1) * pageSize + idx + 1}
                                             </td>
                                             <td
-                                                style={{ fontWeight: 600, color: 'var(--blue)', cursor: 'pointer', textDecoration: 'underline' }}
+                                                style={{ fontWeight: 600, color: 'var(--blue)', cursor: 'pointer', textDecoration: 'underline', fontSize: 14 }}
                                                 onClick={() => handleVendorClick(entry.vendor, entry.startDate, entry.endDate)}
                                                 title={`查看 ${entry.vendor} 的採購紀錄`}
                                             >
@@ -434,13 +434,9 @@ const ContractHistoryPage: React.FC = () => {
                                             </td>
                                             <td>
                                                 <span style={{
-                                                    background: '#f1f5f9',
-                                                    border: '1px solid #e2e8f0',
-                                                    color: '#334155',
-                                                    padding: '4px 10px',
-                                                    borderRadius: '20px',
-                                                    fontSize: '12px',
-                                                    fontWeight: 600,
+                                                    color: 'var(--text)',
+                                                    fontSize: '14px',
+                                                    fontWeight: 500,
                                                     whiteSpace: 'nowrap'
                                                 }}>
                                                     {entry.contractType}

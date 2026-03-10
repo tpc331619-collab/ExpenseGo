@@ -17,6 +17,8 @@ interface SmartInsightCardProps {
 }
 
 const SmartInsightCard: React.FC<SmartInsightCardProps> = ({ purchases, ledgerAccounts, comparePurchases }) => {
+    const fmt = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
+
     const insights = useMemo(() => {
         const list: Insight[] = [];
         const currentTotal = purchases.reduce((s, p) => s + p.amount, 0);
@@ -121,8 +123,6 @@ const SmartInsightCard: React.FC<SmartInsightCardProps> = ({ purchases, ledgerAc
 
         return list.slice(0, 4); // 調整為顯示更多洞察
     }, [purchases, ledgerAccounts, comparePurchases]);
-
-    const fmt = (n: number) => n.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
 
     return (
         <div className="insight-card">

@@ -14,23 +14,20 @@
 
 .clickable-code code {
     font-size: 13px;
-    background: #f1f5f9;
-    padding: 2px 8px;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    border: none;
     transition: all 0.2s ease;
     color: #475569;
 }
 
 .clickable-code:hover code {
-    background: #eff6ff;
-    border-color: var(--blue);
     color: var(--blue);
+    text-decoration: underline;
 }
 
 .clickable-code.copied code {
-    background: #f0fdf4;
-    border-color: #22c55e;
     color: #22c55e;
 }
 
