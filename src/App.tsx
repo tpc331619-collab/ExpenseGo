@@ -11,6 +11,7 @@ const PurchaseListPage = lazy(() => import('./pages/PurchaseListPage'));
 const ReportPage = lazy(() => import('./pages/ReportPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ContractHistoryPage = lazy(() => import('./pages/ContractHistoryPage'));
+const NotesPage = lazy(() => import('./pages/NotesPage'));
 
 const LoadingFallback = () => <div className="p-4 flex justify-center text-gray-500">載入中...</div>;
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -82,6 +83,7 @@ const App: React.FC = () => {
                 <Route path="/report" element={<AppLayout><ReportPage /></AppLayout>} />
                 <Route path="/admin" element={<AppLayout><AdminPage /></AppLayout>} />
                 <Route path="/contracts" element={<AppLayout><ContractHistoryPage /></AppLayout>} />
+                <Route path="/notes" element={<AppLayout><NotesPage /></AppLayout>} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

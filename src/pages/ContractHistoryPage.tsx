@@ -165,7 +165,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteProps> = ({ isOpen, onConfirm, o
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const ContractHistoryPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { contractTypes, contractExpireDays } = useApp();
+    const { contractTypes, contractExpireDays, refreshContractAndNoteCounts } = useApp();
 
     const [entries, setEntries] = useState<NotebookEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -228,6 +228,7 @@ const ContractHistoryPage: React.FC = () => {
             setShowModal(false);
             setEditingEntry(null);
             await fetchEntries();
+            await refreshContractAndNoteCounts();
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             alert('儲存失敗：' + msg);
@@ -242,6 +243,7 @@ const ContractHistoryPage: React.FC = () => {
             await deleteNotebookEntry(deleteTargetId);
             setDeleteTargetId(null);
             await fetchEntries();
+            await refreshContractAndNoteCounts();
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             alert('刪除失敗：' + msg);
@@ -252,6 +254,7 @@ const ContractHistoryPage: React.FC = () => {
         try {
             await updateNotebookEntry(entry.id, { status: '已結案' });
             await fetchEntries();
+            await refreshContractAndNoteCounts();
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             alert('結案失敗：' + msg);

@@ -1,0 +1,52 @@
+.note-text-clickable {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s ease;
+}
+
+.note-text-clickable:active {
+    transform: scale(0.95);
+}
+
+.note-text-clickable span {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text1);
+    background: transparent;
+    border: none;
+    transition: color 0.2s ease;
+}
+
+.note-text-clickable:hover span {
+    color: var(--blue);
+}
+
+.note-text-clickable.copied span {
+    color: #22c55e;
+}
+
+.copy-feedback {
+    position: absolute;
+    bottom: -16px;
+    left: 0;
+    font-size: 11px;
+    color: #22c55e;
+    font-weight: 600;
+    animation: fadeIn 0.2s ease-out;
+    white-space: nowrap;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

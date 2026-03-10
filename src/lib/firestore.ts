@@ -17,7 +17,7 @@ import {
     QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor, NotebookEntry, SystemOptions } from '../types';
+import type { AppUser, LedgerAccount, Purchase, PurchaseFormData, Vendor, NotebookEntry, PassNoteEntry, SystemOptions } from '../types';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -450,6 +450,39 @@ export const updateNotebookEntry = async (id: string, data: Partial<Omit<Noteboo
 
 export const deleteNotebookEntry = async (id: string) => {
     await deleteDoc(doc(db, 'notebooks', id));
+};
+
+// ─── PassNotes ───────────────────────────────────────────────────────────────
+
+export const getPassNotes = async (): Promise<PassNoteEntry[]> => {
+    const q = query(
+        collection(db, 'passNotes')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as PassNoteEntry);
+};
+
+export const addPassNote = async (data: Omit<PassNoteEntry, 'id' | 'createdBy' | 'createdAt' | 'updatedAt' | 'updatedByName'>, uid: string, operatorName: string) => {
+    await addDoc(collection(db, 'passNotes'), {
+        ...data,
+        createdBy: uid,
+        updatedByName: operatorName,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+    });
+};
+
+export const updatePassNote = async (id: string, data: Partial<Omit<PassNoteEntry, 'id' | 'createdBy' | 'createdAt' | 'updatedAt' | 'updatedByName'>>, operatorName: string) => {
+    const ref = doc(db, 'passNotes', id);
+    await updateDoc(ref, {
+        ...data,
+        updatedByName: operatorName,
+        updatedAt: Timestamp.now(),
+    });
+};
+
+export const deletePassNote = async (id: string) => {
+    await deleteDoc(doc(db, 'passNotes', id));
 };
 
 // ─── System Options ──────────────────────────────────────────────────────────

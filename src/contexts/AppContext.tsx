@@ -21,7 +21,10 @@ interface AppContextValue {
     requisitionTypes: string[];
     contractTypes: string[];
     contractExpireDays: number;
+    contractCount: number;
+    noteCount: number;
     refreshSystemOptions: () => Promise<void>;
+    refreshContractAndNoteCounts: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -38,6 +41,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [requisitionTypes, setRequisitionTypes] = useState<string[]>([]);
     const [contractTypes, setContractTypes] = useState<string[]>([]);
     const [contractExpireDays, setContractExpireDays] = useState<number>(120);
+    const [contractCount, setContractCount] = useState<number>(0);
+    const [noteCount, setNoteCount] = useState<number>(0);
     const incrementPurchaseListRefresh = () => setPurchaseListRefreshKey(k => k + 1);
     const [compareYearState, setCompareYearState] = useState<number | null>(() => {
         const saved = localStorage.getItem('compareYear');
@@ -70,6 +75,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setVendors(data);
     }, []);
 
+    const refreshContractAndNoteCounts = useCallback(async () => {
+        if (!appUser) return;
+        try {
+            // Because we don't have separate count APIs right now, fetch all for length
+            const [contractsModule, passNotesModule] = await Promise.all([
+                import('../lib/firestore'),
+                import('../lib/firestore')
+            ]);
+            const [notebooks, notes] = await Promise.all([
+                contractsModule.getNotebookEntries(appUser.uid),
+                passNotesModule.getPassNotes()
+            ]);
+            setContractCount(notebooks.length);
+            setNoteCount(notes.length);
+        } catch (e) {
+            console.error('Failed to fetch counts', e);
+        }
+    }, [appUser]);
+
     const refreshSystemOptions = useCallback(async () => {
         const options = await getSystemOptions();
         setPurchaseTypes(options.purchaseTypes || []);
@@ -99,7 +123,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         refreshPurchases(selectedYear).catch(e => { throw new Error(`Purchases fetch failed: ${e.message}`); }),
                         refreshLedgerAccounts().catch(e => { throw new Error(`Accounts fetch failed: ${e.message}`); }),
                         refreshVendors().catch(e => { throw new Error(`Vendors fetch failed: ${e.message}`); }),
-                        refreshSystemOptions().catch(e => { throw new Error(`SystemOptions fetch failed: ${e.message}`); })
+                        refreshSystemOptions().catch(e => { throw new Error(`SystemOptions fetch failed: ${e.message}`); }),
+                        refreshContractAndNoteCounts().catch(e => { console.error(`Counts fetch failed: ${e.message}`); })
                     ]);
                     console.log('Initial data loaded successfully.');
                 } catch (e: unknown) {
@@ -122,12 +147,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         compareYear: compareYearState, setCompareYear,
         refreshPurchases, refreshLedgerAccounts, refreshVendors,
         purchaseListRefreshKey, incrementPurchaseListRefresh,
-        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, refreshSystemOptions
+        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, contractCount, noteCount, refreshSystemOptions, refreshContractAndNoteCounts
     }), [
         purchases, ledgerAccounts, vendors, loadingData,
         selectedYear, compareYearState, purchaseListRefreshKey,
-        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays,
-        setCompareYear, refreshPurchases, refreshLedgerAccounts, refreshVendors, refreshSystemOptions
+        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, contractCount, noteCount,
+        setCompareYear, refreshPurchases, refreshLedgerAccounts, refreshVendors, refreshSystemOptions, refreshContractAndNoteCounts
     ]);
 
     return (

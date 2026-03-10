@@ -3,13 +3,13 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { getAllUsers } from '../lib/firestore';
-import { LayoutDashboard, FileText, BarChart3, Database, RefreshCw, NotebookPen } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, Database, RefreshCw, NotebookPen, Key } from 'lucide-react';
 import Logo from './Logo';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
     const { appUser, logout } = useAuth();
-    const { selectedYear, setSelectedYear, refreshPurchases, refreshLedgerAccounts, refreshVendors } = useApp();
+    const { selectedYear, setSelectedYear, refreshPurchases, refreshLedgerAccounts, refreshVendors, contractCount, noteCount, refreshContractAndNoteCounts, purchases } = useApp();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
@@ -28,7 +28,8 @@ const Navbar: React.FC = () => {
             await Promise.all([
                 refreshPurchases(),
                 refreshLedgerAccounts(),
-                refreshVendors()
+                refreshVendors(),
+                refreshContractAndNoteCounts()
             ]);
         } finally {
             setTimeout(() => setIsRefreshing(false), 500); // give visual feedback
@@ -42,10 +43,11 @@ const Navbar: React.FC = () => {
 
     const navItems = [
         { to: '/', label: '總覽', icon: <LayoutDashboard size={18} />, exact: true, badge: 0 },
-        { to: '/purchases', label: '紀錄', icon: <FileText size={18} />, exact: false, badge: 0 },
+        { to: '/purchases', label: '紀錄', icon: <FileText size={18} />, exact: false, badge: purchases.length, badgeClass: 'badge-purchases' },
         { to: '/report', label: '報表', icon: <BarChart3 size={18} />, exact: false, badge: 0 },
-        { to: '/admin', label: '管理', icon: <Database size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0 },
-        { to: '/contracts', label: '契約', icon: <NotebookPen size={18} />, exact: false, badge: 0 },
+        { to: '/admin', label: '管理', icon: <Database size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0, badgeClass: 'badge-admin' },
+        { to: '/contracts', label: '契約', icon: <NotebookPen size={18} />, exact: false, badge: contractCount, badgeClass: 'badge-contracts' },
+        { to: '/notes', label: '筆記', icon: <Key size={18} />, exact: false, badge: noteCount, badgeClass: 'badge-notes' },
     ];
 
     return (
@@ -86,7 +88,7 @@ const Navbar: React.FC = () => {
                             <span className="nav-icon">{item.icon}</span>
                             {item.label}
                             {'badge' in item && item.badge > 0 && (
-                                <span className="nav-badge">{item.badge}</span>
+                                <span className={`nav-badge ${'badgeClass' in item ? item.badgeClass : ''}`}>{item.badge}</span>
                             )}
                         </NavLink>
                     ))}
@@ -129,6 +131,9 @@ const Navbar: React.FC = () => {
                             >
                                 <span>{item.icon}</span>
                                 {item.label}
+                                {'badge' in item && item.badge > 0 && (
+                                    <span className={`nav-badge ${'badgeClass' in item ? item.badgeClass : ''}`}>{item.badge}</span>
+                                )}
                             </NavLink>
                         ))}
                         <button className="btn-outline mobile-logout" onClick={handleLogout}>登出</button>
@@ -147,6 +152,11 @@ const Navbar: React.FC = () => {
                     >
                         <span className="bottom-icon">{item.icon}</span>
                         <span className="bottom-label">{item.label}</span>
+                        {item.badge !== undefined && item.badge > 0 && (
+                            <span className={`nav-badge ${'badgeClass' in item ? item.badgeClass : ''}`} style={{ position: 'absolute', top: 2, right: 10, transform: 'scale(0.8)' }}>
+                                {item.badge}
+                            </span>
+                        )}
                     </NavLink>
                 ))}
             </div>

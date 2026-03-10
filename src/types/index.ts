@@ -114,6 +114,17 @@ export interface NotebookEntry {
     updatedAt: Timestamp;
 }
 
+export interface PassNoteEntry {
+    id: string;
+    account: string;       // 帳號
+    password: string;      // 密碼
+    note?: string;         // 備註 (選填)
+    createdBy: string;
+    updatedByName: string; // 顯示是誰更新或創建
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}
+
 export interface SystemOptions {
     purchaseTypes: string[];
     requisitionTypes: string[];
