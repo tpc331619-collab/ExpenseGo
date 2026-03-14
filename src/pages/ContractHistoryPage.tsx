@@ -193,13 +193,31 @@ const ContractHistoryPage: React.FC = () => {
         try {
             const data = await getNotebookEntries(appUser.uid);
 
-            // 排序邏輯：1. 執行中優先 2. 建立時間從舊到新 (or 可改為從新到舊)
+            // 排序邏輯：
+            // 1. 已結案永遠排最後
+            // 2. 執行中：逾期 (expired) > 即將到期 (warning) > 一般
+            // 3. 同級別則按建立時間倒序 (新 -> 舊)
             const sorted = data.sort((a, b) => {
                 // 已結案排在最後
                 if (a.status === '已結案' && b.status !== '已結案') return 1;
                 if (a.status !== '已結案' && b.status === '已結案') return -1;
 
-                //同狀態則依時間排序 (由新排到舊)
+                // 針對執行中的合約檢查緊急程度
+                const infoA = getRenewalInfo(a.endDate, a.status, contractExpireDays);
+                const infoB = getRenewalInfo(b.endDate, b.status, contractExpireDays);
+
+                const getPriority = (info: any) => {
+                    if (info?.type === 'expired') return 0;  // 逾期最優先
+                    if (info?.type === 'warning') return 1;  // 即將到期次之
+                    return 2;                                // 普通執行中
+                };
+
+                const priA = getPriority(infoA);
+                const priB = getPriority(infoB);
+
+                if (priA !== priB) return priA - priB;
+
+                // 同狀態/同優先級則依時間排序 (由新排到舊)
                 return b.createdAt.toMillis() - a.createdAt.toMillis();
             });
 
