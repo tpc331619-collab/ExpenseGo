@@ -540,31 +540,58 @@ const ReportPage: React.FC = () => {
     const SubjectSummaryModal = () => {
         const sortedData = [...byAccount].sort((a, b) => b.total - a.total);
 
-        // 清理品名，移除「第X期」、「X月份」、「XX年度」等重複性字眼
+        // 更精細的品名清理邏輯
         const cleanTitle = (t: string) => {
-            return t.replace(/\d+\s*月份/g, '')
+            return t.replace(/\d{3}年度/g, '')
+                .replace(/\d+\s*月份/g, '')
+                .replace(/\d+\s*月/g, '')
                 .replace(/第\s*\d+\s*[期次]/g, '')
-                .replace(/\d+\s*年度/g, '')
                 .replace(/\d+年\d+月/g, '')
+                .replace(/\(\d+\)/g, '')
+                .replace(/\[.*?\]/g, '')
+                .replace(/[（(].*?[）)]/g, '')
                 .replace(/[-\s]+$/g, '')
+                .replace(/^[-\s]+/g, '')
                 .trim();
         };
 
         const summarizeTitles = (titles: string[]) => {
             const unique = [...new Set(titles.map(cleanTitle))].filter(t => t.length > 0);
-            if (unique.length === 0) return '無明確品名';
-            if (unique.length === 1) return unique[0];
-            // 取第一個項目的前幾個字作為代表，避免太長
-            const representative = unique[0].length > 10 ? unique[0].substring(0, 10) : unique[0];
-            return `${representative}等費用支出`;
+
+            if (unique.length === 0) return '這部分的支出內容較為瑣碎，未有明確的單一大型品項標籤。';
+
+            // 隨機模板增加內容多樣性
+            const templates = {
+                single: [
+                    (t: string) => `這筆款項主要用於「${t}」相關費用。`,
+                    (t: string) => `此處支出集中在「${t}」這一項目上。`,
+                    (t: string) => `主要支出紀錄顯示為「${t}」。`
+                ],
+                multiple: [
+                    (items: string) => `支出主要涵蓋了「${items}」等相關採購。`,
+                    (items: string) => `內容大多涉及「${items}」等多項費用。`,
+                    (items: string) => `主要包含了「${items}」等支出的整合。`,
+                    (items: string) => `支出紀錄主要歸類於「${items}」這幾個面向。`
+                ]
+            };
+
+            const getRandom = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+
+            if (unique.length === 1) {
+                return getRandom(templates.single)(unique[0]);
+            }
+
+            // 選取前兩個具代表性的品名
+            const topItems = unique.slice(0, 2).join('」與「');
+            return getRandom(templates.multiple)(topItems);
         };
 
         const copyToClipboard = () => {
             const text = sortedData.map(acc => {
                 const titles = acc.items.map(it => it.title);
                 const summary = summarizeTitles(titles);
-                return `${acc.ledgerAccountCode}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
-            }).join('；\n');
+                return `${acc.ledgerAccountCode} (${acc.ledgerAccountName})：總額 ${acc.total.toLocaleString()} NTD。分析顯示，${summary}`;
+            }).join('\n\n');
 
             navigator.clipboard.writeText(text);
             alert('已複製到剪貼簿！');
@@ -592,7 +619,7 @@ const ReportPage: React.FC = () => {
                                                 onClick={() => {
                                                     const titles = acc.items.map(it => it.title);
                                                     const summary = summarizeTitles(titles);
-                                                    const text = `${acc.ledgerAccountCode}，總金額 ${acc.total.toLocaleString()} NTD，包含：${summary}`;
+                                                    const text = `${acc.ledgerAccountCode} (${acc.ledgerAccountName})：總額 ${acc.total.toLocaleString()} NTD。分析顯示，${summary}`;
                                                     navigator.clipboard.writeText(text);
                                                 }}
                                             >
@@ -607,7 +634,7 @@ const ReportPage: React.FC = () => {
                                             <span className="ai-count">({acc.count} 筆)</span>
                                         </div>
                                         <div className="ai-description">
-                                            包含：{summarizeTitles(acc.items.map(it => it.title))}
+                                            {summarizeTitles(acc.items.map(it => it.title))}
                                         </div>
                                     </div>
                                 );
