@@ -108,7 +108,7 @@ export interface NotebookEntry {
     procNumber: string;    // 採購編號
     startDate: string;     // 契約起
     endDate: string;       // 契約訖
-    status: '執行中' | '已結案' | '已終止'; // 狀態
+    status: '招標中' | '執行中' | '已結案' | '已終止'; // 狀態
     createdBy: string;
     createdAt: Timestamp;
     updatedAt: Timestamp;

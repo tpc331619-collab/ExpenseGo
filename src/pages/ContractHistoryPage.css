@@ -210,6 +210,17 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
+.status-pill.bidding {
+    background: #fffbeb;
+    color: #92400e;
+    border-color: #fde68a;
+}
+
+.status-pill.bidding .status-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
 .status-pill.closed {
     background: #f8fafc;
     color: #64748b;

@@ -110,6 +110,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
                     <div className="form-group">
                         <label>狀態 <span className="required">*</span></label>
                         <select value={status} onChange={e => setStatus(e.target.value as NotebookEntry['status'])}>
+                            <option value="招標中">招標中</option>
                             <option value="執行中">執行中</option>
                             <option value="已結案">已結案</option>
                         </select>
@@ -493,8 +494,9 @@ const ContractHistoryPage: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className={`status-pill ${entry.status === '執行中' ? 'active' :
-                                                    entry.status === '已結案' ? 'closed' : 'terminated'
+                                                <div className={`status-pill ${entry.status === '招標中' ? 'bidding' :
+                                                    entry.status === '執行中' ? 'active' :
+                                                        entry.status === '已結案' ? 'closed' : 'terminated'
                                                     }`}>
                                                     <span className="status-dot"></span>
                                                     <span className="status-text">{entry.status}</span>
