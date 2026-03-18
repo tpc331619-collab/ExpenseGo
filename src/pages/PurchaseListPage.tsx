@@ -163,7 +163,7 @@ const PurchaseListPage: React.FC = () => {
                 groups[p.groupId].amount += p.amount;
                 // Sort items by itemNo
                 groups[p.groupId].allItems.sort((a, b) => a.itemNo - b.itemNo);
-                
+
                 // Keep the "primary" title as the first one or a joined string?
                 // For the 'filtered' list, we use the grouped object.
             }
@@ -788,7 +788,7 @@ const PurchaseListPage: React.FC = () => {
                                                     </td>
                                                     <td data-label="總帳科目">
                                                         <div className="ledger-code-stack">
-                                                            {(Array.from(new Set((p as any).allItems?.map((item: any) => 
+                                                            {(Array.from(new Set((p as any).allItems?.map((item: any) =>
                                                                 ledgerAccounts.find(a => a.id === item.ledgerAccountId)?.code || item.ledgerAccountName
                                                             ) || [ledgerAccounts.find(a => a.id === p.ledgerAccountId)?.code || p.ledgerAccountName])) as string[]).map((code, idx) => (
                                                                 <div key={idx} className="ledger-code-simple">{code}</div>

@@ -16,7 +16,7 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     width: 100%;
-    max-width: 900px;
+    max-width: 1100px;
     max-height: 95vh;
     display: flex;
     flex-direction: column;
@@ -374,7 +374,7 @@
 .item-fields {
     flex: 1;
     display: grid;
-    grid-template-columns: 2.8fr 2.2fr 120px;
+    grid-template-columns: 4fr 3fr 150px;
     gap: 12px;
     min-width: 0;
 }
