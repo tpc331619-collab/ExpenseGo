@@ -47,11 +47,17 @@ const Dashboard: React.FC = () => {
         const count = yearPurchases.length;
 
         // By account
-        const byAccount: Record<string, { name: string; total: number; count: number }> = {};
+        const byAccount: Record<string, { name: string; code: string; total: number; count: number }> = {};
         yearPurchases.forEach((p) => {
             const cleanName = cleanAccName(p.ledgerAccountName);
             if (!byAccount[p.ledgerAccountId]) {
-                byAccount[p.ledgerAccountId] = { name: cleanName, total: 0, count: 0 };
+                const acc = ledgerAccounts.find(a => a.id === p.ledgerAccountId);
+                byAccount[p.ledgerAccountId] = {
+                    name: cleanName,
+                    code: acc?.code || '未知',
+                    total: 0,
+                    count: 0
+                };
             }
             byAccount[p.ledgerAccountId].total += p.amount;
             byAccount[p.ledgerAccountId].count += 1;
@@ -451,7 +457,7 @@ const Dashboard: React.FC = () => {
                                 {stats.topAccounts.map(([id, v], idx) => (
                                     <div className="rank-item" key={id}>
                                         <span className={`rank-no rank-${idx + 1}`}>{idx + 1}</span>
-                                        <span className="rank-name">{v.name}</span>
+                                        <span className="rank-name">{v.code}</span>
                                         <span className="rank-count">{v.count} 筆</span>
                                         <span className="rank-amount">{fmt(v.total)}</span>
                                     </div>

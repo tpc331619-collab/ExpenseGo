@@ -11,7 +11,7 @@
     animation: fadeIn .2s;
 }
 
-.modal-box {
+.modal-box.purchase-modal-box {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 16px;

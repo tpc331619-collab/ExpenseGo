@@ -247,7 +247,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
 
     return (
         <div className="modal-overlay" onClick={() => onClose()}>
-            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-box purchase-modal-box" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>{isCopy ? '複製採購紀錄' : editPurchase ? '編輯採購紀錄' : '新增採購紀錄'}</h2>
                     <button className="modal-close" onClick={() => onClose()}>✕</button>
