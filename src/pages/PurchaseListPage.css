@@ -88,6 +88,36 @@
     font-weight: 400;
 }
 
+.title-name-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+}
+
+.title-item {
+    font-size: 13px;
+    color: #475467;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.title-item .dot {
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* Ledger Code Stack */
+.ledger-code-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 /* Simple Ledger Code */
 .ledger-code-simple {
     font-family: inherit;

@@ -132,8 +132,9 @@ const PurchaseListPage: React.FC = () => {
         return () => window.removeEventListener('click', handleClickOutside);
     }, [menuOpenId]);
 
-    const filtered = useMemo(() => {
-        // 1. 基本過濾 (目前由 Firestore 完成，這裡僅作保險或未來擴充)
+    // 2. 按 groupId 分組 (Grouping)
+    const groupedByGroupId = useMemo(() => {
+        // 1. 基本過濾 (目前由 Firestore 完成，這裡僅作保險或未來過充)
         let list = localPurchases;
 
         // Text search filter (Client-side)
@@ -147,41 +148,44 @@ const PurchaseListPage: React.FC = () => {
             );
         }
 
-        // 2. 自動去重 (Deduplication)
-        // 判斷依據：日期、廠商、單號、品名、金額 全部相同則視為重複
-        const seen = new Map<string, Purchase>();
+        const groups: Record<string, Purchase & { allItems: Purchase[] }> = {};
 
         list.forEach(p => {
-            const d = p.purchaseDate.toDate();
-            const dateStr = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-            // 唯一鍵值：日期 + 廠商 + 單號 + 品名 + 金額
-            const key = `${dateStr}|${p.vendor}|${p.docNumber || 'no-doc'}|${p.title}|${p.amount}`;
-
-            const existing = seen.get(key);
-            if (!existing) {
-                seen.set(key, p);
+            if (!groups[p.groupId]) {
+                // Initialize group with the first item found
+                groups[p.groupId] = {
+                    ...p,
+                    allItems: [p]
+                };
             } else {
-                // 如果已經存在，比較哪一個「品質」更好
-                // 優先保留：有正確 ledgerAccountId (在 ledgerAccounts 列表中能找到) 的那筆
-                const existingAcc = ledgerAccounts.find(a => a.id === existing.ledgerAccountId);
-                const currentAcc = ledgerAccounts.find(a => a.id === p.ledgerAccountId);
-
-                if (!existingAcc && currentAcc) {
-                    seen.set(key, p); // 替換為品質更好的
-                }
+                // Add to existing group and sum amounts
+                groups[p.groupId].allItems.push(p);
+                groups[p.groupId].amount += p.amount;
+                // Sort items by itemNo
+                groups[p.groupId].allItems.sort((a, b) => a.itemNo - b.itemNo);
+                
+                // Keep the "primary" title as the first one or a joined string?
+                // For the 'filtered' list, we use the grouped object.
             }
         });
 
-        return Array.from(seen.values());
-    }, [localPurchases, ledgerAccounts, filterText]);
+        return Object.values(groups).sort((a, b) => {
+            // Sort by date desc, then by createdAt desc
+            const dDiff = b.purchaseDate.toMillis() - a.purchaseDate.toMillis();
+            if (dDiff !== 0) return dDiff;
+            return b.createdAt.toMillis() - a.createdAt.toMillis();
+        });
+    }, [localPurchases, filterText]);
+
+    const filtered = groupedByGroupId;
 
     const grouped = useMemo(() => {
-        const groups: Record<string, Purchase[]> = {};
+        const groups: Record<string, (Purchase & { allItems: Purchase[] })[]> = {};
         filtered.forEach(p => {
             const d = p.purchaseDate.toDate();
             const monthKey = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
             if (!groups[monthKey]) groups[monthKey] = [];
-            groups[monthKey].push(p);
+            groups[monthKey].push(p as Purchase & { allItems: Purchase[] });
         });
         return groups;
     }, [filtered]);
@@ -773,12 +777,22 @@ const PurchaseListPage: React.FC = () => {
                                                             >
                                                                 {p.vendor}
                                                             </div>
-                                                            <div className="title-name">{p.title}</div>
+                                                            <div className="title-name-group">
+                                                                {(p as any).allItems?.map((item: any, idx: number) => (
+                                                                    <div key={idx} className="title-item">
+                                                                        <span className="dot">•</span> {item.title}
+                                                                    </div>
+                                                                )) || p.title}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td data-label="總帳科目">
-                                                        <div className="ledger-code-simple">
-                                                            {ledgerAccounts.find(a => a.id === p.ledgerAccountId)?.code || p.ledgerAccountName}
+                                                        <div className="ledger-code-stack">
+                                                            {(Array.from(new Set((p as any).allItems?.map((item: any) => 
+                                                                ledgerAccounts.find(a => a.id === item.ledgerAccountId)?.code || item.ledgerAccountName
+                                                            ) || [ledgerAccounts.find(a => a.id === p.ledgerAccountId)?.code || p.ledgerAccountName])) as string[]).map((code, idx) => (
+                                                                <div key={idx} className="ledger-code-simple">{code}</div>
+                                                            ))}
                                                         </div>
                                                     </td>
                                                     <td data-label="金額" className="td-amounts">

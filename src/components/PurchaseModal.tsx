@@ -64,7 +64,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                 requisitionType: editPurchase.requisitionType || '非經MM',
                 docNumber: isCopy ? '' : (editPurchase.docNumber || ''),
                 note: editPurchase.note,
-                items: (groupItems.length > 0 ? groupItems : [editPurchase]).map(p => ({
+                items: ((editPurchase as any).allItems || (groupItems.length > 0 ? groupItems : [editPurchase])).map((p: any) => ({
                     id: isCopy ? undefined : p.id,
                     title: p.title,
                     ledgerAccountId: p.ledgerAccountId,
