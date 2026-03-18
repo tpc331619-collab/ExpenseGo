@@ -178,6 +178,14 @@ const ContractHistoryPage: React.FC = () => {
     const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [visibleAmountIds, setVisibleAmountIds] = useState<Record<string, boolean>>({});
+
+    const toggleAmountVisibility = (id: string) => {
+        setVisibleAmountIds(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -462,7 +470,13 @@ const ContractHistoryPage: React.FC = () => {
                                                 </span>
                                             </td>
                                             <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                                ${entry.totalAmount?.toLocaleString()}
+                                                <div 
+                                                    style={{ cursor: 'pointer', userSelect: 'none' }} 
+                                                    onClick={() => toggleAmountVisibility(entry.id)}
+                                                    title={visibleAmountIds[entry.id] ? '點擊隱藏金額' : '點擊顯示金額'}
+                                                >
+                                                    {visibleAmountIds[entry.id] ? `$${entry.totalAmount?.toLocaleString()}` : '****'}
+                                                </div>
                                             </td>
                                             <td style={{ fontWeight: 500 }}>{entry.caseName}</td>
                                             <td>

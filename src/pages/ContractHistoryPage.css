@@ -13,13 +13,14 @@
 }
 
 .clickable-code code {
-    font-size: 13px;
+    font-size: 15px;
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
     background: transparent;
     padding: 0;
     border-radius: 0;
     border: none;
     transition: all 0.2s ease;
-    color: #475569;
+    color: #334155;
 }
 
 .clickable-code:hover code {
@@ -513,3 +514,5 @@
     border: 1px solid #e2e8f0;
     font-weight: 500;
 }
+
+
