@@ -210,6 +210,7 @@ const ReportPage: React.FC = () => {
                                     const percent = item.value / total;
                                     if (percent <= 0) return null;
                                     const arcLength = percent * 2 * Math.PI;
+                                    const midAngle = currentAngle + arcLength / 2;
 
                                     const x1 = centerX + Math.cos(currentAngle) * radius;
                                     const y1 = centerY + Math.sin(currentAngle) * radius;
@@ -271,6 +272,39 @@ const ReportPage: React.FC = () => {
                                                 onMouseEnter={() => setHoveredIdx(idx)}
                                                 onMouseLeave={() => setHoveredIdx(null)}
                                             />
+                                            {(isFocused || percent > 0.08) && (
+                                                <g style={{ pointerEvents: 'none' }}>
+                                                    {/* Dotted Line */}
+                                                    <line 
+                                                        x1={centerX + Math.cos(midAngle) * radius} 
+                                                        y1={centerY + Math.sin(midAngle) * radius} 
+                                                        x2={centerX + Math.cos(midAngle) * (radius + 20)} 
+                                                        y2={centerY + Math.sin(midAngle) * (radius + 20)} 
+                                                        stroke={color} 
+                                                        strokeWidth="1" 
+                                                        strokeDasharray="2,2" 
+                                                        style={{ opacity: 0.6 }}
+                                                    />
+                                                    {/* End Dot */}
+                                                    <circle 
+                                                        cx={centerX + Math.cos(midAngle) * (radius + 20)} 
+                                                        cy={centerY + Math.sin(midAngle) * (radius + 20)} 
+                                                        r="2.5" 
+                                                        fill={color} 
+                                                    />
+                                                    {/* Percentage Text */}
+                                                    <text 
+                                                        x={centerX + Math.cos(midAngle) * (radius + 20) + (Math.cos(midAngle) < 0 ? -6 : 6)} 
+                                                        y={centerY + Math.sin(midAngle) * (radius + 20) + 4} 
+                                                        textAnchor={Math.cos(midAngle) < 0 ? 'end' : 'start'}
+                                                        fontSize="11"
+                                                        fontWeight="800"
+                                                        fill={color}
+                                                    >
+                                                        {((percent) * 100).toFixed(1)}%
+                                                    </text>
+                                                </g>
+                                            )}
                                         </g>
                                     );
                                     currentAngle += arcLength;
