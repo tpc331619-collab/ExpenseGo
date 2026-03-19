@@ -156,6 +156,67 @@
     font-family: monospace;
 }
 
+.td-doc-number {
+    min-width: 100px;
+}
+
+/* Clickable Code (Copy) aligned with Contract History */
+.clickable-code {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s ease;
+}
+
+.clickable-code:active {
+    transform: scale(0.95);
+}
+
+.clickable-code code {
+    font-size: 15px;
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    background: transparent;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: none;
+    transition: all 0.2s ease;
+    color: #334155;
+    white-space: nowrap;
+}
+
+.clickable-code:hover code {
+    color: var(--blue);
+    background: #f1f5f9;
+}
+
+.clickable-code.copied code {
+    color: #22c55e !important;
+    background: #f0fdf4;
+}
+
+.copy-feedback {
+    position: absolute;
+    bottom: -16px;
+    font-size: 10px;
+    color: #22c55e;
+    font-weight: 600;
+    animation: fadeInCopied 0.2s ease-out;
+    white-space: nowrap;
+}
+
+@keyframes fadeInCopied {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .type-stack {
     gap: 2px;
 }

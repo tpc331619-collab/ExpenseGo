@@ -75,6 +75,7 @@ const PurchaseListPage: React.FC = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Purchase | null>(null);
     const [isBatchDelete, setIsBatchDelete] = useState(false);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     const fetchPurchases = async (isLoadMore = false) => {
         if (!isLoadMore) setLoading(true);
@@ -509,7 +510,7 @@ const PurchaseListPage: React.FC = () => {
                     const amount = parseFloat(String(amountRaw || '0'));
                     const reqType = String(row['請購類型'] || '').trim();
                     const purType = String(row['採購性質'] || '').trim();
-                    const docNum = String(row['文件號碼'] || '').trim();
+                    const docNum = String(row['文件號碼'] || row['發票/FL單號'] || '').trim();
                     const note = String(row['備註'] || '').trim();
 
                     if (vendor.startsWith('範例-') || title.startsWith('範例-')) return;
@@ -725,9 +726,10 @@ const PurchaseListPage: React.FC = () => {
                                 <th>日期</th>
                                 <th>廠商/品名</th>
                                 <th>總帳科目</th>
-                                <th>金額 (未稅 / 含稅)</th>
-                                <th>類型</th>
-                                <th>備註</th>
+                                 <th>金額 (未稅 / 含稅)</th>
+                                 <th>文件號碼</th>
+                                 <th>類型</th>
+                                 <th>備註</th>
                                 {appUser?.role === 'admin' && <th>建立人</th>}
                                 {!isGuest && <th>操作</th>}
                             </tr>
@@ -738,8 +740,8 @@ const PurchaseListPage: React.FC = () => {
                                 const items = grouped[monthKey];
                                 return (
                                     <React.Fragment key={monthKey}>
-                                        <tr className="month-group-header" onClick={() => toggleMonth(monthKey)}>
-                                            <td colSpan={appUser?.role === 'admin' ? (!isGuest ? 10 : 9) : (!isGuest ? 9 : 8)}>
+                                         <tr className="month-group-header" onClick={() => toggleMonth(monthKey)}>
+                                             <td colSpan={appUser?.role === 'admin' ? (!isGuest ? 11 : 10) : (!isGuest ? 10 : 9)}>
                                                 <div className="month-header-content">
                                                     <span className={`arrow ${isExpanded ? 'open' : ''}`}>
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -804,8 +806,24 @@ const PurchaseListPage: React.FC = () => {
                                                                 <span className="val-incl">{fmt(Math.round(p.amount * 1.05))}</span>
                                                             </div>
                                                         </div>
-                                                    </td>
-                                                    <td data-label="類型" className="td-types">
+                                                     </td>
+                                                     <td data-label="文件號碼" className="td-doc-number">
+                                                         <div
+                                                             className={`clickable-code ${copiedId === p.id ? 'copied' : ''}`}
+                                                             onClick={() => {
+                                                                 if (p.docNumber) {
+                                                                     navigator.clipboard.writeText(p.docNumber);
+                                                                     setCopiedId(p.id);
+                                                                     setTimeout(() => setCopiedId(null), 1500);
+                                                                 }
+                                                             }}
+                                                             title="點擊複製文件號碼"
+                                                         >
+                                                             <code>{p.docNumber || '-'}</code>
+                                                             {copiedId === p.id && <span className="copy-feedback">已複製!</span>}
+                                                         </div>
+                                                     </td>
+                                                     <td data-label="類型" className="td-types">
                                                         <div className="vertical-stack type-stack">
                                                             <div className="type-text requisition">{p.requisitionType}</div>
                                                             <div className="type-text purchase">{p.purchaseType}</div>

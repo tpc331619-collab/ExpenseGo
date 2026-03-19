@@ -30,6 +30,7 @@ const ReportPage: React.FC = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
     const [exporting, setExporting] = useState(false);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     const handleTabChange = (t: Tab) => {
         setTab(t);
@@ -142,36 +143,21 @@ const ReportPage: React.FC = () => {
     // Percentage of grand total (used for vendor / requisition / purchaseType tabs)
     const pct = (v: number) => grandTotal ? ((v / grandTotal) * 100).toFixed(1) : '0.0';
 
-    const renderDocNumber = (docNumber: string | undefined) => {
+    const renderDocNumber = (docNumber: string | undefined, id: string) => {
         if (!docNumber) return <div style={{ fontSize: '11px', color: 'var(--text2)' }}>-</div>;
         return (
             <div
-                style={{
-                    fontSize: '11px',
-                    color: 'var(--blue)',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'rgba(37, 99, 235, 0.05)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    transition: 'all 0.2s'
-                }}
+                className={`clickable-code ${copiedId === id ? 'copied' : ''}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     navigator.clipboard.writeText(docNumber);
-                    alert('已複製：' + docNumber);
+                    setCopiedId(id);
+                    setTimeout(() => setCopiedId(null), 1500);
                 }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.05)';
-                }}
-                title="點擊複製單號"
+                title="點擊複製文件號碼"
             >
-                {docNumber}
+                <code>{docNumber}</code>
+                {copiedId === id && <span className="copy-feedback">已複製!</span>}
             </div>
         );
     };
@@ -873,7 +859,7 @@ const ReportPage: React.FC = () => {
                                                     <td>{item.vendor}</td>
                                                     <td>{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        {renderDocNumber(item.docNumber)}
+                                                        {renderDocNumber(item.docNumber, item.id)}
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
@@ -933,7 +919,7 @@ const ReportPage: React.FC = () => {
                                                     <td>{item.ledgerAccountName}</td>
                                                     <td className="td-amount">{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        {renderDocNumber(item.docNumber)}
+                                                        {renderDocNumber(item.docNumber, item.id)}
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
@@ -993,7 +979,7 @@ const ReportPage: React.FC = () => {
                                                     <td>{item.ledgerAccountName}</td>
                                                     <td className="td-amount">{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        {renderDocNumber(item.docNumber)}
+                                                        {renderDocNumber(item.docNumber, item.id)}
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
@@ -1053,7 +1039,7 @@ const ReportPage: React.FC = () => {
                                                     <td>{item.ledgerAccountName}</td>
                                                     <td className="td-amount">{fmt(item.amount)}</td>
                                                     <td className="td-center">
-                                                        {renderDocNumber(item.docNumber)}
+                                                        {renderDocNumber(item.docNumber, item.id)}
                                                     </td>
                                                     <td>{item.requisitionType}</td>
                                                     <td>{item.purchaseType}</td>
