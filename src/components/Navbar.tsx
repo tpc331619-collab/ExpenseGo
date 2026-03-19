@@ -9,7 +9,7 @@ import './Navbar.css';
 
 const Navbar: React.FC = () => {
     const { appUser, logout } = useAuth();
-    const { selectedYear, setSelectedYear, refreshPurchases, refreshLedgerAccounts, refreshVendors, contractCount, noteCount, refreshContractAndNoteCounts } = useApp();
+    const { selectedYear, setSelectedYear, refreshPurchases, refreshLedgerAccounts, refreshVendors, contractCount, refreshContractAndNoteCounts } = useApp();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
@@ -47,7 +47,7 @@ const Navbar: React.FC = () => {
         { to: '/report', label: '報表', icon: <BarChart3 size={18} />, exact: false, badge: 0 },
         { to: '/admin', label: '管理', icon: <Settings size={18} />, exact: false, badge: appUser?.role === 'admin' ? pendingCount : 0, badgeClass: 'badge-admin' },
         { to: '/contracts', label: '契約', icon: <NotebookPen size={18} />, exact: false, badge: contractCount, badgeClass: 'badge-contracts' },
-        { to: '/notes', label: '筆記', icon: <Key size={18} />, exact: false, badge: noteCount, badgeClass: 'badge-notes' },
+        { to: '/notes', label: '筆記', icon: <Key size={18} />, exact: false, badge: 0, badgeClass: 'badge-notes' },
     ];
 
     return (
