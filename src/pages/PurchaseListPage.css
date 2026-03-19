@@ -79,7 +79,43 @@
 .vendor-name-clickable:hover {
     color: var(--primary-dark);
     text-decoration: underline;
-    transform: translateX(2px);
+}
+
+.clickable-doc-inline {
+    font-size: 13px;
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    color: #3b82f6;
+    margin-left: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.clickable-doc-inline:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.clickable-doc-inline.copied {
+    color: #22c55e;
+}
+
+.copy-feedback-inline {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: #22c55e;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.clickable-code.compact.copied code {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #15803d;
 }
 
 .title-name {

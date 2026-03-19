@@ -727,7 +727,7 @@ const PurchaseListPage: React.FC = () => {
                                 <th>廠商/品名</th>
                                 <th>總帳科目</th>
                                  <th>金額 (未稅 / 含稅)</th>
-                                 <th>文件號碼</th>
+                                 {/* Column removed: 文件號碼 */}
                                  <th>類型</th>
                                  <th>備註</th>
                                 {appUser?.role === 'admin' && <th>建立人</th>}
@@ -741,7 +741,7 @@ const PurchaseListPage: React.FC = () => {
                                 return (
                                     <React.Fragment key={monthKey}>
                                          <tr className="month-group-header" onClick={() => toggleMonth(monthKey)}>
-                                             <td colSpan={appUser?.role === 'admin' ? (!isGuest ? 11 : 10) : (!isGuest ? 10 : 9)}>
+                                             <td colSpan={appUser?.role === 'admin' ? (!isGuest ? 10 : 9) : (!isGuest ? 9 : 8)}>
                                                 <div className="month-header-content">
                                                     <span className={`arrow ${isExpanded ? 'open' : ''}`}>
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -772,12 +772,29 @@ const PurchaseListPage: React.FC = () => {
                                                     </td>
                                                     <td data-label="廠商/品名" className="td-vendor-title">
                                                         <div className="vertical-stack">
-                                                            <div
-                                                                className="vendor-name-clickable"
-                                                                onClick={() => setVendorDetail(p.vendor)}
-                                                                title="查看廠商資料卡"
-                                                            >
-                                                                {p.vendor}
+                                                            <div className="side-by-side compact" style={{ alignItems: 'baseline' }}>
+                                                                <div
+                                                                    className="vendor-name-clickable"
+                                                                    onClick={() => setVendorDetail(p.vendor)}
+                                                                    title="查看廠商資料卡"
+                                                                >
+                                                                    {p.vendor}
+                                                                </div>
+                                                                {p.docNumber && (
+                                                                    <span
+                                                                        className={`clickable-doc-inline ${copiedId === p.id ? 'copied' : ''}`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            navigator.clipboard.writeText(p.docNumber!);
+                                                                            setCopiedId(p.id);
+                                                                            setTimeout(() => setCopiedId(null), 1500);
+                                                                        }}
+                                                                        title="點擊複製文件號碼"
+                                                                    >
+                                                                        {p.docNumber}
+                                                                        {copiedId === p.id && <span className="copy-feedback-inline">已複製!</span>}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <div className="title-name-group">
                                                                 {(p as any).allItems?.map((item: any, idx: number) => (
@@ -806,22 +823,6 @@ const PurchaseListPage: React.FC = () => {
                                                                 <span className="val-incl">{fmt(Math.round(p.amount * 1.05))}</span>
                                                             </div>
                                                         </div>
-                                                     </td>
-                                                     <td data-label="文件號碼" className="td-doc-number">
-                                                         <div
-                                                             className={`clickable-code ${copiedId === p.id ? 'copied' : ''}`}
-                                                             onClick={() => {
-                                                                 if (p.docNumber) {
-                                                                     navigator.clipboard.writeText(p.docNumber);
-                                                                     setCopiedId(p.id);
-                                                                     setTimeout(() => setCopiedId(null), 1500);
-                                                                 }
-                                                             }}
-                                                             title="點擊複製文件號碼"
-                                                         >
-                                                             <code>{p.docNumber || '-'}</code>
-                                                             {copiedId === p.id && <span className="copy-feedback">已複製!</span>}
-                                                         </div>
                                                      </td>
                                                      <td data-label="類型" className="td-types">
                                                         <div className="vertical-stack type-stack">
