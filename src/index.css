@@ -174,21 +174,23 @@ select option {
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────────  */
-.btn-primary {
-  background: linear-gradient(135deg, var(--purple) 0%, var(--purple-d) 100%);
-  color: #fff;
+.btn-primary,
+.btn-navy-call-to-action {
+  background: var(--primary) !important;
+  color: #fff !important;
   padding: 10px 24px;
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 14px;
   transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 4px 12px rgba(30, 58, 95, 0.15);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+  background: var(--primary-dark);
+  box-shadow: 0 6px 16px rgba(30, 58, 95, 0.25);
 }
 
 .fab-add {

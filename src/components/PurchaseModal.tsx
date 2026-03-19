@@ -452,7 +452,7 @@ const PurchaseModal: React.FC<Props> = ({ onClose, editPurchase, isCopy }) => {
                         </div>
                         <div className="footer-actions">
                             <button type="button" className="btn-outline" onClick={() => onClose()}>取消</button>
-                            <button type="submit" className="btn-primary" disabled={saving}>
+                            <button type="submit" className="btn-navy-call-to-action" disabled={saving}>
                                 {saving ? '儲存中⋯' : (isCopy ? '複製' : (editPurchase ? '更新' : '新增'))}
                             </button>
                         </div>

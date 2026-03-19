@@ -628,7 +628,7 @@ const PurchaseListPage: React.FC = () => {
                             <button className="btn-export" onClick={handleExportExcel} title="匯出篩選後的資料">
                                 📥 匯出 Excel
                             </button>
-                            <button className="btn-primary" onClick={() => setShowModal(true)}>＋ 新增採購</button>
+                            <button className="btn-navy-call-to-action" onClick={() => setShowModal(true)}>＋ 新增採購</button>
                         </>
                     )}
                 </div>
