@@ -217,7 +217,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 const AdminPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear, purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, refreshSystemOptions } = useApp();
+    const { ledgerAccounts, refreshLedgerAccounts, vendors, refreshVendors, selectedYear, purchaseTypes, requisitionTypes, contractTypes, contractStatuses, contractExpireDays, refreshSystemOptions } = useApp();
     const isAdmin = appUser?.role === 'admin';
     const isGuest = appUser?.role === 'guest';
     const [tab, setTab] = useState<AdminTab>(isAdmin ? 'users' : 'accounts');
@@ -257,6 +257,7 @@ const AdminPage: React.FC = () => {
     const [newPurType, setNewPurType] = useState('');
     const [newReqType, setNewReqType] = useState('');
     const [newContractType, setNewContractType] = useState('');
+    const [newContractStatus, setNewContractStatus] = useState('');
     const [expireDaysInput, setExpireDaysInput] = useState('');
     const [optionsSaving, setOptionsSaving] = useState(false);
 
@@ -719,7 +720,7 @@ const AdminPage: React.FC = () => {
 
     const pendingCount = users.filter((u) => u.role === 'pending').length;
 
-    const handleAddOption = async (type: 'purchase' | 'requisition' | 'contract' | 'expireDays') => {
+    const handleAddOption = async (type: 'purchase' | 'requisition' | 'contract' | 'contractStatus' | 'expireDays') => {
         setOptionsSaving(true);
         try {
             if (type === 'purchase') {
@@ -749,6 +750,15 @@ const AdminPage: React.FC = () => {
                 }
                 await updateSystemOptions({ contractTypes: [...contractTypes, val] });
                 setNewContractType('');
+            } else if (type === 'contractStatus') {
+                const val = newContractStatus.trim();
+                if (!val) return;
+                if (contractStatuses.includes(val)) {
+                    alert('此契約狀態已存在！');
+                    return;
+                }
+                await updateSystemOptions({ contractStatuses: [...contractStatuses, val] });
+                setNewContractStatus('');
             } else if (type === 'expireDays') {
                 const val = parseInt(expireDaysInput, 10);
                 if (isNaN(val) || val < 0) {
@@ -767,7 +777,7 @@ const AdminPage: React.FC = () => {
         }
     };
 
-    const handleDeleteOption = async (type: 'purchase' | 'requisition' | 'contract', targetVal: string) => {
+    const handleDeleteOption = async (type: 'purchase' | 'requisition' | 'contract' | 'contractStatus', targetVal: string) => {
         setConfirmState({
             isOpen: true,
             title: `刪除選項`,
@@ -782,6 +792,8 @@ const AdminPage: React.FC = () => {
                         await updateSystemOptions({ requisitionTypes: requisitionTypes.filter(t => t !== targetVal) });
                     } else if (type === 'contract') {
                         await updateSystemOptions({ contractTypes: contractTypes.filter(t => t !== targetVal) });
+                    } else if (type === 'contractStatus') {
+                        await updateSystemOptions({ contractStatuses: contractStatuses.filter(t => t !== targetVal) });
                     }
                     await refreshSystemOptions();
                     setConfirmState(prev => ({ ...prev, isOpen: false }));
@@ -1021,6 +1033,67 @@ const AdminPage: React.FC = () => {
                                     儲存
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="admin-maintenance-card" style={{ flex: '1 1 400px', padding: 24, background: '#fff', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--shadow-sm)' }}>
+                        <h3 style={{ margin: '0 0 16px', fontSize: 18, color: 'var(--text1)' }}>契約狀態設定</h3>
+                        <p style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--text2)' }}>若刪除現有選項，將不影響過去已建檔之紀錄。</p>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                            <input
+                                placeholder="新增契約狀態..."
+                                value={newContractStatus}
+                                onChange={e => setNewContractStatus(e.target.value)}
+                                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}
+                                onKeyDown={e => { if (e.key === 'Enter') handleAddOption('contractStatus'); }}
+                            />
+                            <button className="btn-primary" onClick={() => handleAddOption('contractStatus')} disabled={optionsSaving || !newContractStatus.trim()}>
+                                新增
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                            {contractStatuses.map(cs => (
+                                <div key={cs} className="option-tag" style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    background: '#f1f5f9',
+                                    border: '1px solid #e2e8f0',
+                                    padding: '6px 14px',
+                                    borderRadius: 20,
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: 'var(--text1)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                    transition: 'all 0.2s ease',
+                                }}>
+                                    {cs}
+                                    <button
+                                        onClick={() => handleDeleteOption('contractStatus', cs)}
+                                        className="option-delete-btn"
+                                        title="刪除"
+                                        style={{
+                                            background: '#e2e8f0',
+                                            border: 'none',
+                                            color: '#64748b',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: '50%',
+                                            padding: 0,
+                                            fontSize: 10,
+                                            fontWeight: 'bold',
+                                            transition: 'all 0.2s',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}
+                                    >✕</button>
+                                </div>
+                            ))}
+                            {contractStatuses.length === 0 && <span style={{ color: 'var(--text3)', fontSize: 14 }}>目前無選項</span>}
                         </div>
                     </div>
                 </div>

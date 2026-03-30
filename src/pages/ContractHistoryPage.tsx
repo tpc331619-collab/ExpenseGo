@@ -35,13 +35,14 @@ const getRenewalInfo = (endDateStr: string, status: NotebookEntry['status'], exp
 interface EntryModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: { caseName: string; vendor: string; contractType: string; totalAmount: number; procNumber: string; startDate: string; endDate: string; status: NotebookEntry['status'] }) => Promise<void>;
+    onSave: (data: { caseName: string; vendor: string; contractType: string; totalAmount: number; procNumber: string; startDate: string; endDate: string; status: string }) => Promise<void>;
     editingEntry: NotebookEntry | null;
     saving: boolean;
     contractTypes: string[];
+    contractStatuses: string[];
 }
 
-const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editingEntry, saving, contractTypes }) => {
+const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editingEntry, saving, contractTypes, contractStatuses }) => {
     const [caseName, setCaseName] = useState('');
     const [vendor, setVendor] = useState('');
     const [contractType, setContractType] = useState(contractTypes[0] || '勞務契約');
@@ -49,7 +50,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
     const [procNumber, setProcNumber] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [status, setStatus] = useState<NotebookEntry['status']>('執行中');
+    const [status, setStatus] = useState<string>(contractStatuses[0] || '執行中');
 
     useEffect(() => {
         if (editingEntry) {
@@ -60,7 +61,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
             setProcNumber(editingEntry.procNumber);
             setStartDate(editingEntry.startDate);
             setEndDate(editingEntry.endDate);
-            setStatus(editingEntry.status || '執行中');
+            setStatus(editingEntry.status || contractStatuses[0] || '執行中');
         } else {
             setCaseName('');
             setVendor('');
@@ -69,9 +70,9 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
             setProcNumber('');
             setStartDate('');
             setEndDate('');
-            setStatus('執行中');
+            setStatus(contractStatuses[0] || '執行中');
         }
-    }, [editingEntry, isOpen, contractTypes]);
+    }, [editingEntry, isOpen, contractTypes, contractStatuses]);
 
     if (!isOpen) return null;
 
@@ -109,10 +110,10 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave, editin
                     </div>
                     <div className="form-group">
                         <label>狀態 <span className="required">*</span></label>
-                        <select value={status} onChange={e => setStatus(e.target.value as NotebookEntry['status'])}>
-                            <option value="招標中">招標中</option>
-                            <option value="執行中">執行中</option>
-                            <option value="已結案">已結案</option>
+                        <select value={status} onChange={e => setStatus(e.target.value)}>
+                            {contractStatuses.map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="form-group">
@@ -166,7 +167,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteProps> = ({ isOpen, onConfirm, o
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const ContractHistoryPage: React.FC = () => {
     const { appUser } = useAuth();
-    const { contractTypes, contractExpireDays, refreshContractAndNoteCounts } = useApp();
+    const { contractTypes, contractStatuses, contractExpireDays, refreshContractAndNoteCounts } = useApp();
 
     const [entries, setEntries] = useState<NotebookEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -634,6 +635,7 @@ const ContractHistoryPage: React.FC = () => {
                 editingEntry={editingEntry}
                 saving={saving}
                 contractTypes={contractTypes}
+                contractStatuses={contractStatuses}
             />
 
             <ConfirmDeleteModal

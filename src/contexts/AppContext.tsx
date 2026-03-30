@@ -20,6 +20,7 @@ interface AppContextValue {
     purchaseTypes: string[];
     requisitionTypes: string[];
     contractTypes: string[];
+    contractStatuses: string[];
     contractExpireDays: number;
     contractCount: number;
     noteCount: number;
@@ -40,6 +41,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [purchaseTypes, setPurchaseTypes] = useState<string[]>([]);
     const [requisitionTypes, setRequisitionTypes] = useState<string[]>([]);
     const [contractTypes, setContractTypes] = useState<string[]>([]);
+    const [contractStatuses, setContractStatuses] = useState<string[]>(['招標中', '執行中', '已結案']);
     const [contractExpireDays, setContractExpireDays] = useState<number>(120);
     const [contractCount, setContractCount] = useState<number>(0);
     const [noteCount, setNoteCount] = useState<number>(0);
@@ -99,6 +101,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPurchaseTypes(options.purchaseTypes || []);
         setRequisitionTypes(options.requisitionTypes || []);
         setContractTypes(options.contractTypes || []);
+        setContractStatuses(options.contractStatuses ?? ['招標中', '執行中', '已結案']);
         setContractExpireDays(options.contractExpireDays || 120);
     }, []);
 
@@ -147,11 +150,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         compareYear: compareYearState, setCompareYear,
         refreshPurchases, refreshLedgerAccounts, refreshVendors,
         purchaseListRefreshKey, incrementPurchaseListRefresh,
-        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, contractCount, noteCount, refreshSystemOptions, refreshContractAndNoteCounts
+        purchaseTypes, requisitionTypes, contractTypes, contractStatuses, contractExpireDays, contractCount, noteCount, refreshSystemOptions, refreshContractAndNoteCounts
     }), [
         purchases, ledgerAccounts, vendors, loadingData,
         selectedYear, compareYearState, purchaseListRefreshKey,
-        purchaseTypes, requisitionTypes, contractTypes, contractExpireDays, contractCount, noteCount,
+        purchaseTypes, requisitionTypes, contractTypes, contractStatuses, contractExpireDays, contractCount, noteCount,
         setCompareYear, refreshPurchases, refreshLedgerAccounts, refreshVendors, refreshSystemOptions, refreshContractAndNoteCounts
     ]);
 
