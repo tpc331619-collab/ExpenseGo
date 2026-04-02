@@ -793,7 +793,14 @@ select option {
   background: #3b82f6;
 }
 
-/* ── Global Confirm Modal ─────────────────────────────────────────────────── */
+/* ── Global Confirm Modal & Modals ─────────────────────────────────────────── */
+.modal-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+
 .confirm-modal {
   max-width: 400px !important;
   padding: 32px !important;

@@ -537,7 +537,7 @@ const Dashboard: React.FC = () => {
             {/* Budget Detail Modal */}
             {selectedBudget && (
                 <div className="modal-overlay" onClick={() => setSelectedBudget(null)}>
-                    <div className="modal-box budget-detail-pop" onClick={e => e.stopPropagation()}>
+                    <div className="modal-box budget-detail-pop pop-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>預算支用詳情</h2>
                             <button className="modal-close" onClick={() => setSelectedBudget(null)}>×</button>
@@ -577,7 +577,7 @@ const Dashboard: React.FC = () => {
             {/* Monthly / Vendor Detail Modal */}
             {drillDown && (
                 <div className="modal-overlay" onClick={() => setDrillDown(null)}>
-                    <div className="modal-box drill-down-pop" onClick={e => e.stopPropagation()}>
+                    <div className="modal-box drill-down-pop pop-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>{drillDownTitle}</h2>
                             <button className="modal-close" onClick={() => setDrillDown(null)}>×</button>
@@ -614,7 +614,7 @@ const Dashboard: React.FC = () => {
 
             {showYoYDetail && (
                 <div className="modal-overlay" onClick={() => setShowYoYDetail(null)}>
-                    <div className="modal-box yoy-detail-pop" onClick={e => e.stopPropagation()}>
+                    <div className="modal-box yoy-detail-pop pop-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>{showYoYDetail.title}</h2>
                             <button className="modal-close" onClick={() => setShowYoYDetail(null)}>×</button>

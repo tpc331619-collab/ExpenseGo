@@ -151,7 +151,9 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteProps> = ({ isOpen, onConfirm, o
         <div className="modal-overlay" onClick={onCancel}>
             <div className="modal-box confirm-modal" onClick={e => e.stopPropagation()}>
                 <div className="confirm-content">
-                    <div className="confirm-icon icon-danger">⚠️</div>
+                    <div className="confirm-icon icon-danger">
+                        <Trash2 size={42} />
+                    </div>
                     <h3>刪除契約履歷</h3>
                     <p>確定要刪除此筆紀錄？<br />此操作無法復原。</p>
                 </div>
