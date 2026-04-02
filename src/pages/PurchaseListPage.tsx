@@ -229,7 +229,8 @@ const PurchaseListPage: React.FC = () => {
     const executeSingleDelete = async (p: Purchase) => {
         setDeleting(p.id);
         try {
-            await deletePurchaseGroup(p.groupId, selectedYear);
+            const uid = appUser?.role === 'admin' ? undefined : appUser?.uid;
+            await deletePurchaseGroup(p.groupId, selectedYear, uid);
             fetchPurchases();
         } catch (err: unknown) {
             console.error('Delete failed:', err);
@@ -297,7 +298,8 @@ const PurchaseListPage: React.FC = () => {
         const count = selectedGroups.size;
         setLoading(true);
         try {
-            await deletePurchasesBatch(Array.from(selectedGroups), selectedYear);
+            const uid = appUser?.role === 'admin' ? undefined : appUser?.uid;
+            await deletePurchasesBatch(Array.from(selectedGroups), selectedYear, uid);
             setSelectedGroups(new Set());
             fetchPurchases();
             alert(`已成功刪除 ${count} 份單據`);

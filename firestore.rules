@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getRole() == 'admin';
+    }
+
+    function isUser() {
+      return isSignedIn() && getRole() == 'user';
+    }
+
+    function isAdminOrUser() {
+      return isAdmin() || isUser();
+    }
+
+    // ── Users collection ──────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if request.auth.uid == uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Purchases (yearly subcollection) ─────────────────────────────────────
+    match /years/{year}/purchases/{purchaseId} {
+      allow read: if isAdminOrUser();
+      allow create: if isAdminOrUser();
+      allow update: if isAdmin() || (isUser() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isAdmin() || (isUser() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // ── Ledger Accounts (yearly subcollection) ────────────────────────────────
+    match /years/{year}/ledgerAccounts/{accountId} {
+      allow read: if isAdminOrUser();
+      allow write: if isAdminOrUser();
+    }
+
+    // ── Vendors ───────────────────────────────────────────────────────────────
+    match /vendors/{vendorId} {
+      allow read: if isAdminOrUser();
+      allow write: if isAdminOrUser();
+    }
+
+    // ── Notebooks (contract history) ──────────────────────────────────────────
+    match /notebooks/{entryId} {
+      allow read: if isAdminOrUser();
+      allow create: if isAdminOrUser();
+      allow update: if isAdmin() || (isUser() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isAdmin() || (isUser() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // ── Pass Notes ────────────────────────────────────────────────────────────
+    match /passNotes/{noteId} {
+      allow read: if isAdminOrUser();
+      allow write: if isAdminOrUser();
+
+      match /history/{historyId} {
+        allow read: if isAdminOrUser();
+        allow write: if isAdminOrUser();
+      }
+    }
+
+    // ── System Options (settings) ─────────────────────────────────────────────
+    // admin 和 user 都可以讀寫，guest 只能讀
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdminOrUser();
+    }
+  }
+}

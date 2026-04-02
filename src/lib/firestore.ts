@@ -299,22 +299,27 @@ export const updatePurchase = async (groupId: string, data: PurchaseFormData, cu
     await batch.commit();
 };
 
-export const deletePurchaseGroup = async (groupId: string, year: number) => {
+export const deletePurchaseGroup = async (groupId: string, year: number, uid?: string) => {
     const purchaseRef = getPurchaseRef(year);
-    const q = query(purchaseRef, where('groupId', '==', groupId));
+    // 非 admin (有傳 uid) 時，必須帶 createdBy 條件才符合 Firestore read rule
+    const q = uid
+        ? query(purchaseRef, where('groupId', '==', groupId), where('createdBy', '==', uid))
+        : query(purchaseRef, where('groupId', '==', groupId));
     const snap = await getDocs(q);
     const batch = writeBatch(db);
     snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
 };
 
-export const deletePurchasesBatch = async (groupIds: string[], year: number) => {
+export const deletePurchasesBatch = async (groupIds: string[], year: number, uid?: string) => {
     const purchaseRef = getPurchaseRef(year);
     let batch = writeBatch(db);
     let opCount = 0;
 
     for (const groupId of groupIds) {
-        const q = query(purchaseRef, where('groupId', '==', groupId));
+        const q = uid
+            ? query(purchaseRef, where('groupId', '==', groupId), where('createdBy', '==', uid))
+            : query(purchaseRef, where('groupId', '==', groupId));
         const snap = await getDocs(q);
 
         for (const d of snap.docs) {
