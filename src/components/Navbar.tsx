@@ -105,6 +105,7 @@ const Navbar: React.FC = () => {
                 <div className="nav-right-actions desktop-only">
                     <div className="nav-user">
                         <img src={appUser?.photoURL || ''} className="nav-avatar" alt={appUser?.displayName} />
+                        <span className="nav-name" title={appUser?.displayName}>{appUser?.displayName || '使用者'}</span>
                         <button className="nav-logout" onClick={handleLogout}>登出</button>
                     </div>
                 </div>
@@ -120,6 +121,9 @@ const Navbar: React.FC = () => {
                     <div className="mobile-menu-inner" onClick={(e) => e.stopPropagation()}>
                         <div className="mobile-user-info">
                             <img src={appUser?.photoURL || ''} className="nav-avatar" alt="" />
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span className="nav-name" title={appUser?.displayName}>{appUser?.displayName || '使用者'}</span>
+                            </div>
                         </div>
                         {navItems.map((item) => (
                             <NavLink
