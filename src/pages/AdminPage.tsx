@@ -815,20 +815,20 @@ const AdminPage: React.FC = () => {
 
             <div className="admin-tabs">
                 {isAdmin && (
-                    <button className={`tab-btn ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
+                    <button className={`tab-btn tab-btn-users ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
                         帳號管理 {pendingCount > 0 && <span className="badge">{pendingCount}</span>}
                     </button>
                 )}
-                <button className={`tab-btn ${tab === 'accounts' ? 'active' : ''}`} onClick={() => setTab('accounts')}>
+                <button className={`tab-btn tab-btn-accounts ${tab === 'accounts' ? 'active' : ''}`} onClick={() => setTab('accounts')}>
                     總帳科目管理
                 </button>
-                <button className={`tab-btn ${tab === 'vendors' ? 'active' : ''}`} onClick={() => setTab('vendors')}>
+                <button className={`tab-btn tab-btn-vendors ${tab === 'vendors' ? 'active' : ''}`} onClick={() => setTab('vendors')}>
                     廠商管理
                 </button>
-                <button className={`tab-btn ${tab === 'options' ? 'active' : ''}`} onClick={() => setTab('options')}>
+                <button className={`tab-btn tab-btn-options ${tab === 'options' ? 'active' : ''}`} onClick={() => setTab('options')}>
                     選項設定
                 </button>
-                <button className={`tab-btn ${tab === 'maintenance' ? 'active' : ''}`} onClick={() => setTab('maintenance')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button className={`tab-btn tab-btn-maintenance ${tab === 'maintenance' ? 'active' : ''}`} onClick={() => setTab('maintenance')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Database size={16} /> 資料維護
                 </button>
             </div>

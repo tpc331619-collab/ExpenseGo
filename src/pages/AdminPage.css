@@ -366,3 +366,74 @@
         transform: translateY(0);
     }
 }
+
+/* 系統管理專屬：彩色標籤按鈕 (每個都不一樣的淺色系列) */
+.admin-tabs .tab-btn-users {
+    background: #e0f2fe; /* 淺藍色 */
+    color: #0284c7;
+    border-color: #bae6fd;
+}
+.admin-tabs .tab-btn-users:hover {
+    background: #bae6fd;
+}
+.admin-tabs .tab-btn-users.active {
+    background: #0284c7;
+    color: #fff;
+    border-color: #0284c7;
+}
+
+.admin-tabs .tab-btn-accounts {
+    background: #dcfce7; /* 淺綠色 */
+    color: #16a34a;
+    border-color: #bbf7d0;
+}
+.admin-tabs .tab-btn-accounts:hover {
+    background: #bbf7d0;
+}
+.admin-tabs .tab-btn-accounts.active {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+}
+
+.admin-tabs .tab-btn-vendors {
+    background: #f3e8ff; /* 淺紫色 */
+    color: #9333ea;
+    border-color: #e9d5ff;
+}
+.admin-tabs .tab-btn-vendors:hover {
+    background: #e9d5ff;
+}
+.admin-tabs .tab-btn-vendors.active {
+    background: #9333ea;
+    color: #fff;
+    border-color: #9333ea;
+}
+
+.admin-tabs .tab-btn-options {
+    background: #ffedd5; /* 淺橘色 */
+    color: #ea580c;
+    border-color: #fed7aa;
+}
+.admin-tabs .tab-btn-options:hover {
+    background: #fed7aa;
+}
+.admin-tabs .tab-btn-options.active {
+    background: #ea580c;
+    color: #fff;
+    border-color: #ea580c;
+}
+
+.admin-tabs .tab-btn-maintenance {
+    background: #fee2e2; /* 淺紅色 */
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.admin-tabs .tab-btn-maintenance:hover {
+    background: #fecaca;
+}
+.admin-tabs .tab-btn-maintenance.active {
+    background: #dc2626;
+    color: #fff;
+    border-color: #dc2626;
+}
