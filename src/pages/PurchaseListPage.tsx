@@ -479,7 +479,7 @@ const PurchaseListPage: React.FC = () => {
                 const { addPurchase, getPurchases } = await import('../lib/firestore');
 
                 // Build a set of existing docNumbers to prevent duplicate import
-                const existingPurchases = await getPurchases(selectedYear);
+                const existingPurchases = await getPurchases(selectedYear, appUser?.role === 'admin' ? undefined : appUser?.uid);
                 const existingDocNums = new Set(
                     existingPurchases.map(p => p.docNumber?.trim()).filter(Boolean)
                 );
@@ -597,8 +597,10 @@ const PurchaseListPage: React.FC = () => {
 
                 setImportResult({ success, skipped, errors });
                 fetchPurchases();
-            } catch {
-                alert('處理失敗，請檢查 Excel 格式');
+            } catch (err: unknown) {
+                console.error("Excel Import Error:", err);
+                const msg = err instanceof Error ? err.message : String(err);
+                alert(`處理失敗，請檢查 Excel 格式\n錯誤資訊：${msg}`);
             } finally {
                 setLoading(false);
                 e.target.value = '';
