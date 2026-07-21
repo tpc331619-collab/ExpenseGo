@@ -512,7 +512,7 @@ const PurchaseListPage: React.FC = () => {
                     const amount = parseFloat(String(amountRaw || '0'));
                     const reqType = String(row['請購類型'] || '').trim();
                     const purType = String(row['採購性質'] || '').trim();
-                    const docNum = String(row['文件號碼'] || row['發票/FL單號'] || '').trim();
+                    const docNum = String(row['文件號碼'] || row['發票/FI單號'] || row['發票/FL單號'] || '').trim();
                     const note = String(row['備註'] || '').trim();
 
                     if (vendor.startsWith('範例-') || title.startsWith('範例-')) return;
